@@ -436,7 +436,3 @@ For support and questions:
 ---
 
 **Goyco** - A modern news aggregation platform built with Go, PostgreSQL and most importantly, love.
-
-```
-
-```
