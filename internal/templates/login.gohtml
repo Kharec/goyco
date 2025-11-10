@@ -1,0 +1,17 @@
+{{define "content"}}
+<section class="auth-card">
+    <h1>Sign in</h1>
+    <form method="post" action="/login" novalidate>
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}" />
+        
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" value="{{index .FormValues "username"}}" required autofocus />
+
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required />
+
+        <button type="submit">Continue</button>
+        <p class="hint">Forgot your password? <a href="/forgot-password">Reset it</a>.</p>
+    </form>
+</section>
+{{end}}

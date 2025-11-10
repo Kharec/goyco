@@ -1,0 +1,56 @@
+{{define "content"}}
+<section class="auth-card">
+    <h1 class="auth-card__message">Account deletion</h1>
+    {{if .Flash}}
+        <p class="auth-card__message">{{.Flash}}</p>
+        <div class="auth-card__actions">
+            <a class="button" href="/login">Go to sign in</a>
+            <a class="button button-ghost muted" href="/">Back home</a>
+        </div>
+    {{else if .Errors}}
+        {{range .Errors}}
+            <p class="auth-card__message" data-state="error">{{.}}</p>
+        {{end}}
+        <div class="auth-card__actions">
+            <a class="button" href="/settings">Return to settings</a>
+            <a class="button button-ghost muted" href="/">Back home</a>
+        </div>
+    {{else if .HasPosts}}
+        <div class="deletion-warning">
+            <p class="auth-card__message" data-state="error">
+                <strong>Warning:</strong> You have {{.PostCount}} post{{if ne .PostCount 1}}s{{end}} on this platform.
+            </p>
+            <p class="auth-card__message">
+                What would you like to do with your posts?
+            </p>
+            <form method="post" action="/settings/delete/confirm" class="deletion-form">
+                <input type="hidden" name="token" value="{{.Token}}" />
+                <div class="deletion-options">
+                    <label class="deletion-option">
+                        <input type="radio" name="delete_posts" value="false" checked />
+                        <span>Keep my posts (they will be attributed to "(deleted)")</span>
+                    </label>
+                    <label class="deletion-option">
+                        <input type="radio" name="delete_posts" value="true" />
+                        <span>Delete all my posts permanently</span>
+                    </label>
+                </div>
+                <div class="auth-card__actions">
+                    <button type="submit" class="button button-danger">Confirm deletion</button>
+                    <a class="button button-ghost muted" href="/settings">Cancel</a>
+                </div>
+            </form>
+        </div>
+    {{else}}
+        <p class="auth-card__message">Are you sure you want to delete your account? This action cannot be undone.</p>
+        <form method="post" action="/settings/delete/confirm" class="deletion-form">
+            <input type="hidden" name="token" value="{{.Token}}" />
+            <input type="hidden" name="delete_posts" value="false" />
+            <div class="auth-card__actions">
+                <button type="submit" class="button button-danger">Confirm deletion</button>
+                <a class="button button-ghost muted" href="/settings">Cancel</a>
+            </div>
+        </form>
+    {{end}}
+</section>
+{{end}}

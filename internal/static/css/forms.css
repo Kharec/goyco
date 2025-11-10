@@ -1,0 +1,190 @@
+.form-card,
+.auth-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 2rem;
+  max-width: 540px;
+  margin: 0 auto;
+  box-shadow: none;
+}
+
+.form-card h1,
+.auth-card h1 {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  font-size: 1.65rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.auth-card__message {
+  margin: 0;
+  color: var(--muted);
+  font-size: 1.05rem;
+  text-align: center;
+}
+
+.auth-card__message[data-state="error"] {
+  color: var(--error);
+}
+
+.auth-card__actions {
+  margin-top: 2.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+label {
+  display: block;
+  margin-top: 1.25rem;
+  margin-bottom: 0.4rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+input[type="text"],
+input[type="email"],
+input[type="url"],
+input[type="password"],
+textarea {
+  width: 100%;
+  padding: 0.7rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 1rem;
+  color: var(--text);
+  transition: all 140ms ease;
+  margin-top: 0;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="url"]:focus,
+input[type="password"]:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(15, 173, 185, 0.22);
+}
+
+textarea {
+  resize: vertical;
+  min-height: 140px;
+}
+
+.form-card form > button,
+.form-card form > .button,
+.auth-card form > button,
+.auth-card form > .button {
+  margin-top: 1.5rem;
+}
+
+.form-card form > button + .hint,
+.form-card form > .button + .hint,
+.auth-card form > button + .hint,
+.auth-card form > .button + .hint {
+  margin-top: 1.5rem;
+  text-align: center;
+}
+
+.field-with-action {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.45rem;
+}
+
+.field-with-action input {
+  flex: 1 1 auto;
+}
+
+.hint {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-top: 0.4rem;
+}
+
+.hint[data-state="error"] {
+  color: var(--error);
+}
+
+.hint[data-state="info"] {
+  color: var(--accent);
+}
+
+.error-list {
+  margin: 0.75rem 0 0;
+  padding-left: 1.2rem;
+  color: var(--error);
+}
+
+.deletion-warning {
+  text-align: left;
+}
+
+.deletion-form {
+  margin-top: 1.5rem;
+}
+
+.deletion-options {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.deletion-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-subtle);
+  cursor: pointer;
+  transition: all 140ms ease;
+  margin: 0;
+  font-weight: normal;
+}
+
+.deletion-option:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.deletion-option input[type="radio"] {
+  margin: 0;
+  width: auto;
+  flex-shrink: 0;
+  margin-top: 0.2rem;
+}
+
+.deletion-option span {
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.deletion-option:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  font-weight: 500;
+}
+
+@media (max-width: 640px) {
+  .form-card,
+  .auth-card {
+    padding: 1.5rem;
+  }
+
+  .deletion-options {
+    gap: 0.75rem;
+  }
+
+  .deletion-option {
+    padding: 0.75rem;
+  }
+}

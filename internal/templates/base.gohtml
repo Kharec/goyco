@@ -1,0 +1,63 @@
+{{define "layout"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{if .Title}}{{.Title}}{{end}}</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico" />
+    <link rel="stylesheet" href="/static/css/main.css" />
+</head>
+<body>
+    <header class="site-header">
+        <div class="container header-bar">
+            <a class="brand" href="/">{{.SiteTitle}}</a>
+            <div class="header-search">
+                <form class="search-form" action="/search" method="get">
+                    <input type="search" name="q" placeholder="Search posts..." value="{{.SearchQuery}}" class="search-input" />
+                    <button type="submit" class="search-button" aria-label="Search">
+                        <span aria-hidden="true">🔍</span>
+                    </button>
+                </form>
+            </div>
+            <nav class="site-nav">
+                <a href="/">Home</a>
+                {{if .User}}
+                    <a href="/posts/new">Share</a>
+                    <a href="/settings">Settings</a>
+                    <form class="nav-action" action="/logout" method="post">
+                        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}" />
+                        <button type="submit">Sign out</button>
+                    </form>
+                {{else}}
+                    <a href="/register">Create account</a>
+                    <a href="/login">Sign in</a>
+                {{end}}
+            </nav>
+        </div>
+    </header>
+
+    <main class="container content-stack">
+        {{if .Errors}}
+        <div class="alert alert-error">
+            {{range .Errors}}
+            <p>{{.}}</p>
+            {{end}}
+        </div>
+        {{end}}
+        {{if .Flash}}
+        <div class="alert alert-success">{{.Flash}}</div>
+        {{end}}
+
+        {{block "content" .}}{{end}}
+    </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            <small>Powered with ❤️ by <a href="https://github.com/sandrocazzaniga/goyco">Goyco</a></small>
+        </div>
+    </footer>
+
+</body>
+</html>
+{{end}}

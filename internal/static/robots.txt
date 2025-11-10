@@ -1,0 +1,20 @@
+User-agent: *
+Allow: /
+Allow: /search
+Allow: /posts/
+Allow: /static/
+
+# Disallow private/user-specific pages
+Disallow: /login
+Disallow: /register
+Disallow: /confirm
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /settings
+Disallow: /posts/new
+
+# Disallow API endpoints
+Disallow: /api/
+
+# Allow health check for monitoring
+Allow: /health

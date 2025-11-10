@@ -1,0 +1,18 @@
+[Unit]
+Description=Goyco - Self-hosted news aggregation platform
+Documentation=https://github.com/sandrocazzaniga/goyco
+After=network-online.target postgresql.service
+
+[Service]
+Type=simple
+User=goyco
+Group=goyco
+WorkingDirectory=/opt/goyco
+ExecStart=/opt/goyco/bin/goyco run
+Restart=always
+RestartSec=5
+EnvironmentFile=/opt/goyco/.env
+
+
+[Install]
+WantedBy=multi-user.target

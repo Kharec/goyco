@@ -1,0 +1,15 @@
+{{define "content"}}
+<section class="form-card">
+    <h1>{{if .Title}}{{.Title}}{{else}}Something went wrong{{end}}</h1>
+    {{if .Errors}}
+    <ul class="error-list">
+        {{range .Errors}}
+        <li>{{.}}</li>
+        {{end}}
+    </ul>
+    {{else}}
+    <p>We couldn't handle that request this time.</p>
+    {{end}}
+    <p><a href="/">Back to home</a></p>
+</section>
+{{end}}

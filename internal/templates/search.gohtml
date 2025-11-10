@@ -1,0 +1,27 @@
+{{define "content"}}
+<section class="page-header">
+    <div class="page-heading">
+        <h1 class="page-title">Search results</h1>
+        {{if .SearchQuery}}
+        <p class="search-query">Results for "{{.SearchQuery}}"</p>
+        {{end}}
+    </div>
+</section>
+
+<section class="post-feed">
+    {{if .SearchQuery}}
+        {{if .Posts}}
+            {{template "post-list" .}}
+        {{else}}
+            <div class="no-results">
+                <p>No posts found matching "{{.SearchQuery}}".</p>
+                <p>Try different keywords or <a href="/posts/new">share something new</a>.</p>
+            </div>
+        {{end}}
+    {{else}}
+        <div class="no-results">
+            <p>Enter a search term to find posts.</p>
+        </div>
+    {{end}}
+</section>
+{{end}}

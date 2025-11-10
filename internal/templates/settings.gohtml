@@ -1,0 +1,151 @@
+{{define "content"}}
+<section class="settings">
+    <div class="page-header">
+        <div class="page-heading">
+            <h1 class="page-title">Account settings</h1>
+            <p class="page-subtitle">Manage how you sign in and maintain your presence on {{.SiteTitle}}.</p>
+        </div>
+    </div>
+
+    <div class="settings-stack">
+        <div class="settings-row">
+            <article class="form-card settings-card">
+                <header class="settings-card__header">
+                    <h2>Change email address</h2>
+                    <p class="settings-lead">Current email:&nbsp;<span class="settings-email">{{.User.Email}}</span></p>
+                </header>
+                <form class="settings-card__form" method="post" action="/settings/email" autocomplete="email">
+                    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}" />
+                    <label for="settings-email">New email</label>
+                    <input
+                        id="settings-email"
+                        type="email"
+                        name="email"
+                        value="{{index .FormValues "email"}}"
+                        required
+                        placeholder="you@example.com"
+                    />
+                    {{with index .FormErrors "email"}}
+                    <ul class="error-list">
+                        {{range .}}
+                        <li>{{.}}</li>
+                        {{end}}
+                    </ul>
+                    {{end}}
+                    <p class="hint">We'll send a confirmation link to the new address. You'll need to verify it before signing in again.</p>
+                    <button type="submit">Update email</button>
+                </form>
+            </article>
+
+            <article class="form-card settings-card">
+                <header class="settings-card__header">
+                    <h2>Change username</h2>
+                    <p class="settings-lead">Current username: <strong>{{.User.Username}}</strong></p>
+                </header>
+                <form class="settings-card__form" method="post" action="/settings/username" autocomplete="username">
+                    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}" />
+                    <label for="settings-username">New username</label>
+                    <input
+                        id="settings-username"
+                        type="text"
+                        name="username"
+                        value="{{index .FormValues "username"}}"
+                        minlength="3"
+                        maxlength="50"
+                        required
+                    />
+                    <p class="hint">Usernames are unique. Pick something between 3 and 50 characters.</p>
+                    <button type="submit">Update username</button>
+                </form>
+            </article>
+        </div>
+
+        <article class="form-card settings-card settings-card--full">
+            <header class="settings-card__header">
+                <h2>Change password</h2>
+                <p class="settings-lead">Update your account password to keep your account secure.</p>
+            </header>
+            <form class="settings-card__form" method="post" action="/settings/password" autocomplete="current-password">
+                <input type="hidden" name="csrf_token" value="{{.CSRFToken}}" />
+                <label for="settings-current-password">Current password</label>
+                <input
+                    id="settings-current-password"
+                    type="password"
+                    name="current_password"
+                    required
+                    placeholder="Enter your current password"
+                />
+                {{with index .FormErrors "current_password"}}
+                <ul class="error-list">
+                    {{range .}}
+                    <li>{{.}}</li>
+                    {{end}}
+                </ul>
+                {{end}}
+                <label for="settings-new-password">New password</label>
+                <input
+                    id="settings-new-password"
+                    type="password"
+                    name="new_password"
+                    minlength="8"
+                    required
+                    placeholder="Enter your new password"
+                />
+                {{with index .FormErrors "new_password"}}
+                <ul class="error-list">
+                    {{range .}}
+                    <li>{{.}}</li>
+                    {{end}}
+                </ul>
+                {{end}}
+                <label for="settings-confirm-password">Confirm new password</label>
+                <input
+                    id="settings-confirm-password"
+                    type="password"
+                    name="confirm_password"
+                    minlength="8"
+                    required
+                    placeholder="Confirm your new password"
+                />
+                {{with index .FormErrors "confirm_password"}}
+                <ul class="error-list">
+                    {{range .}}
+                    <li>{{.}}</li>
+                    {{end}}
+                </ul>
+                {{end}}
+                <p class="hint">Password must be at least 8 characters long. Use a combination of letters, numbers, and symbols for better security.</p>
+                <button type="submit">Update password</button>
+            </form>
+        </article>
+
+        <article class="form-card settings-card settings-card--danger settings-card--full settings-card--deletion">
+            <header class="settings-card__header">
+                <h2 class="settings-card__title--danger">Request account deletion</h2>
+                <p class="settings-lead">We'll send a confirmation link by email. Your account stays active until you confirm from that message.</p>
+            </header>
+            <form class="settings-card__form" method="post" action="/settings/delete">
+                <input type="hidden" name="csrf_token" value="{{.CSRFToken}}" />
+                <label for="settings-delete">Type DELETE to confirm</label>
+                <input
+                    id="settings-delete"
+                    type="text"
+                    name="confirmation"
+                    placeholder="DELETE"
+                    autocomplete="off"
+                    required
+                />
+                {{with index .FormErrors "delete"}}
+                <ul class="error-list">
+                    {{range .}}
+                    <li>{{.}}</li>
+                    {{end}}
+                </ul>
+                {{end}}
+                <p class="hint hint--danger">We will send the confirmation email to {{.User.Email}}. The account is deleted only after you click the link.</p>
+                <button type="submit" class="button button-danger">Send deletion email</button>
+            </form>
+        </article>
+    </div>
+</section>
+{{end}}

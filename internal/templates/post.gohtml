@@ -1,0 +1,43 @@
+{{define "content"}}
+<article class="post-detail">
+    <header>
+        {{if .Post.URL}}
+        <h1><a href="{{.Post.URL}}" target="_blank" rel="noopener">{{.Post.Title}}</a></h1>
+        {{else}}
+        <h1>{{.Post.Title}}</h1>
+        {{end}}
+        <p class="post-meta">Shared by {{if .Post.AuthorName}}{{if eq .Post.AuthorName "(deleted)"}}(deleted){{else}}{{.Post.AuthorName}}{{end}}{{else if and .Post.AuthorID .Post.Author.Username}}{{.Post.Author.Username}}{{else}}unauthenticated user{{end}} · {{formatTime .Post.CreatedAt}}</p>
+    </header>
+
+    {{if .Post.Content}}
+    <section class="post-body">
+        <p>{{.Post.Content}}</p>
+    </section>
+    {{end}}
+
+    <section class="post-votes">
+        <div class="vote-strip">
+            <form action="/posts/{{.Post.ID}}/vote" method="post" class="vote-form">
+                {{if .CSRFToken}}<input type="hidden" name="csrf_token" value="{{.CSRFToken}}" />{{end}}
+                <input type="hidden" name="redirect" value="/posts/{{.Post.ID}}" />
+                <input type="hidden" name="action" value="{{if eq .CurrentVote "up"}}clear{{else}}up{{end}}" />
+                <button type="submit" class="vote-arrow{{if eq .CurrentVote "up"}} is-active{{end}}" aria-label="{{if eq .CurrentVote "up"}}Remove upvote{{else}}Upvote{{end}}">
+                    <span aria-hidden="true">▲</span>
+                </button>
+            </form>
+            <div class="vote-totals">
+                <span class="vote-score">Score {{.Post.Score}}</span>
+                <span class="vote-breakdown">▲ {{.Post.UpVotes}} · ▼ {{.Post.DownVotes}}</span>
+            </div>
+            <form action="/posts/{{.Post.ID}}/vote" method="post" class="vote-form">
+                {{if .CSRFToken}}<input type="hidden" name="csrf_token" value="{{.CSRFToken}}" />{{end}}
+                <input type="hidden" name="redirect" value="/posts/{{.Post.ID}}" />
+                <input type="hidden" name="action" value="{{if eq .CurrentVote "down"}}clear{{else}}down{{end}}" />
+                <button type="submit" class="vote-arrow{{if eq .CurrentVote "down"}} is-active{{end}}" aria-label="{{if eq .CurrentVote "down"}}Remove downvote{{else}}Downvote{{end}}">
+                    <span aria-hidden="true">▼</span>
+                </button>
+            </form>
+        </div>
+    </section>
+</article>
+{{end}}

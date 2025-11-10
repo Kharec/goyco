@@ -1,0 +1,1408 @@
+basePath: /api
+definitions:
+  handlers.APIInfo:
+    properties:
+      data: {}
+      error:
+        type: string
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  handlers.AuthResponse:
+    properties:
+      data: {}
+      error:
+        type: string
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  handlers.AuthTokensDetail:
+    properties:
+      access_token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
+      refresh_token:
+        example: f94d4ddc7d9b4fcb9d3a2c44c400b780
+        type: string
+      user:
+        $ref: "#/definitions/handlers.AuthUserSummary"
+    type: object
+  handlers.AuthTokensResponse:
+    properties:
+      data:
+        $ref: "#/definitions/handlers.AuthTokensDetail"
+      message:
+        example: Authentication successful
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  handlers.AuthUserSummary:
+    properties:
+      email:
+        example: jane@example.com
+        type: string
+      email_verified:
+        example: true
+        type: boolean
+      id:
+        example: 42
+        type: integer
+      locked:
+        example: false
+        type: boolean
+      username:
+        example: janedoe
+        type: string
+    type: object
+  handlers.ConfirmAccountDeletionRequest:
+    properties:
+      delete_posts:
+        type: boolean
+      token:
+        type: string
+    type: object
+  handlers.CreatePostRequest:
+    properties:
+      content:
+        type: string
+      title:
+        type: string
+      url:
+        type: string
+    type: object
+  handlers.ForgotPasswordRequest:
+    properties:
+      username_or_email:
+        type: string
+    type: object
+  handlers.LoginRequest:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+  handlers.PostResponse:
+    properties:
+      data: {}
+      error:
+        type: string
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  handlers.RefreshTokenRequest:
+    properties:
+      refresh_token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
+    required:
+      - refresh_token
+    type: object
+  handlers.RegisterRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+  handlers.ResendVerificationRequest:
+    properties:
+      email:
+        type: string
+    type: object
+  handlers.ResetPasswordRequest:
+    properties:
+      new_password:
+        type: string
+      token:
+        type: string
+    type: object
+  handlers.RevokeTokenRequest:
+    properties:
+      refresh_token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
+    required:
+      - refresh_token
+    type: object
+  handlers.UpdateEmailRequest:
+    properties:
+      email:
+        type: string
+    type: object
+  handlers.UpdatePasswordRequest:
+    properties:
+      current_password:
+        type: string
+      new_password:
+        type: string
+    type: object
+  handlers.UpdatePostRequest:
+    properties:
+      content:
+        type: string
+      title:
+        type: string
+    type: object
+  handlers.UpdateUsernameRequest:
+    properties:
+      username:
+        type: string
+    type: object
+  handlers.UserResponse:
+    properties:
+      data: {}
+      error:
+        type: string
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  handlers.VoteRequest:
+    description: Vote request with type field. All votes are handled the same way.
+    properties:
+      type:
+        enum:
+          - up
+          - down
+          - none
+        example: up
+        type: string
+    type: object
+  handlers.VoteResponse:
+    properties:
+      data: {}
+      error:
+        type: string
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: sandro@cazzaniga.fr
+    name: Goyco Team
+  description: Goyco is a Y Combinator-style news aggregation platform API.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  title: Goyco API
+  version: 0.1.0
+paths:
+  /api:
+    get:
+      consumes:
+        - application/json
+      description: Get information about the API endpoints and version
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: API information retrieved successfully
+          schema:
+            $ref: "#/definitions/handlers.APIInfo"
+      summary: Get API information
+      tags:
+        - api
+  /auth/account:
+    delete:
+      consumes:
+        - application/json
+      description: Initiate the deletion process for the authenticated user's account
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Deletion email sent
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "401":
+          description: Authentication required
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "500":
+          description: Internal server error
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "503":
+          description: Email delivery unavailable
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+      security:
+        - BearerAuth: []
+      summary: Request account deletion
+      tags:
+        - auth
+  /auth/account/confirm:
+    post:
+      consumes:
+        - application/json
+      description: Confirm account deletion using the provided token
+      parameters:
+        - description: Account deletion data
+          in: body
+          name: request
+          required: true
+          schema:
+            $ref: "#/definitions/handlers.ConfirmAccountDeletionRequest"
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Account deleted successfully
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "400":
+          description: Invalid or expired token
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "500":
+          description: Internal server error
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "503":
+          description: Email delivery unavailable
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+      summary: Confirm account deletion
+      tags:
+        - auth
+  /auth/confirm:
+    get:
+      consumes:
+        - application/json
+      description: Confirm user email with verification token
+      parameters:
+        - description: Email verification token
+          in: query
+          name: token
+          required: true
+          type: string
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Email confirmed successfully
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "400":
+          description: Invalid or missing token
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "500":
+          description: Internal server error
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+      summary: Confirm email address
+      tags:
+        - auth
+  /auth/email:
+    put:
+      consumes:
+        - application/json
+      description: Update the authenticated user's email address
+      parameters:
+        - description: New email address
+          in: body
+          name: request
+          required: true
+          schema:
+            $ref: "#/definitions/handlers.UpdateEmailRequest"
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "400":
+          description: Bad Request
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "409":
+          description: Conflict
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+      security:
+        - BearerAuth: []
+      summary: Update email address
+      tags:
+        - auth
+  /auth/forgot-password:
+    post:
+      consumes:
+        - application/json
+      description: Send a password reset email using a username or email
+      parameters:
+        - description: Username or email
+          in: body
+          name: request
+          required: true
+          schema:
+            $ref: "#/definitions/handlers.ForgotPasswordRequest"
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Password reset email sent if account exists
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "400":
+          description: Invalid request data
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+      summary: Request a password reset
+      tags:
+        - auth
+  /auth/login:
+    post:
+      consumes:
+        - application/json
+      description: Authenticate user with username and password
+      parameters:
+        - description: Login credentials
+          in: body
+          name: request
+          required: true
+          schema:
+            $ref: "#/definitions/handlers.LoginRequest"
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Authentication successful
+          schema:
+            $ref: "#/definitions/handlers.AuthTokensResponse"
+        "400":
+          description: Invalid request data or validation failed
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "401":
+          description: Invalid credentials
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "403":
+          description: Account is locked
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "500":
+          description: Internal server error
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+      summary: Login user
+      tags:
+        - auth
+  /auth/logout:
+    post:
+      consumes:
+        - application/json
+      description: Logout the authenticated user and invalidate their session
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Logged out successfully
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "401":
+          description: Authentication required
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+      security:
+        - BearerAuth: []
+      summary: Logout user
+      tags:
+        - auth
+  /auth/me:
+    get:
+      consumes:
+        - application/json
+      description: Retrieve the authenticated user's profile information
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: User profile retrieved successfully
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "401":
+          description: Authentication required
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "404":
+          description: User not found
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+      security:
+        - BearerAuth: []
+      summary: Get current user profile
+      tags:
+        - auth
+  /auth/password:
+    put:
+      consumes:
+        - application/json
+      description: Update the authenticated user's password
+      parameters:
+        - description: Password update data
+          in: body
+          name: request
+          required: true
+          schema:
+            $ref: "#/definitions/handlers.UpdatePasswordRequest"
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "400":
+          description: Bad Request
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+      security:
+        - BearerAuth: []
+      summary: Update password
+      tags:
+        - auth
+  /auth/refresh:
+    post:
+      consumes:
+        - application/json
+      description:
+        Use a refresh token to get a new access token. This endpoint allows
+        clients to obtain a new access token using a valid refresh token without requiring
+        user credentials.
+      parameters:
+        - description: Refresh token data
+          in: body
+          name: request
+          required: true
+          schema:
+            $ref: "#/definitions/handlers.RefreshTokenRequest"
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Token refreshed successfully
+          schema:
+            $ref: "#/definitions/handlers.AuthTokensResponse"
+        "400":
+          description: Invalid request body or missing refresh token
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "401":
+          description: Invalid or expired refresh token
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "403":
+          description: Account is locked
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "500":
+          description: Internal server error
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+      summary: Refresh access token
+      tags:
+        - auth
+  /auth/register:
+    post:
+      consumes:
+        - application/json
+      description: Register a new user with username, email and password
+      parameters:
+        - description: Registration data
+          in: body
+          name: request
+          required: true
+          schema:
+            $ref: "#/definitions/handlers.RegisterRequest"
+      produces:
+        - application/json
+      responses:
+        "201":
+          description: Registration successful
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "400":
+          description: Invalid request data or validation failed
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "409":
+          description: Username or email already exists
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "500":
+          description: Internal server error
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+      summary: Register a new user
+      tags:
+        - auth
+  /auth/resend-verification:
+    post:
+      consumes:
+        - application/json
+      description: Send a new verification email to the provided address
+      parameters:
+        - description: Email address
+          in: body
+          name: request
+          required: true
+          schema:
+            $ref: "#/definitions/handlers.ResendVerificationRequest"
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "400":
+          description: Bad Request
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "404":
+          description: Not Found
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "409":
+          description: Conflict
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+      summary: Resend verification email
+      tags:
+        - auth
+  /auth/reset-password:
+    post:
+      consumes:
+        - application/json
+      description: Reset a user's password using a reset token
+      parameters:
+        - description: Password reset data
+          in: body
+          name: request
+          required: true
+          schema:
+            $ref: "#/definitions/handlers.ResetPasswordRequest"
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Password reset successfully
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "400":
+          description: Invalid or expired token, or validation failed
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "500":
+          description: Internal server error
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+      summary: Reset password
+      tags:
+        - auth
+  /auth/revoke:
+    post:
+      consumes:
+        - application/json
+      description:
+        Revoke a specific refresh token. This endpoint allows authenticated
+        users to invalidate a specific refresh token, preventing its future use.
+      parameters:
+        - description: Token revocation data
+          in: body
+          name: request
+          required: true
+          schema:
+            $ref: "#/definitions/handlers.RevokeTokenRequest"
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Token revoked successfully
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "400":
+          description: Invalid request body or missing refresh token
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "401":
+          description: Invalid or expired access token
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "500":
+          description: Internal server error
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+      security:
+        - BearerAuth: []
+      summary: Revoke refresh token
+      tags:
+        - auth
+  /auth/revoke-all:
+    post:
+      consumes:
+        - application/json
+      description:
+        Revoke all refresh tokens for the authenticated user. This endpoint
+        allows users to invalidate all their refresh tokens at once, effectively logging
+        them out from all devices.
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: All tokens revoked successfully
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "401":
+          description: Invalid or expired access token
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "500":
+          description: Internal server error
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+      security:
+        - BearerAuth: []
+      summary: Revoke all user tokens
+      tags:
+        - auth
+  /auth/username:
+    put:
+      consumes:
+        - application/json
+      description: Update the authenticated user's username
+      parameters:
+        - description: New username
+          in: body
+          name: request
+          required: true
+          schema:
+            $ref: "#/definitions/handlers.UpdateUsernameRequest"
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "400":
+          description: Bad Request
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "409":
+          description: Conflict
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: "#/definitions/handlers.AuthResponse"
+      security:
+        - BearerAuth: []
+      summary: Update username
+      tags:
+        - auth
+  /health:
+    get:
+      consumes:
+        - application/json
+      description: Check if the API is healthy with comprehensive database monitoring
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Health check successful
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Health check
+      tags:
+        - api
+  /metrics:
+    get:
+      consumes:
+        - application/json
+      description:
+        Get application metrics including post stats, user stats, vote
+        stats, and database performance metrics
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Application metrics with vote statistics and database monitoring
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get metrics
+      tags:
+        - api
+  /posts:
+    get:
+      consumes:
+        - application/json
+      description:
+        Get a list of posts with pagination. Posts include vote statistics
+        (up_votes, down_votes, score) and current user's vote status.
+      parameters:
+        - default: 20
+          description: Number of posts to return
+          in: query
+          name: limit
+          type: integer
+        - default: 0
+          description: Number of posts to skip
+          in: query
+          name: offset
+          type: integer
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Posts retrieved successfully with vote statistics
+          schema:
+            $ref: "#/definitions/handlers.PostResponse"
+        "400":
+          description: Invalid pagination parameters
+          schema:
+            $ref: "#/definitions/handlers.PostResponse"
+        "500":
+          description: Internal server error
+          schema:
+            $ref: "#/definitions/handlers.PostResponse"
+      summary: Get posts
+      tags:
+        - posts
+    post:
+      consumes:
+        - application/json
+      description: Create a new post with URL and optional title
+      parameters:
+        - description: Post data
+          in: body
+          name: request
+          required: true
+          schema:
+            $ref: "#/definitions/handlers.CreatePostRequest"
+      produces:
+        - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: "#/definitions/handlers.PostResponse"
+        "400":
+          description: Invalid request data or validation failed
+          schema:
+            $ref: "#/definitions/handlers.PostResponse"
+        "401":
+          description: Authentication required
+          schema:
+            $ref: "#/definitions/handlers.PostResponse"
+        "409":
+          description: URL already submitted
+          schema:
+            $ref: "#/definitions/handlers.PostResponse"
+        "500":
+          description: Internal server error
+          schema:
+            $ref: "#/definitions/handlers.PostResponse"
+        "502":
+          description: Failed to fetch title from URL
+          schema:
+            $ref: "#/definitions/handlers.PostResponse"
+      security:
+        - BearerAuth: []
+      summary: Create a new post
+      tags:
+        - posts
+  /posts/{id}:
+    delete:
+      consumes:
+        - application/json
+      description: Delete a post owned by the authenticated user
+      parameters:
+        - description: Post ID
+          in: path
+          name: id
+          required: true
+          type: integer
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Post deleted successfully
+          schema:
+            $ref: "#/definitions/handlers.PostResponse"
+        "400":
+          description: Invalid post ID
+          schema:
+            $ref: "#/definitions/handlers.PostResponse"
+        "401":
+          description: Authentication required
+          schema:
+            $ref: "#/definitions/handlers.PostResponse"
+        "403":
+          description: Not authorized to delete this post
+          schema:
+            $ref: "#/definitions/handlers.PostResponse"
+        "404":
+          description: Post not found
+          schema:
+            $ref: "#/definitions/handlers.PostResponse"
+        "500":
+          description: Internal server error
+          schema:
+            $ref: "#/definitions/handlers.PostResponse"
+      security:
+        - BearerAuth: []
+      summary: Delete a post
+      tags:
+        - posts
+    get:
+      consumes:
+        - application/json
+      description: Get a post by ID with vote statistics and current user's vote status
+      parameters:
+        - description: Post ID
+          in: path
+          name: id
+          required: true
+          type: integer
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Post retrieved successfully with vote statistics
+          schema:
+            $ref: "#/definitions/handlers.PostResponse"
+        "400":
+          description: Invalid post ID
+          schema:
+            $ref: "#/definitions/handlers.PostResponse"
+        "404":
+          description: Post not found
+          schema:
+            $ref: "#/definitions/handlers.PostResponse"
+        "500":
+          description: Internal server error
+          schema:
+            $ref: "#/definitions/handlers.PostResponse"
+      summary: Get a single post
+      tags:
+        - posts
+    put:
+      consumes:
+        - application/json
+      description:
+        Update the title and content of a post owned by the authenticated
+        user
+      parameters:
+        - description: Post ID
+          in: path
+          name: id
+          required: true
+          type: integer
+        - description: Post update data
+          in: body
+          name: request
+          required: true
+          schema:
+            $ref: "#/definitions/handlers.UpdatePostRequest"
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Post updated successfully
+          schema:
+            $ref: "#/definitions/handlers.PostResponse"
+        "400":
+          description: Invalid request data or validation failed
+          schema:
+            $ref: "#/definitions/handlers.PostResponse"
+        "401":
+          description: Authentication required
+          schema:
+            $ref: "#/definitions/handlers.PostResponse"
+        "403":
+          description: Not authorized to update this post
+          schema:
+            $ref: "#/definitions/handlers.PostResponse"
+        "404":
+          description: Post not found
+          schema:
+            $ref: "#/definitions/handlers.PostResponse"
+        "500":
+          description: Internal server error
+          schema:
+            $ref: "#/definitions/handlers.PostResponse"
+      security:
+        - BearerAuth: []
+      summary: Update a post
+      tags:
+        - posts
+  /posts/{id}/vote:
+    delete:
+      consumes:
+        - application/json
+      description:
+        Remove a vote from a post for the authenticated user. This is equivalent
+        to casting a vote with type 'none'.
+      parameters:
+        - description: Post ID
+          in: path
+          name: id
+          required: true
+          type: integer
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Vote removed successfully with updated post statistics
+          schema:
+            $ref: "#/definitions/handlers.VoteResponse"
+        "400":
+          description: Invalid post ID
+          schema:
+            $ref: "#/definitions/handlers.VoteResponse"
+        "401":
+          description: Authentication required
+          schema:
+            $ref: "#/definitions/handlers.VoteResponse"
+        "404":
+          description: Post not found
+          schema:
+            $ref: "#/definitions/handlers.VoteResponse"
+        "500":
+          description: Internal server error
+          schema:
+            $ref: "#/definitions/handlers.VoteResponse"
+      security:
+        - BearerAuth: []
+      summary: Remove a vote
+      tags:
+        - votes
+    get:
+      consumes:
+        - application/json
+      description: |-
+        Retrieve the current user's vote for a specific post. Requires authentication and returns the vote type if it exists.
+
+        **Response:**
+        - If vote exists: Returns vote details with contextual metadata (including `is_anonymous`)
+        - If no vote: Returns success with null vote data and metadata
+      parameters:
+        - description: Post ID
+          in: path
+          name: id
+          required: true
+          type: integer
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: No vote found for this user/post combination
+          schema:
+            $ref: "#/definitions/handlers.VoteResponse"
+        "400":
+          description: Invalid post ID
+          schema:
+            $ref: "#/definitions/handlers.VoteResponse"
+        "401":
+          description: Authentication required
+          schema:
+            $ref: "#/definitions/handlers.VoteResponse"
+        "500":
+          description: Internal server error
+          schema:
+            $ref: "#/definitions/handlers.VoteResponse"
+      security:
+        - BearerAuth: []
+      summary: Get current user's vote
+      tags:
+        - votes
+    post:
+      consumes:
+        - application/json
+      description: |-
+        Vote on a post (upvote, downvote, or remove vote). Authentication is required; the vote is performed on behalf of the current user.
+
+        **Vote Types:**
+        - `up`: Upvote the post
+        - `down`: Downvote the post
+        - `none`: Remove existing vote
+
+        **Response includes:**
+        - Updated post vote counts (up_votes, down_votes, score)
+        - Success message
+      parameters:
+        - description: Post ID
+          in: path
+          name: id
+          required: true
+          type: integer
+        - description: "Vote data (type: 'up', 'down', or 'none' to remove)"
+          in: body
+          name: request
+          required: true
+          schema:
+            $ref: "#/definitions/handlers.VoteRequest"
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Vote cast successfully with updated post statistics
+          schema:
+            $ref: "#/definitions/handlers.VoteResponse"
+        "400":
+          description: Invalid request data or vote type
+          schema:
+            $ref: "#/definitions/handlers.VoteResponse"
+        "401":
+          description: Authentication required
+          schema:
+            $ref: "#/definitions/handlers.VoteResponse"
+        "404":
+          description: Post not found
+          schema:
+            $ref: "#/definitions/handlers.VoteResponse"
+        "500":
+          description: Internal server error
+          schema:
+            $ref: "#/definitions/handlers.VoteResponse"
+      security:
+        - BearerAuth: []
+      summary: Cast a vote on a post
+      tags:
+        - votes
+  /posts/{id}/votes:
+    get:
+      consumes:
+        - application/json
+      description: |-
+        Retrieve all votes for a specific post. Returns all votes in a single format.
+
+        **Authentication Required:** Yes (Bearer token)
+
+        **Response includes:**
+        - Array of all votes
+        - Total vote count
+        - Each vote includes type and unauthenticated status
+      parameters:
+        - description: Post ID
+          in: path
+          name: id
+          required: true
+          type: integer
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Votes retrieved successfully with count
+          schema:
+            $ref: "#/definitions/handlers.VoteResponse"
+        "400":
+          description: Invalid post ID
+          schema:
+            $ref: "#/definitions/handlers.VoteResponse"
+        "401":
+          description: Authentication required
+          schema:
+            $ref: "#/definitions/handlers.VoteResponse"
+        "500":
+          description: Internal server error
+          schema:
+            $ref: "#/definitions/handlers.VoteResponse"
+      security:
+        - BearerAuth: []
+      summary: Get post votes
+      tags:
+        - votes
+  /posts/search:
+    get:
+      consumes:
+        - application/json
+      description:
+        Search posts by title or content keywords. Results include vote
+        statistics and current user's vote status.
+      parameters:
+        - description: Search term
+          in: query
+          name: q
+          type: string
+        - default: 20
+          description: Number of posts to return
+          in: query
+          name: limit
+          type: integer
+        - default: 0
+          description: Number of posts to skip
+          in: query
+          name: offset
+          type: integer
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Search results with vote statistics
+          schema:
+            $ref: "#/definitions/handlers.PostResponse"
+        "400":
+          description: Invalid search parameters
+          schema:
+            $ref: "#/definitions/handlers.PostResponse"
+        "500":
+          description: Internal server error
+          schema:
+            $ref: "#/definitions/handlers.PostResponse"
+      summary: Search posts
+      tags:
+        - posts
+  /posts/title:
+    get:
+      consumes:
+        - application/json
+      description: Fetch the HTML title for the provided URL
+      parameters:
+        - description: URL to inspect
+          in: query
+          name: url
+          required: true
+          type: string
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Title fetched successfully
+          schema:
+            $ref: "#/definitions/handlers.PostResponse"
+        "400":
+          description: Invalid URL or URL parameter missing
+          schema:
+            $ref: "#/definitions/handlers.PostResponse"
+        "501":
+          description: Title fetching is not available
+          schema:
+            $ref: "#/definitions/handlers.PostResponse"
+        "502":
+          description: Failed to fetch title from URL
+          schema:
+            $ref: "#/definitions/handlers.PostResponse"
+      summary: Fetch title from URL
+      tags:
+        - posts
+  /users:
+    get:
+      consumes:
+        - application/json
+      description: Retrieve a paginated list of users
+      parameters:
+        - default: 20
+          description: Number of users to return
+          in: query
+          name: limit
+          type: integer
+        - default: 0
+          description: Number of users to skip
+          in: query
+          name: offset
+          type: integer
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Users retrieved successfully
+          schema:
+            $ref: "#/definitions/handlers.UserResponse"
+        "401":
+          description: Authentication required
+          schema:
+            $ref: "#/definitions/handlers.UserResponse"
+        "500":
+          description: Internal server error
+          schema:
+            $ref: "#/definitions/handlers.UserResponse"
+      security:
+        - BearerAuth: []
+      summary: List users
+      tags:
+        - users
+    post:
+      consumes:
+        - application/json
+      description: Create a new user account
+      parameters:
+        - description: User data
+          in: body
+          name: request
+          required: true
+          schema:
+            $ref: "#/definitions/handlers.RegisterRequest"
+      produces:
+        - application/json
+      responses:
+        "201":
+          description: User created successfully
+          schema:
+            $ref: "#/definitions/handlers.UserResponse"
+        "400":
+          description: Invalid request data or validation failed
+          schema:
+            $ref: "#/definitions/handlers.UserResponse"
+        "401":
+          description: Authentication required
+          schema:
+            $ref: "#/definitions/handlers.UserResponse"
+        "409":
+          description: Username or email already exists
+          schema:
+            $ref: "#/definitions/handlers.UserResponse"
+        "500":
+          description: Internal server error
+          schema:
+            $ref: "#/definitions/handlers.UserResponse"
+      security:
+        - BearerAuth: []
+      summary: Create user
+      tags:
+        - users
+  /users/{id}:
+    get:
+      consumes:
+        - application/json
+      description: Retrieve a specific user by ID
+      parameters:
+        - description: User ID
+          in: path
+          name: id
+          required: true
+          type: integer
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: User retrieved successfully
+          schema:
+            $ref: "#/definitions/handlers.UserResponse"
+        "400":
+          description: Invalid user ID
+          schema:
+            $ref: "#/definitions/handlers.UserResponse"
+        "401":
+          description: Authentication required
+          schema:
+            $ref: "#/definitions/handlers.UserResponse"
+        "404":
+          description: User not found
+          schema:
+            $ref: "#/definitions/handlers.UserResponse"
+        "500":
+          description: Internal server error
+          schema:
+            $ref: "#/definitions/handlers.UserResponse"
+      security:
+        - BearerAuth: []
+      summary: Get user
+      tags:
+        - users
+  /users/{id}/posts:
+    get:
+      consumes:
+        - application/json
+      description: Retrieve posts created by a specific user
+      parameters:
+        - description: User ID
+          in: path
+          name: id
+          required: true
+          type: integer
+        - default: 20
+          description: Number of posts to return
+          in: query
+          name: limit
+          type: integer
+        - default: 0
+          description: Number of posts to skip
+          in: query
+          name: offset
+          type: integer
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: User posts retrieved successfully
+          schema:
+            $ref: "#/definitions/handlers.UserResponse"
+        "400":
+          description: Invalid user ID or pagination parameters
+          schema:
+            $ref: "#/definitions/handlers.UserResponse"
+        "401":
+          description: Authentication required
+          schema:
+            $ref: "#/definitions/handlers.UserResponse"
+        "500":
+          description: Internal server error
+          schema:
+            $ref: "#/definitions/handlers.UserResponse"
+      security:
+        - BearerAuth: []
+      summary: Get user posts
+      tags:
+        - users
+schemes:
+  - http
+swagger: "2.0"

@@ -1,0 +1,21 @@
+{{define "content"}}
+<section class="page-header">
+    <div class="page-heading">
+        <div class="feed-toggle" role="tablist" aria-label="Sort posts">
+            <a class="feed-toggle__link{{if ne .PostsSort "new"}} is-active{{end}}" href="{{.PostsSortTopURL}}" role="tab" aria-selected="{{if ne .PostsSort "new"}}true{{else}}false{{end}}">Top voted</a>
+            <a class="feed-toggle__link{{if eq .PostsSort "new"}} is-active{{end}}" href="{{.PostsSortNewURL}}" role="tab" aria-selected="{{if eq .PostsSort "new"}}true{{else}}false{{end}}">Newest</a>
+        </div>
+    </div>
+    <div class="page-actions">
+        {{if .User}}
+        <a class="button" href="/posts/new">Share a link</a>
+        {{else}}
+        <a class="button" href="/login">Share a link</a>
+        {{end}}
+    </div>
+</section>
+
+<section class="post-feed">
+    {{template "post-list" .}}
+</section>
+{{end}}

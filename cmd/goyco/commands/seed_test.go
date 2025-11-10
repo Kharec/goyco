@@ -1,0 +1,181 @@
+package commands
+
+import (
+	"testing"
+
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
+	"goyco/internal/database"
+	"goyco/internal/repositories"
+	"goyco/internal/testutils"
+)
+
+func TestSeedCommand(t *testing.T) {
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	if err != nil {
+		t.Fatalf("Failed to connect to database: %v", err)
+	}
+
+	err = db.AutoMigrate(&database.User{}, &database.Post{}, &database.Vote{})
+	if err != nil {
+		t.Fatalf("Failed to migrate database: %v", err)
+	}
+
+	userRepo := repositories.NewUserRepository(db)
+	postRepo := repositories.NewPostRepository(db)
+	voteRepo := repositories.NewVoteRepository(db)
+
+	seedUser, err := ensureSeedUser(userRepo)
+	if err != nil {
+		t.Fatalf("Failed to ensure seed user: %v", err)
+	}
+
+	if seedUser.Username != "seed_admin" {
+		t.Errorf("Expected username 'seed_admin', got '%s'", seedUser.Username)
+	}
+
+	if seedUser.Email != "seed_admin@goyco.local" {
+		t.Errorf("Expected email 'seed_admin@goyco.local', got '%s'", seedUser.Email)
+	}
+
+	if !seedUser.EmailVerified {
+		t.Error("Expected seed user to be email verified")
+	}
+
+	users, err := createRandomUsers(userRepo, 2)
+	if err != nil {
+		t.Fatalf("Failed to create random users: %v", err)
+	}
+
+	if len(users) != 2 {
+		t.Errorf("Expected 2 users, got %d", len(users))
+	}
+
+	posts, err := createRandomPosts(postRepo, seedUser.ID, 5)
+	if err != nil {
+		t.Fatalf("Failed to create random posts: %v", err)
+	}
+
+	if len(posts) != 5 {
+		t.Errorf("Expected 5 posts, got %d", len(posts))
+	}
+
+	for i, post := range posts {
+		if post.Title == "" {
+			t.Errorf("Post %d has empty title", i)
+		}
+		if post.URL == "" {
+			t.Errorf("Post %d has empty URL", i)
+		}
+		if post.AuthorID == nil || *post.AuthorID != seedUser.ID {
+			t.Errorf("Post %d has wrong author ID: expected %d, got %v", i, seedUser.ID, post.AuthorID)
+		}
+	}
+
+	allUsers := append([]database.User{*seedUser}, users...)
+	votes, err := createRandomVotes(voteRepo, allUsers, posts, 3)
+	if err != nil {
+		t.Fatalf("Failed to create random votes: %v", err)
+	}
+
+	if votes == 0 {
+		t.Error("Expected some votes to be created")
+	}
+
+	err = updatePostScores(postRepo, voteRepo, posts)
+	if err != nil {
+		t.Fatalf("Failed to update post scores: %v", err)
+	}
+
+	for i, post := range posts {
+		updatedPost, err := postRepo.GetByID(post.ID)
+		if err != nil {
+			t.Errorf("Failed to get updated post %d: %v", i, err)
+			continue
+		}
+
+		expectedScore := updatedPost.UpVotes - updatedPost.DownVotes
+		if updatedPost.Score != expectedScore {
+			t.Errorf("Post %d has incorrect score: expected %d, got %d", i, expectedScore, updatedPost.Score)
+		}
+	}
+}
+
+func TestGenerateRandomPath(t *testing.T) {
+	path := generateRandomPath()
+
+	if path == "" {
+		t.Error("Generated path should not be empty")
+	}
+
+	if len(path) < 8 {
+		t.Errorf("Generated path too short: %s", path)
+	}
+
+	secondPath := generateRandomPath()
+	if path == secondPath {
+		t.Error("Generated paths should be different")
+	}
+}
+
+func TestSeedDatabaseFlagParsing(t *testing.T) {
+	userRepo := testutils.NewMockUserRepository()
+	postRepo := testutils.NewMockPostRepository()
+	voteRepo := testutils.NewMockVoteRepository()
+
+	t.Run("invalid posts type", func(t *testing.T) {
+		err := seedDatabase(userRepo, postRepo, voteRepo, []string{"--posts", "abc"})
+
+		if err == nil {
+			t.Error("expected error for invalid posts type")
+		}
+	})
+
+	t.Run("invalid users type", func(t *testing.T) {
+		err := seedDatabase(userRepo, postRepo, voteRepo, []string{"--users", "xyz"})
+
+		if err == nil {
+			t.Error("expected error for invalid users type")
+		}
+	})
+
+	t.Run("invalid votes-per-post type", func(t *testing.T) {
+		err := seedDatabase(userRepo, postRepo, voteRepo, []string{"--votes-per-post", "invalid"})
+
+		if err == nil {
+			t.Error("expected error for invalid votes-per-post type")
+		}
+	})
+
+	t.Run("unknown flag", func(t *testing.T) {
+		err := seedDatabase(userRepo, postRepo, voteRepo, []string{"--unknown-flag"})
+
+		if err == nil {
+			t.Error("expected error for unknown flag")
+		}
+	})
+
+	t.Run("missing posts value", func(t *testing.T) {
+		err := seedDatabase(userRepo, postRepo, voteRepo, []string{"--posts"})
+
+		if err == nil {
+			t.Error("expected error for missing posts value")
+		}
+	})
+
+	t.Run("missing users value", func(t *testing.T) {
+		err := seedDatabase(userRepo, postRepo, voteRepo, []string{"--users"})
+
+		if err == nil {
+			t.Error("expected error for missing users value")
+		}
+	})
+
+	t.Run("missing votes-per-post value", func(t *testing.T) {
+		err := seedDatabase(userRepo, postRepo, voteRepo, []string{"--votes-per-post"})
+
+		if err == nil {
+			t.Error("expected error for missing votes-per-post value")
+		}
+	})
+}

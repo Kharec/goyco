@@ -1,0 +1,29 @@
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      POSTGRES_USER: ${DB_USER:-goyco}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-goyco}
+      POSTGRES_DB: ${DB_NAME:-goyco}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U goyco -d goyco"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  mail:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+volumes:
+  pgdata:

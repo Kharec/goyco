@@ -1,0 +1,91 @@
+{{define "content"}}
+<section class="form-card">
+    <h1>Share a link</h1>
+    <form method="post" action="/posts">
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}" />
+        <label for="title">Title</label>
+        <div class="field-with-action">
+            <input type="text" id="title" name="title" value="{{index .FormValues "title"}}" required />
+            <button type="button" id="autofill-title" class="button-secondary">Autofill</button>
+        </div>
+        <p class="hint" id="autofill-status" aria-live="polite"></p>
+
+        <label for="url">Link</label>
+        <input type="url" id="url" name="url" value="{{index .FormValues "url"}}" placeholder="https://example.com" required />
+
+        <label for="content">Notes</label>
+        <textarea id="content" name="content" rows="4" placeholder="Optional context">{{index .FormValues "content"}}</textarea>
+
+        <button type="submit">Publish</button>
+    </form>
+    <script nonce="{{.CSPNonce}}">
+        (function () {
+            const autofillButton = document.getElementById('autofill-title');
+            const urlInput = document.getElementById('url');
+            const titleInput = document.getElementById('title');
+            const statusEl = document.getElementById('autofill-status');
+
+            if (!autofillButton || !urlInput || !titleInput || !statusEl) {
+                return;
+            }
+
+            const setStatus = (message, isError) => {
+                statusEl.textContent = message || '';
+                if (!message) {
+                    delete statusEl.dataset.state;
+                    return;
+                }
+                statusEl.dataset.state = isError ? 'error' : 'info';
+            };
+
+            autofillButton.addEventListener('click', async () => {
+                const urlValue = urlInput.value.trim();
+                if (!urlValue) {
+                    setStatus('Add a link first so we can pull its title.', true);
+                    urlInput.focus();
+                    return;
+                }
+
+                setStatus('Looking up the page title…', false);
+                autofillButton.disabled = true;
+
+                try {
+                    const response = await fetch(`/api/posts/title?url=${encodeURIComponent(urlValue)}`, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json'
+                        },
+                        credentials: 'same-origin'
+                    });
+
+                    let body;
+                    try {
+                        body = await response.json();
+                    } catch (_) {
+                        body = {};
+                    }
+
+                    if (!response.ok) {
+                        const message = body && body.error ? String(body.error) : 'Failed to fetch a title for that link.';
+                        throw new Error(message);
+                    }
+
+                    const data = body && body.data ? body.data : {};
+                    const fetchedTitle = data && typeof data.title === 'string' ? data.title.trim() : '';
+
+                    if (!fetchedTitle) {
+                        throw new Error('No title found on that page.');
+                    }
+
+                    titleInput.value = fetchedTitle;
+                    setStatus('Title copied from the link.', false);
+                } catch (err) {
+                    setStatus(err.message || 'Unable to fetch the title right now.', true);
+                } finally {
+                    autofillButton.disabled = false;
+                }
+            });
+        })();
+    </script>
+</section>
+{{end}}
