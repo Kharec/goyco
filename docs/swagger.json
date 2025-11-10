@@ -1,1892 +1,2119 @@
 {
-  "schemes": ["http"],
-  "swagger": "2.0",
-  "info": {
-    "description": "Goyco is a Y Combinator-style news aggregation platform API.",
-    "title": "Goyco API",
-    "contact": {
-      "name": "Goyco Team",
-      "email": "sandro@cazzaniga.fr"
+    "schemes": [
+        "http"
+    ],
+    "swagger": "2.0",
+    "info": {
+        "description": "Goyco is a Y Combinator-style news aggregation platform API.",
+        "title": "Goyco API",
+        "contact": {
+            "name": "Goyco Team",
+            "email": "sandro@cazzaniga.fr"
+        },
+        "license": {
+            "name": "GPLv3",
+            "url": "https://www.gnu.org/licenses/gpl-3.0.html"
+        },
+        "version": "0.1.0"
     },
-    "license": {
-      "name": "MIT",
-      "url": "https://opensource.org/licenses/MIT"
+    "host": "localhost:8080",
+    "basePath": "/api",
+    "paths": {
+        "/api": {
+            "get": {
+                "description": "Retrieve API metadata, available endpoints, authentication details, and response formats",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "api"
+                ],
+                "summary": "Get API information",
+                "responses": {
+                    "200": {
+                        "description": "API information retrieved successfully",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.APIInfo"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/account": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Initiate the deletion process for the authenticated user's account",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Request account deletion",
+                "responses": {
+                    "200": {
+                        "description": "Deletion email sent",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "Email delivery unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/account/confirm": {
+            "post": {
+                "description": "Confirm account deletion using the provided token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Confirm account deletion",
+                "parameters": [
+                    {
+                        "description": "Account deletion data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ConfirmAccountDeletionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Account deleted successfully",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid or expired token",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "Email delivery unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/confirm": {
+            "get": {
+                "description": "Confirm user email with verification token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Confirm email address",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Email verification token",
+                        "name": "token",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Email confirmed successfully",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid or missing token",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/email": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update the authenticated user's email address",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Update email address",
+                "parameters": [
+                    {
+                        "description": "New email address",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.UpdateEmailRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/forgot-password": {
+            "post": {
+                "description": "Send a password reset email using a username or email",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Request a password reset",
+                "parameters": [
+                    {
+                        "description": "Username or email",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ForgotPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Password reset email sent if account exists",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request data",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/login": {
+            "post": {
+                "description": "Authenticate user with username and password",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Login user",
+                "parameters": [
+                    {
+                        "description": "Login credentials",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.LoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Authentication successful",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthTokensResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request data or validation failed",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid credentials",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Account is locked",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/logout": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Logout the authenticated user and invalidate their session",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Logout user",
+                "responses": {
+                    "200": {
+                        "description": "Logged out successfully",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/me": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve the authenticated user's profile information",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Get current user profile",
+                "responses": {
+                    "200": {
+                        "description": "User profile retrieved successfully",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "User not found",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/password": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update the authenticated user's password",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Update password",
+                "parameters": [
+                    {
+                        "description": "Password update data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.UpdatePasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/refresh": {
+            "post": {
+                "description": "Use a refresh token to get a new access token. This endpoint allows clients to obtain a new access token using a valid refresh token without requiring user credentials.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Refresh access token",
+                "parameters": [
+                    {
+                        "description": "Refresh token data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.RefreshTokenRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Token refreshed successfully",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthTokensResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body or missing refresh token",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid or expired refresh token",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Account is locked",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/register": {
+            "post": {
+                "description": "Register a new user with username, email and password",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Register a new user",
+                "parameters": [
+                    {
+                        "description": "Registration data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.RegisterRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Registration successful",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request data or validation failed",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Username or email already exists",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/resend-verification": {
+            "post": {
+                "description": "Send a new verification email to the provided address",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Resend verification email",
+                "parameters": [
+                    {
+                        "description": "Email address",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ResendVerificationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/reset-password": {
+            "post": {
+                "description": "Reset a user's password using a reset token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Reset password",
+                "parameters": [
+                    {
+                        "description": "Password reset data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ResetPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Password reset successfully",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid or expired token, or validation failed",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/revoke": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Revoke a specific refresh token. This endpoint allows authenticated users to invalidate a specific refresh token, preventing its future use.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Revoke refresh token",
+                "parameters": [
+                    {
+                        "description": "Token revocation data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.RevokeTokenRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Token revoked successfully",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body or missing refresh token",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid or expired access token",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/revoke-all": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Revoke all refresh tokens for the authenticated user. This endpoint allows users to invalidate all their refresh tokens at once, effectively logging them out from all devices.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Revoke all user tokens",
+                "responses": {
+                    "200": {
+                        "description": "All tokens revoked successfully",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid or expired access token",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/username": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update the authenticated user's username",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Update username",
+                "parameters": [
+                    {
+                        "description": "New username",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.UpdateUsernameRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.AuthResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/posts": {
+            "get": {
+                "description": "Get a list of posts with pagination. Posts include vote statistics (up_votes, down_votes, score) and current user's vote status.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "posts"
+                ],
+                "summary": "Get posts",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Number of posts to return",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Number of posts to skip",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Posts retrieved successfully with vote statistics",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.PostResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid pagination parameters",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.PostResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.PostResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new post with URL and optional title",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "posts"
+                ],
+                "summary": "Create a new post",
+                "parameters": [
+                    {
+                        "description": "Post data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.CreatePostRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.PostResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request data or validation failed",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.PostResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.PostResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "URL already submitted",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.PostResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.PostResponse"
+                        }
+                    },
+                    "502": {
+                        "description": "Failed to fetch title from URL",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.PostResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/posts/search": {
+            "get": {
+                "description": "Search posts by title or content keywords. Results include vote statistics and current user's vote status.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "posts"
+                ],
+                "summary": "Search posts",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search term",
+                        "name": "q",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Number of posts to return",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Number of posts to skip",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Search results with vote statistics",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.PostResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid search parameters",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.PostResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.PostResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/posts/title": {
+            "get": {
+                "description": "Fetch the HTML title for the provided URL",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "posts"
+                ],
+                "summary": "Fetch title from URL",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "URL to inspect",
+                        "name": "url",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Title fetched successfully",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.PostResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid URL or URL parameter missing",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.PostResponse"
+                        }
+                    },
+                    "501": {
+                        "description": "Title fetching is not available",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.PostResponse"
+                        }
+                    },
+                    "502": {
+                        "description": "Failed to fetch title from URL",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.PostResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/posts/{id}": {
+            "get": {
+                "description": "Get a post by ID with vote statistics and current user's vote status",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "posts"
+                ],
+                "summary": "Get a single post",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Post ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Post retrieved successfully with vote statistics",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.PostResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid post ID",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.PostResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Post not found",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.PostResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.PostResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update the title and content of a post owned by the authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "posts"
+                ],
+                "summary": "Update a post",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Post ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Post update data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.UpdatePostRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Post updated successfully",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.PostResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request data or validation failed",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.PostResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.PostResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Not authorized to update this post",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.PostResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Post not found",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.PostResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.PostResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a post owned by the authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "posts"
+                ],
+                "summary": "Delete a post",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Post ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Post deleted successfully",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.PostResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid post ID",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.PostResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.PostResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Not authorized to delete this post",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.PostResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Post not found",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.PostResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.PostResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/posts/{id}/vote": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve the current user's vote for a specific post. Requires authentication and returns the vote type if it exists.\n\n**Response:**\n- If vote exists: Returns vote details with contextual metadata (including `is_anonymous`)\n- If no vote: Returns success with null vote data and metadata",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "votes"
+                ],
+                "summary": "Get current user's vote",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Post ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "No vote found for this user/post combination",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.VoteResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid post ID",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.VoteResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.VoteResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.VoteResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Vote on a post (upvote, downvote, or remove vote). Authentication is required; the vote is performed on behalf of the current user.\n\n**Vote Types:**\n- `up`: Upvote the post\n- `down`: Downvote the post\n- `none`: Remove existing vote\n\n**Response includes:**\n- Updated post vote counts (up_votes, down_votes, score)\n- Success message",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "votes"
+                ],
+                "summary": "Cast a vote on a post",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Post ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Vote data (type: 'up', 'down', or 'none' to remove)",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.VoteRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Vote cast successfully with updated post statistics",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.VoteResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request data or vote type",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.VoteResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.VoteResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Post not found",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.VoteResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.VoteResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Remove a vote from a post for the authenticated user. This is equivalent to casting a vote with type 'none'.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "votes"
+                ],
+                "summary": "Remove a vote",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Post ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Vote removed successfully with updated post statistics",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.VoteResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid post ID",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.VoteResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.VoteResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Post not found",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.VoteResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.VoteResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/posts/{id}/votes": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve all votes for a specific post. Returns all votes in a single format.\n\n**Authentication Required:** Yes (Bearer token)\n\n**Response includes:**\n- Array of all votes\n- Total vote count\n- Each vote includes type and unauthenticated status",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "votes"
+                ],
+                "summary": "Get post votes",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Post ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Votes retrieved successfully with count",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.VoteResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid post ID",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.VoteResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.VoteResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.VoteResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/users": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a paginated list of users",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "List users",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Number of users to return",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Number of users to skip",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Users retrieved successfully",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.UserResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.UserResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.UserResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new user account",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Create user",
+                "parameters": [
+                    {
+                        "description": "User data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.RegisterRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "User created successfully",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.UserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request data or validation failed",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.UserResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.UserResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Username or email already exists",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.UserResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.UserResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/users/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a specific user by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Get user",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User retrieved successfully",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.UserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid user ID",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.UserResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.UserResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "User not found",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.UserResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.UserResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/users/{id}/posts": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve posts created by a specific user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Get user posts",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Number of posts to return",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Number of posts to skip",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User posts retrieved successfully",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.UserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid user ID or pagination parameters",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.UserResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.UserResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.UserResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/health": {
+            "get": {
+                "description": "Check the API health status along with database connectivity details",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "api"
+                ],
+                "summary": "Health check",
+                "responses": {
+                    "200": {
+                        "description": "Health check successful",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.CommonResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/metrics": {
+            "get": {
+                "description": "Retrieve application metrics including aggregate counts and database performance data",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "api"
+                ],
+                "summary": "Get metrics",
+                "responses": {
+                    "200": {
+                        "description": "Application metrics retrieved successfully",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.CommonResponse"
+                        }
+                    }
+                }
+            }
+        }
     },
-    "version": "0.1.0"
-  },
-  "host": "localhost:8080",
-  "basePath": "/api",
-  "paths": {
-    "/api": {
-      "get": {
-        "description": "Get information about the API endpoints and version",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["api"],
-        "summary": "Get API information",
-        "responses": {
-          "200": {
-            "description": "API information retrieved successfully",
-            "schema": {
-              "$ref": "#/definitions/handlers.APIInfo"
+    "definitions": {
+        "handlers.APIInfo": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "error": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
             }
-          }
+        },
+        "handlers.AuthResponse": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "error": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "handlers.AuthTokensDetail": {
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string",
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                },
+                "refresh_token": {
+                    "type": "string",
+                    "example": "f94d4ddc7d9b4fcb9d3a2c44c400b780"
+                },
+                "user": {
+                    "$ref": "#/definitions/handlers.AuthUserSummary"
+                }
+            }
+        },
+        "handlers.AuthTokensResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/handlers.AuthTokensDetail"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Authentication successful"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "handlers.AuthUserSummary": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "example": "jane@example.com"
+                },
+                "email_verified": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "id": {
+                    "type": "integer",
+                    "example": 42
+                },
+                "locked": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "username": {
+                    "type": "string",
+                    "example": "janedoe"
+                }
+            }
+        },
+        "handlers.CommonResponse": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "error": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "handlers.ConfirmAccountDeletionRequest": {
+            "type": "object",
+            "properties": {
+                "delete_posts": {
+                    "type": "boolean"
+                },
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.CreatePostRequest": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.ForgotPasswordRequest": {
+            "type": "object",
+            "properties": {
+                "username_or_email": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.LoginRequest": {
+            "type": "object",
+            "properties": {
+                "password": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.PostResponse": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "error": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "handlers.RefreshTokenRequest": {
+            "type": "object",
+            "required": [
+                "refresh_token"
+            ],
+            "properties": {
+                "refresh_token": {
+                    "type": "string",
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                }
+            }
+        },
+        "handlers.RegisterRequest": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.ResendVerificationRequest": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.ResetPasswordRequest": {
+            "type": "object",
+            "properties": {
+                "new_password": {
+                    "type": "string"
+                },
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.RevokeTokenRequest": {
+            "type": "object",
+            "required": [
+                "refresh_token"
+            ],
+            "properties": {
+                "refresh_token": {
+                    "type": "string",
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                }
+            }
+        },
+        "handlers.UpdateEmailRequest": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.UpdatePasswordRequest": {
+            "type": "object",
+            "properties": {
+                "current_password": {
+                    "type": "string"
+                },
+                "new_password": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.UpdatePostRequest": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.UpdateUsernameRequest": {
+            "type": "object",
+            "properties": {
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.UserResponse": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "error": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "handlers.VoteRequest": {
+            "description": "Vote request with type field. All votes are handled the same way.",
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "up",
+                        "down",
+                        "none"
+                    ],
+                    "example": "up"
+                }
+            }
+        },
+        "handlers.VoteResponse": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "error": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
         }
-      }
-    },
-    "/auth/account": {
-      "delete": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Initiate the deletion process for the authenticated user's account",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["auth"],
-        "summary": "Request account deletion",
-        "responses": {
-          "200": {
-            "description": "Deletion email sent",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "401": {
-            "description": "Authentication required",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "503": {
-            "description": "Email delivery unavailable",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          }
-        }
-      }
-    },
-    "/auth/account/confirm": {
-      "post": {
-        "description": "Confirm account deletion using the provided token",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["auth"],
-        "summary": "Confirm account deletion",
-        "parameters": [
-          {
-            "description": "Account deletion data",
-            "name": "request",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/handlers.ConfirmAccountDeletionRequest"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Account deleted successfully",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "400": {
-            "description": "Invalid or expired token",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "503": {
-            "description": "Email delivery unavailable",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          }
-        }
-      }
-    },
-    "/auth/confirm": {
-      "get": {
-        "description": "Confirm user email with verification token",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["auth"],
-        "summary": "Confirm email address",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "Email verification token",
-            "name": "token",
-            "in": "query",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Email confirmed successfully",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "400": {
-            "description": "Invalid or missing token",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          }
-        }
-      }
-    },
-    "/auth/email": {
-      "put": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Update the authenticated user's email address",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["auth"],
-        "summary": "Update email address",
-        "parameters": [
-          {
-            "description": "New email address",
-            "name": "request",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/handlers.UpdateEmailRequest"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "409": {
-            "description": "Conflict",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "503": {
-            "description": "Service Unavailable",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          }
-        }
-      }
-    },
-    "/auth/forgot-password": {
-      "post": {
-        "description": "Send a password reset email using a username or email",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["auth"],
-        "summary": "Request a password reset",
-        "parameters": [
-          {
-            "description": "Username or email",
-            "name": "request",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/handlers.ForgotPasswordRequest"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Password reset email sent if account exists",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "400": {
-            "description": "Invalid request data",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          }
-        }
-      }
-    },
-    "/auth/login": {
-      "post": {
-        "description": "Authenticate user with username and password",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["auth"],
-        "summary": "Login user",
-        "parameters": [
-          {
-            "description": "Login credentials",
-            "name": "request",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/handlers.LoginRequest"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Authentication successful",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthTokensResponse"
-            }
-          },
-          "400": {
-            "description": "Invalid request data or validation failed",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "401": {
-            "description": "Invalid credentials",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "403": {
-            "description": "Account is locked",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          }
-        }
-      }
-    },
-    "/auth/logout": {
-      "post": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Logout the authenticated user and invalidate their session",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["auth"],
-        "summary": "Logout user",
-        "responses": {
-          "200": {
-            "description": "Logged out successfully",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "401": {
-            "description": "Authentication required",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          }
-        }
-      }
-    },
-    "/auth/me": {
-      "get": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Retrieve the authenticated user's profile information",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["auth"],
-        "summary": "Get current user profile",
-        "responses": {
-          "200": {
-            "description": "User profile retrieved successfully",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "401": {
-            "description": "Authentication required",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "404": {
-            "description": "User not found",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          }
-        }
-      }
-    },
-    "/auth/password": {
-      "put": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Update the authenticated user's password",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["auth"],
-        "summary": "Update password",
-        "parameters": [
-          {
-            "description": "Password update data",
-            "name": "request",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/handlers.UpdatePasswordRequest"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          }
-        }
-      }
-    },
-    "/auth/refresh": {
-      "post": {
-        "description": "Use a refresh token to get a new access token. This endpoint allows clients to obtain a new access token using a valid refresh token without requiring user credentials.",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["auth"],
-        "summary": "Refresh access token",
-        "parameters": [
-          {
-            "description": "Refresh token data",
-            "name": "request",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/handlers.RefreshTokenRequest"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Token refreshed successfully",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthTokensResponse"
-            }
-          },
-          "400": {
-            "description": "Invalid request body or missing refresh token",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "401": {
-            "description": "Invalid or expired refresh token",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "403": {
-            "description": "Account is locked",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          }
-        }
-      }
-    },
-    "/auth/register": {
-      "post": {
-        "description": "Register a new user with username, email and password",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["auth"],
-        "summary": "Register a new user",
-        "parameters": [
-          {
-            "description": "Registration data",
-            "name": "request",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/handlers.RegisterRequest"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "Registration successful",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "400": {
-            "description": "Invalid request data or validation failed",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "409": {
-            "description": "Username or email already exists",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          }
-        }
-      }
-    },
-    "/auth/resend-verification": {
-      "post": {
-        "description": "Send a new verification email to the provided address",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["auth"],
-        "summary": "Resend verification email",
-        "parameters": [
-          {
-            "description": "Email address",
-            "name": "request",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/handlers.ResendVerificationRequest"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "409": {
-            "description": "Conflict",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "503": {
-            "description": "Service Unavailable",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          }
-        }
-      }
-    },
-    "/auth/reset-password": {
-      "post": {
-        "description": "Reset a user's password using a reset token",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["auth"],
-        "summary": "Reset password",
-        "parameters": [
-          {
-            "description": "Password reset data",
-            "name": "request",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/handlers.ResetPasswordRequest"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Password reset successfully",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "400": {
-            "description": "Invalid or expired token, or validation failed",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          }
-        }
-      }
-    },
-    "/auth/revoke": {
-      "post": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Revoke a specific refresh token. This endpoint allows authenticated users to invalidate a specific refresh token, preventing its future use.",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["auth"],
-        "summary": "Revoke refresh token",
-        "parameters": [
-          {
-            "description": "Token revocation data",
-            "name": "request",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/handlers.RevokeTokenRequest"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Token revoked successfully",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "400": {
-            "description": "Invalid request body or missing refresh token",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "401": {
-            "description": "Invalid or expired access token",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          }
-        }
-      }
-    },
-    "/auth/revoke-all": {
-      "post": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Revoke all refresh tokens for the authenticated user. This endpoint allows users to invalidate all their refresh tokens at once, effectively logging them out from all devices.",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["auth"],
-        "summary": "Revoke all user tokens",
-        "responses": {
-          "200": {
-            "description": "All tokens revoked successfully",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "401": {
-            "description": "Invalid or expired access token",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          }
-        }
-      }
-    },
-    "/auth/username": {
-      "put": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Update the authenticated user's username",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["auth"],
-        "summary": "Update username",
-        "parameters": [
-          {
-            "description": "New username",
-            "name": "request",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/handlers.UpdateUsernameRequest"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "409": {
-            "description": "Conflict",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "schema": {
-              "$ref": "#/definitions/handlers.AuthResponse"
-            }
-          }
-        }
-      }
-    },
-    "/health": {
-      "get": {
-        "description": "Check if the API is healthy with comprehensive database monitoring",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["api"],
-        "summary": "Health check",
-        "responses": {
-          "200": {
-            "description": "Health check successful",
-            "schema": {
-              "type": "object",
-              "additionalProperties": true
-            }
-          }
-        }
-      }
-    },
-    "/metrics": {
-      "get": {
-        "description": "Get application metrics including post stats, user stats, vote stats, and database performance metrics",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["api"],
-        "summary": "Get metrics",
-        "responses": {
-          "200": {
-            "description": "Application metrics with vote statistics and database monitoring",
-            "schema": {
-              "type": "object",
-              "additionalProperties": true
-            }
-          }
-        }
-      }
-    },
-    "/posts": {
-      "get": {
-        "description": "Get a list of posts with pagination. Posts include vote statistics (up_votes, down_votes, score) and current user's vote status.",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["posts"],
-        "summary": "Get posts",
-        "parameters": [
-          {
-            "type": "integer",
-            "default": 20,
-            "description": "Number of posts to return",
-            "name": "limit",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "default": 0,
-            "description": "Number of posts to skip",
-            "name": "offset",
-            "in": "query"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Posts retrieved successfully with vote statistics",
-            "schema": {
-              "$ref": "#/definitions/handlers.PostResponse"
-            }
-          },
-          "400": {
-            "description": "Invalid pagination parameters",
-            "schema": {
-              "$ref": "#/definitions/handlers.PostResponse"
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "schema": {
-              "$ref": "#/definitions/handlers.PostResponse"
-            }
-          }
-        }
-      },
-      "post": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Create a new post with URL and optional title",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["posts"],
-        "summary": "Create a new post",
-        "parameters": [
-          {
-            "description": "Post data",
-            "name": "request",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/handlers.CreatePostRequest"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "Created",
-            "schema": {
-              "$ref": "#/definitions/handlers.PostResponse"
-            }
-          },
-          "400": {
-            "description": "Invalid request data or validation failed",
-            "schema": {
-              "$ref": "#/definitions/handlers.PostResponse"
-            }
-          },
-          "401": {
-            "description": "Authentication required",
-            "schema": {
-              "$ref": "#/definitions/handlers.PostResponse"
-            }
-          },
-          "409": {
-            "description": "URL already submitted",
-            "schema": {
-              "$ref": "#/definitions/handlers.PostResponse"
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "schema": {
-              "$ref": "#/definitions/handlers.PostResponse"
-            }
-          },
-          "502": {
-            "description": "Failed to fetch title from URL",
-            "schema": {
-              "$ref": "#/definitions/handlers.PostResponse"
-            }
-          }
-        }
-      }
-    },
-    "/posts/search": {
-      "get": {
-        "description": "Search posts by title or content keywords. Results include vote statistics and current user's vote status.",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["posts"],
-        "summary": "Search posts",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "Search term",
-            "name": "q",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "default": 20,
-            "description": "Number of posts to return",
-            "name": "limit",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "default": 0,
-            "description": "Number of posts to skip",
-            "name": "offset",
-            "in": "query"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Search results with vote statistics",
-            "schema": {
-              "$ref": "#/definitions/handlers.PostResponse"
-            }
-          },
-          "400": {
-            "description": "Invalid search parameters",
-            "schema": {
-              "$ref": "#/definitions/handlers.PostResponse"
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "schema": {
-              "$ref": "#/definitions/handlers.PostResponse"
-            }
-          }
-        }
-      }
-    },
-    "/posts/title": {
-      "get": {
-        "description": "Fetch the HTML title for the provided URL",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["posts"],
-        "summary": "Fetch title from URL",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "URL to inspect",
-            "name": "url",
-            "in": "query",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Title fetched successfully",
-            "schema": {
-              "$ref": "#/definitions/handlers.PostResponse"
-            }
-          },
-          "400": {
-            "description": "Invalid URL or URL parameter missing",
-            "schema": {
-              "$ref": "#/definitions/handlers.PostResponse"
-            }
-          },
-          "501": {
-            "description": "Title fetching is not available",
-            "schema": {
-              "$ref": "#/definitions/handlers.PostResponse"
-            }
-          },
-          "502": {
-            "description": "Failed to fetch title from URL",
-            "schema": {
-              "$ref": "#/definitions/handlers.PostResponse"
-            }
-          }
-        }
-      }
-    },
-    "/posts/{id}": {
-      "get": {
-        "description": "Get a post by ID with vote statistics and current user's vote status",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["posts"],
-        "summary": "Get a single post",
-        "parameters": [
-          {
-            "type": "integer",
-            "description": "Post ID",
-            "name": "id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Post retrieved successfully with vote statistics",
-            "schema": {
-              "$ref": "#/definitions/handlers.PostResponse"
-            }
-          },
-          "400": {
-            "description": "Invalid post ID",
-            "schema": {
-              "$ref": "#/definitions/handlers.PostResponse"
-            }
-          },
-          "404": {
-            "description": "Post not found",
-            "schema": {
-              "$ref": "#/definitions/handlers.PostResponse"
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "schema": {
-              "$ref": "#/definitions/handlers.PostResponse"
-            }
-          }
-        }
-      },
-      "put": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Update the title and content of a post owned by the authenticated user",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["posts"],
-        "summary": "Update a post",
-        "parameters": [
-          {
-            "type": "integer",
-            "description": "Post ID",
-            "name": "id",
-            "in": "path",
-            "required": true
-          },
-          {
-            "description": "Post update data",
-            "name": "request",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/handlers.UpdatePostRequest"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Post updated successfully",
-            "schema": {
-              "$ref": "#/definitions/handlers.PostResponse"
-            }
-          },
-          "400": {
-            "description": "Invalid request data or validation failed",
-            "schema": {
-              "$ref": "#/definitions/handlers.PostResponse"
-            }
-          },
-          "401": {
-            "description": "Authentication required",
-            "schema": {
-              "$ref": "#/definitions/handlers.PostResponse"
-            }
-          },
-          "403": {
-            "description": "Not authorized to update this post",
-            "schema": {
-              "$ref": "#/definitions/handlers.PostResponse"
-            }
-          },
-          "404": {
-            "description": "Post not found",
-            "schema": {
-              "$ref": "#/definitions/handlers.PostResponse"
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "schema": {
-              "$ref": "#/definitions/handlers.PostResponse"
-            }
-          }
-        }
-      },
-      "delete": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Delete a post owned by the authenticated user",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["posts"],
-        "summary": "Delete a post",
-        "parameters": [
-          {
-            "type": "integer",
-            "description": "Post ID",
-            "name": "id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Post deleted successfully",
-            "schema": {
-              "$ref": "#/definitions/handlers.PostResponse"
-            }
-          },
-          "400": {
-            "description": "Invalid post ID",
-            "schema": {
-              "$ref": "#/definitions/handlers.PostResponse"
-            }
-          },
-          "401": {
-            "description": "Authentication required",
-            "schema": {
-              "$ref": "#/definitions/handlers.PostResponse"
-            }
-          },
-          "403": {
-            "description": "Not authorized to delete this post",
-            "schema": {
-              "$ref": "#/definitions/handlers.PostResponse"
-            }
-          },
-          "404": {
-            "description": "Post not found",
-            "schema": {
-              "$ref": "#/definitions/handlers.PostResponse"
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "schema": {
-              "$ref": "#/definitions/handlers.PostResponse"
-            }
-          }
-        }
-      }
-    },
-    "/posts/{id}/vote": {
-      "get": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Retrieve the current user's vote for a specific post. Requires authentication and returns the vote type if it exists.\n\n**Response:**\n- If vote exists: Returns vote details with contextual metadata (including `is_anonymous`)\n- If no vote: Returns success with null vote data and metadata",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["votes"],
-        "summary": "Get current user's vote",
-        "parameters": [
-          {
-            "type": "integer",
-            "description": "Post ID",
-            "name": "id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "No vote found for this user/post combination",
-            "schema": {
-              "$ref": "#/definitions/handlers.VoteResponse"
-            }
-          },
-          "400": {
-            "description": "Invalid post ID",
-            "schema": {
-              "$ref": "#/definitions/handlers.VoteResponse"
-            }
-          },
-          "401": {
-            "description": "Authentication required",
-            "schema": {
-              "$ref": "#/definitions/handlers.VoteResponse"
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "schema": {
-              "$ref": "#/definitions/handlers.VoteResponse"
-            }
-          }
-        }
-      },
-      "post": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Vote on a post (upvote, downvote, or remove vote). Authentication is required; the vote is performed on behalf of the current user.\n\n**Vote Types:**\n- `up`: Upvote the post\n- `down`: Downvote the post\n- `none`: Remove existing vote\n\n**Response includes:**\n- Updated post vote counts (up_votes, down_votes, score)\n- Success message",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["votes"],
-        "summary": "Cast a vote on a post",
-        "parameters": [
-          {
-            "type": "integer",
-            "description": "Post ID",
-            "name": "id",
-            "in": "path",
-            "required": true
-          },
-          {
-            "description": "Vote data (type: 'up', 'down', or 'none' to remove)",
-            "name": "request",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/handlers.VoteRequest"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Vote cast successfully with updated post statistics",
-            "schema": {
-              "$ref": "#/definitions/handlers.VoteResponse"
-            }
-          },
-          "400": {
-            "description": "Invalid request data or vote type",
-            "schema": {
-              "$ref": "#/definitions/handlers.VoteResponse"
-            }
-          },
-          "401": {
-            "description": "Authentication required",
-            "schema": {
-              "$ref": "#/definitions/handlers.VoteResponse"
-            }
-          },
-          "404": {
-            "description": "Post not found",
-            "schema": {
-              "$ref": "#/definitions/handlers.VoteResponse"
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "schema": {
-              "$ref": "#/definitions/handlers.VoteResponse"
-            }
-          }
-        }
-      },
-      "delete": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Remove a vote from a post for the authenticated user. This is equivalent to casting a vote with type 'none'.",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["votes"],
-        "summary": "Remove a vote",
-        "parameters": [
-          {
-            "type": "integer",
-            "description": "Post ID",
-            "name": "id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Vote removed successfully with updated post statistics",
-            "schema": {
-              "$ref": "#/definitions/handlers.VoteResponse"
-            }
-          },
-          "400": {
-            "description": "Invalid post ID",
-            "schema": {
-              "$ref": "#/definitions/handlers.VoteResponse"
-            }
-          },
-          "401": {
-            "description": "Authentication required",
-            "schema": {
-              "$ref": "#/definitions/handlers.VoteResponse"
-            }
-          },
-          "404": {
-            "description": "Post not found",
-            "schema": {
-              "$ref": "#/definitions/handlers.VoteResponse"
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "schema": {
-              "$ref": "#/definitions/handlers.VoteResponse"
-            }
-          }
-        }
-      }
-    },
-    "/posts/{id}/votes": {
-      "get": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Retrieve all votes for a specific post. Returns all votes in a single format.\n\n**Authentication Required:** Yes (Bearer token)\n\n**Response includes:**\n- Array of all votes\n- Total vote count\n- Each vote includes type and unauthenticated status",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["votes"],
-        "summary": "Get post votes",
-        "parameters": [
-          {
-            "type": "integer",
-            "description": "Post ID",
-            "name": "id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Votes retrieved successfully with count",
-            "schema": {
-              "$ref": "#/definitions/handlers.VoteResponse"
-            }
-          },
-          "400": {
-            "description": "Invalid post ID",
-            "schema": {
-              "$ref": "#/definitions/handlers.VoteResponse"
-            }
-          },
-          "401": {
-            "description": "Authentication required",
-            "schema": {
-              "$ref": "#/definitions/handlers.VoteResponse"
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "schema": {
-              "$ref": "#/definitions/handlers.VoteResponse"
-            }
-          }
-        }
-      }
-    },
-    "/users": {
-      "get": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Retrieve a paginated list of users",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["users"],
-        "summary": "List users",
-        "parameters": [
-          {
-            "type": "integer",
-            "default": 20,
-            "description": "Number of users to return",
-            "name": "limit",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "default": 0,
-            "description": "Number of users to skip",
-            "name": "offset",
-            "in": "query"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Users retrieved successfully",
-            "schema": {
-              "$ref": "#/definitions/handlers.UserResponse"
-            }
-          },
-          "401": {
-            "description": "Authentication required",
-            "schema": {
-              "$ref": "#/definitions/handlers.UserResponse"
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "schema": {
-              "$ref": "#/definitions/handlers.UserResponse"
-            }
-          }
-        }
-      },
-      "post": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Create a new user account",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["users"],
-        "summary": "Create user",
-        "parameters": [
-          {
-            "description": "User data",
-            "name": "request",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/handlers.RegisterRequest"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "User created successfully",
-            "schema": {
-              "$ref": "#/definitions/handlers.UserResponse"
-            }
-          },
-          "400": {
-            "description": "Invalid request data or validation failed",
-            "schema": {
-              "$ref": "#/definitions/handlers.UserResponse"
-            }
-          },
-          "401": {
-            "description": "Authentication required",
-            "schema": {
-              "$ref": "#/definitions/handlers.UserResponse"
-            }
-          },
-          "409": {
-            "description": "Username or email already exists",
-            "schema": {
-              "$ref": "#/definitions/handlers.UserResponse"
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "schema": {
-              "$ref": "#/definitions/handlers.UserResponse"
-            }
-          }
-        }
-      }
-    },
-    "/users/{id}": {
-      "get": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Retrieve a specific user by ID",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["users"],
-        "summary": "Get user",
-        "parameters": [
-          {
-            "type": "integer",
-            "description": "User ID",
-            "name": "id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "User retrieved successfully",
-            "schema": {
-              "$ref": "#/definitions/handlers.UserResponse"
-            }
-          },
-          "400": {
-            "description": "Invalid user ID",
-            "schema": {
-              "$ref": "#/definitions/handlers.UserResponse"
-            }
-          },
-          "401": {
-            "description": "Authentication required",
-            "schema": {
-              "$ref": "#/definitions/handlers.UserResponse"
-            }
-          },
-          "404": {
-            "description": "User not found",
-            "schema": {
-              "$ref": "#/definitions/handlers.UserResponse"
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "schema": {
-              "$ref": "#/definitions/handlers.UserResponse"
-            }
-          }
-        }
-      }
-    },
-    "/users/{id}/posts": {
-      "get": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Retrieve posts created by a specific user",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["users"],
-        "summary": "Get user posts",
-        "parameters": [
-          {
-            "type": "integer",
-            "description": "User ID",
-            "name": "id",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "integer",
-            "default": 20,
-            "description": "Number of posts to return",
-            "name": "limit",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "default": 0,
-            "description": "Number of posts to skip",
-            "name": "offset",
-            "in": "query"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "User posts retrieved successfully",
-            "schema": {
-              "$ref": "#/definitions/handlers.UserResponse"
-            }
-          },
-          "400": {
-            "description": "Invalid user ID or pagination parameters",
-            "schema": {
-              "$ref": "#/definitions/handlers.UserResponse"
-            }
-          },
-          "401": {
-            "description": "Authentication required",
-            "schema": {
-              "$ref": "#/definitions/handlers.UserResponse"
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "schema": {
-              "$ref": "#/definitions/handlers.UserResponse"
-            }
-          }
-        }
-      }
     }
-  },
-  "definitions": {
-    "handlers.APIInfo": {
-      "type": "object",
-      "properties": {
-        "data": {},
-        "error": {
-          "type": "string"
-        },
-        "message": {
-          "type": "string"
-        },
-        "success": {
-          "type": "boolean"
-        }
-      }
-    },
-    "handlers.AuthResponse": {
-      "type": "object",
-      "properties": {
-        "data": {},
-        "error": {
-          "type": "string"
-        },
-        "message": {
-          "type": "string"
-        },
-        "success": {
-          "type": "boolean"
-        }
-      }
-    },
-    "handlers.AuthTokensDetail": {
-      "type": "object",
-      "properties": {
-        "access_token": {
-          "type": "string",
-          "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-        },
-        "refresh_token": {
-          "type": "string",
-          "example": "f94d4ddc7d9b4fcb9d3a2c44c400b780"
-        },
-        "user": {
-          "$ref": "#/definitions/handlers.AuthUserSummary"
-        }
-      }
-    },
-    "handlers.AuthTokensResponse": {
-      "type": "object",
-      "properties": {
-        "data": {
-          "$ref": "#/definitions/handlers.AuthTokensDetail"
-        },
-        "message": {
-          "type": "string",
-          "example": "Authentication successful"
-        },
-        "success": {
-          "type": "boolean",
-          "example": true
-        }
-      }
-    },
-    "handlers.AuthUserSummary": {
-      "type": "object",
-      "properties": {
-        "email": {
-          "type": "string",
-          "example": "jane@example.com"
-        },
-        "email_verified": {
-          "type": "boolean",
-          "example": true
-        },
-        "id": {
-          "type": "integer",
-          "example": 42
-        },
-        "locked": {
-          "type": "boolean",
-          "example": false
-        },
-        "username": {
-          "type": "string",
-          "example": "janedoe"
-        }
-      }
-    },
-    "handlers.ConfirmAccountDeletionRequest": {
-      "type": "object",
-      "properties": {
-        "delete_posts": {
-          "type": "boolean"
-        },
-        "token": {
-          "type": "string"
-        }
-      }
-    },
-    "handlers.CreatePostRequest": {
-      "type": "object",
-      "properties": {
-        "content": {
-          "type": "string"
-        },
-        "title": {
-          "type": "string"
-        },
-        "url": {
-          "type": "string"
-        }
-      }
-    },
-    "handlers.ForgotPasswordRequest": {
-      "type": "object",
-      "properties": {
-        "username_or_email": {
-          "type": "string"
-        }
-      }
-    },
-    "handlers.LoginRequest": {
-      "type": "object",
-      "properties": {
-        "password": {
-          "type": "string"
-        },
-        "username": {
-          "type": "string"
-        }
-      }
-    },
-    "handlers.PostResponse": {
-      "type": "object",
-      "properties": {
-        "data": {},
-        "error": {
-          "type": "string"
-        },
-        "message": {
-          "type": "string"
-        },
-        "success": {
-          "type": "boolean"
-        }
-      }
-    },
-    "handlers.RefreshTokenRequest": {
-      "type": "object",
-      "required": ["refresh_token"],
-      "properties": {
-        "refresh_token": {
-          "type": "string",
-          "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-        }
-      }
-    },
-    "handlers.RegisterRequest": {
-      "type": "object",
-      "properties": {
-        "email": {
-          "type": "string"
-        },
-        "password": {
-          "type": "string"
-        },
-        "username": {
-          "type": "string"
-        }
-      }
-    },
-    "handlers.ResendVerificationRequest": {
-      "type": "object",
-      "properties": {
-        "email": {
-          "type": "string"
-        }
-      }
-    },
-    "handlers.ResetPasswordRequest": {
-      "type": "object",
-      "properties": {
-        "new_password": {
-          "type": "string"
-        },
-        "token": {
-          "type": "string"
-        }
-      }
-    },
-    "handlers.RevokeTokenRequest": {
-      "type": "object",
-      "required": ["refresh_token"],
-      "properties": {
-        "refresh_token": {
-          "type": "string",
-          "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-        }
-      }
-    },
-    "handlers.UpdateEmailRequest": {
-      "type": "object",
-      "properties": {
-        "email": {
-          "type": "string"
-        }
-      }
-    },
-    "handlers.UpdatePasswordRequest": {
-      "type": "object",
-      "properties": {
-        "current_password": {
-          "type": "string"
-        },
-        "new_password": {
-          "type": "string"
-        }
-      }
-    },
-    "handlers.UpdatePostRequest": {
-      "type": "object",
-      "properties": {
-        "content": {
-          "type": "string"
-        },
-        "title": {
-          "type": "string"
-        }
-      }
-    },
-    "handlers.UpdateUsernameRequest": {
-      "type": "object",
-      "properties": {
-        "username": {
-          "type": "string"
-        }
-      }
-    },
-    "handlers.UserResponse": {
-      "type": "object",
-      "properties": {
-        "data": {},
-        "error": {
-          "type": "string"
-        },
-        "message": {
-          "type": "string"
-        },
-        "success": {
-          "type": "boolean"
-        }
-      }
-    },
-    "handlers.VoteRequest": {
-      "description": "Vote request with type field. All votes are handled the same way.",
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "enum": ["up", "down", "none"],
-          "example": "up"
-        }
-      }
-    },
-    "handlers.VoteResponse": {
-      "type": "object",
-      "properties": {
-        "data": {},
-        "error": {
-          "type": "string"
-        },
-        "message": {
-          "type": "string"
-        },
-        "success": {
-          "type": "boolean"
-        }
-      }
-    }
-  }
 }

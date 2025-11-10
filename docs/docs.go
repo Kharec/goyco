@@ -14,8 +14,8 @@ const docTemplate = `{
             "email": "sandro@cazzaniga.fr"
         },
         "license": {
-            "name": "MIT",
-            "url": "https://opensource.org/licenses/MIT"
+            "name": "GPLv3",
+            "url": "https://www.gnu.org/licenses/gpl-3.0.html"
         },
         "version": "{{.Version}}"
     },
@@ -24,7 +24,7 @@ const docTemplate = `{
     "paths": {
         "/api": {
             "get": {
-                "description": "Get information about the API endpoints and version",
+                "description": "Retrieve API metadata, available endpoints, authentication details, and response formats",
                 "consumes": [
                     "application/json"
                 ],
@@ -45,7 +45,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/account": {
+        "/api/auth/account": {
             "delete": {
                 "security": [
                     {
@@ -91,7 +91,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/account/confirm": {
+        "/api/auth/account/confirm": {
             "post": {
                 "description": "Confirm account deletion using the provided token",
                 "consumes": [
@@ -143,7 +143,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/confirm": {
+        "/api/auth/confirm": {
             "get": {
                 "description": "Confirm user email with verification token",
                 "consumes": [
@@ -187,7 +187,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/email": {
+        "/api/auth/email": {
             "put": {
                 "security": [
                     {
@@ -256,7 +256,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/forgot-password": {
+        "/api/auth/forgot-password": {
             "post": {
                 "description": "Send a password reset email using a username or email",
                 "consumes": [
@@ -296,7 +296,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/login": {
+        "/api/auth/login": {
             "post": {
                 "description": "Authenticate user with username and password",
                 "consumes": [
@@ -354,7 +354,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/logout": {
+        "/api/auth/logout": {
             "post": {
                 "security": [
                     {
@@ -388,7 +388,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/me": {
+        "/api/auth/me": {
             "get": {
                 "security": [
                     {
@@ -428,7 +428,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/password": {
+        "/api/auth/password": {
             "put": {
                 "security": [
                     {
@@ -485,7 +485,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/refresh": {
+        "/api/auth/refresh": {
             "post": {
                 "description": "Use a refresh token to get a new access token. This endpoint allows clients to obtain a new access token using a valid refresh token without requiring user credentials.",
                 "consumes": [
@@ -543,7 +543,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/register": {
+        "/api/auth/register": {
             "post": {
                 "description": "Register a new user with username, email and password",
                 "consumes": [
@@ -595,7 +595,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/resend-verification": {
+        "/api/auth/resend-verification": {
             "post": {
                 "description": "Send a new verification email to the provided address",
                 "consumes": [
@@ -665,7 +665,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/reset-password": {
+        "/api/auth/reset-password": {
             "post": {
                 "description": "Reset a user's password using a reset token",
                 "consumes": [
@@ -711,7 +711,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/revoke": {
+        "/api/auth/revoke": {
             "post": {
                 "security": [
                     {
@@ -768,7 +768,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/revoke-all": {
+        "/api/auth/revoke-all": {
             "post": {
                 "security": [
                     {
@@ -808,7 +808,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/username": {
+        "/api/auth/username": {
             "put": {
                 "security": [
                     {
@@ -871,55 +871,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/health": {
-            "get": {
-                "description": "Check if the API is healthy with comprehensive database monitoring",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "api"
-                ],
-                "summary": "Health check",
-                "responses": {
-                    "200": {
-                        "description": "Health check successful",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/metrics": {
-            "get": {
-                "description": "Get application metrics including post stats, user stats, vote stats, and database performance metrics",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "api"
-                ],
-                "summary": "Get metrics",
-                "responses": {
-                    "200": {
-                        "description": "Application metrics with vote statistics and database monitoring",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/posts": {
+        "/api/posts": {
             "get": {
                 "description": "Get a list of posts with pagination. Posts include vote statistics (up_votes, down_votes, score) and current user's vote status.",
                 "consumes": [
@@ -1037,7 +989,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/posts/search": {
+        "/api/posts/search": {
             "get": {
                 "description": "Search posts by title or content keywords. Results include vote statistics and current user's vote status.",
                 "consumes": [
@@ -1094,7 +1046,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/posts/title": {
+        "/api/posts/title": {
             "get": {
                 "description": "Fetch the HTML title for the provided URL",
                 "consumes": [
@@ -1144,7 +1096,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/posts/{id}": {
+        "/api/posts/{id}": {
             "get": {
                 "description": "Get a post by ID with vote statistics and current user's vote status",
                 "consumes": [
@@ -1333,7 +1285,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/posts/{id}/vote": {
+        "/api/posts/{id}/vote": {
             "get": {
                 "security": [
                     {
@@ -1515,7 +1467,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/posts/{id}/votes": {
+        "/api/posts/{id}/votes": {
             "get": {
                 "security": [
                     {
@@ -1570,7 +1522,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/users": {
+        "/api/users": {
             "get": {
                 "security": [
                     {
@@ -1687,7 +1639,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/users/{id}": {
+        "/api/users/{id}": {
             "get": {
                 "security": [
                     {
@@ -1748,7 +1700,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/users/{id}/posts": {
+        "/api/users/{id}/posts": {
             "get": {
                 "security": [
                     {
@@ -1812,6 +1764,52 @@ const docTemplate = `{
                         "description": "Internal server error",
                         "schema": {
                             "$ref": "#/definitions/handlers.UserResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/health": {
+            "get": {
+                "description": "Check the API health status along with database connectivity details",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "api"
+                ],
+                "summary": "Health check",
+                "responses": {
+                    "200": {
+                        "description": "Health check successful",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.CommonResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/metrics": {
+            "get": {
+                "description": "Retrieve application metrics including aggregate counts and database performance data",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "api"
+                ],
+                "summary": "Get metrics",
+                "responses": {
+                    "200": {
+                        "description": "Application metrics retrieved successfully",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.CommonResponse"
                         }
                     }
                 }
@@ -1903,6 +1901,21 @@ const docTemplate = `{
                 "username": {
                     "type": "string",
                     "example": "janedoe"
+                }
+            }
+        },
+        "handlers.CommonResponse": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "error": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
                 }
             }
         },
