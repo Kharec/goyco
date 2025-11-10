@@ -321,40 +321,41 @@ Then, use `./bin/goyco` to manage the application and notably to seed the databa
 
 ### Project Structure
 
-````sh
+```bash
 goyco/
-├── bin/                      # Compiled binaries (created after build)
+├── bin/ # Compiled binaries (created after build)
 ├── cmd/
-│   └── goyco/                # Main CLI application entrypoint
-├── docker/                   # Docker Compose & related files
-├── docs/                     # Documentation and API specs
+│ └── goyco/ # Main CLI application entrypoint
+├── docker/ # Docker Compose & related files
+├── docs/ # Documentation and API specs
 ├── internal/
-│   ├── config/               # Configuration management
-│   ├── database/             # Database models and access
-│   ├── dto/                  # Data Transfer Objects (DTOs)
-│   ├── e2e/                  # End-to-end tests
-│   ├── fuzz/                 # Fuzz tests
-│   ├── handlers/             # HTTP handlers
-│   ├── integration/          # Integration tests
-│   ├── middleware/           # HTTP middleware
-│   ├── repositories/         # Data access layer
-│   ├── security/             # Security and auth logic
-│   ├── server/               # HTTP server implementation
-│   ├── services/             # Business logic
-│   ├── static/               # Static web assets
-│   ├── templates/            # HTML templates
-│   ├── testutils/            # Test helpers/utilities
-│   ├── validation/           # Input validation
-│   └── version/              # Version information
-├── scripts/                  # Utility/maintenance scripts
+│ ├── config/ # Configuration management
+│ ├── database/ # Database models and access
+│ ├── dto/ # Data Transfer Objects (DTOs)
+│ ├── e2e/ # End-to-end tests
+│ ├── fuzz/ # Fuzz tests
+│ ├── handlers/ # HTTP handlers
+│ ├── integration/ # Integration tests
+│ ├── middleware/ # HTTP middleware
+│ ├── repositories/ # Data access layer
+│ ├── security/ # Security and auth logic
+│ ├── server/ # HTTP server implementation
+│ ├── services/ # Business logic
+│ ├── static/ # Static web assets
+│ ├── templates/ # HTML templates
+│ ├── testutils/ # Test helpers/utilities
+│ ├── validation/ # Input validation
+│ └── version/ # Version information
+├── scripts/ # Utility/maintenance scripts
 ├── services/
-│   └── goyco.service         # Systemd service unit example
-├── .env.example              # Environment variable example
-├── AUTHORS                   # Authors file
-├── Dockerfile                # Docker build file
-├── LICENSE                   # License file
-├── Makefile                  # Project build/test targets
-└── README.md                 # This file
+│ └── goyco.service # Systemd service unit example
+├── .env.example # Environment variable example
+├── AUTHORS # Authors file
+├── Dockerfile # Docker build file
+├── LICENSE # License file
+├── Makefile # Project build/test targets
+└── README.md # This file
+```
 
 ### Testing
 
@@ -435,4 +436,7 @@ For support and questions:
 ---
 
 **Goyco** - A modern news aggregation platform built with Go, PostgreSQL and most importantly, love.
-````
+
+```
+
+```
