@@ -12,6 +12,8 @@ It's free (as in free beer), open-source and sadly not (yet) fully customizable.
 
 By the way, the web interface is living proof that I'm not a front-end developer — but hey, it loads! Please, don't judge me too harshly.
 
+You can get a preview of the application through the [screenshots](screenshots).
+
 ## Architecture
 
 ### Technology Stack
