@@ -60,6 +60,13 @@ func NewAPIHandlerWithMonitoring(config *config.Config, postRepo repositories.Po
 
 type APIInfo = CommonResponse
 
+// @Summary Get API information
+// @Description Retrieve API metadata, available endpoints, authentication details, and response formats
+// @Tags api
+// @Accept json
+// @Produce json
+// @Success 200 {object} APIInfo "API information retrieved successfully"
+// @Router /api [get]
 func (h *APIHandler) GetAPIInfo(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/api" {
 		http.NotFound(w, r)
@@ -127,6 +134,13 @@ func (h *APIHandler) GetAPIInfo(w http.ResponseWriter, r *http.Request) {
 	SendSuccessResponse(w, "API information retrieved successfully", apiInfo)
 }
 
+// @Summary Health check
+// @Description Check the API health status along with database connectivity details
+// @Tags api
+// @Accept json
+// @Produce json
+// @Success 200 {object} CommonResponse "Health check successful"
+// @Router /health [get]
 func (h *APIHandler) GetHealth(w http.ResponseWriter, r *http.Request) {
 
 	if h.healthChecker != nil {
@@ -151,6 +165,13 @@ func (h *APIHandler) GetHealth(w http.ResponseWriter, r *http.Request) {
 	SendSuccessResponse(w, "Health check successful", health)
 }
 
+// @Summary Get metrics
+// @Description Retrieve application metrics including aggregate counts and database performance data
+// @Tags api
+// @Accept json
+// @Produce json
+// @Success 200 {object} CommonResponse "Application metrics retrieved successfully"
+// @Router /metrics [get]
 func (h *APIHandler) GetMetrics(w http.ResponseWriter, r *http.Request) {
 
 	postCount, err := h.postRepo.Count()
