@@ -21,8 +21,3 @@ go.work.sum
 # binaries
 bin/goyco
 
-# terraform stuffs
-infra/terraform.tfstate
-infra/terraform.tfstate.backup
-infra/.terraform.lock.hcl
-infra/.terraform/
