@@ -70,7 +70,7 @@ type VoteResponse = CommonResponse
 // @Failure 500 {object} VoteResponse "Internal server error"
 // @Example 200 {"success": true, "message": "Vote cast successfully", "data": {"post_id": 1, "type": "up", "up_votes": 5, "down_votes": 2, "score": 3, "is_anonymous": false}}
 // @Example 400 {"success": false, "error": "Invalid vote type. Must be 'up', 'down', or 'none'"}
-// @Router /posts/{id}/vote [post]
+// @Router /api/posts/{id}/vote [post]
 func (h *VoteHandler) CastVote(w http.ResponseWriter, r *http.Request) {
 	userID, ok := RequireAuth(w, r)
 	if !ok {
@@ -140,7 +140,7 @@ func (h *VoteHandler) CastVote(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} VoteResponse "Invalid post ID"
 // @Failure 404 {object} VoteResponse "Post not found"
 // @Failure 500 {object} VoteResponse "Internal server error"
-// @Router /posts/{id}/vote [delete]
+// @Router /api/posts/{id}/vote [delete]
 func (h *VoteHandler) RemoveVote(w http.ResponseWriter, r *http.Request) {
 	userID, ok := RequireAuth(w, r)
 	if !ok {
@@ -198,7 +198,7 @@ func (h *VoteHandler) RemoveVote(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} VoteResponse "Internal server error"
 // @Example 200 {"success": true, "message": "Vote retrieved successfully", "data": {"has_vote": true, "vote": {"type": "up", "user_id": 123}, "is_anonymous": false}}
 // @Example 200 {"success": true, "message": "No vote found", "data": {"has_vote": false, "vote": null, "is_anonymous": false}}
-// @Router /posts/{id}/vote [get]
+// @Router /api/posts/{id}/vote [get]
 func (h *VoteHandler) GetUserVote(w http.ResponseWriter, r *http.Request) {
 	userID, ok := RequireAuth(w, r)
 	if !ok {
@@ -253,7 +253,7 @@ func (h *VoteHandler) GetUserVote(w http.ResponseWriter, r *http.Request) {
 // @Failure 401 {object} VoteResponse "Authentication required"
 // @Failure 500 {object} VoteResponse "Internal server error"
 // @Example 200 {"success": true, "message": "Votes retrieved successfully", "data": {"votes": [{"type": "up", "user_id": 123}, {"type": "down", "vote_hash": "abc123"}], "count": 2}}
-// @Router /posts/{id}/votes [get]
+// @Router /api/posts/{id}/votes [get]
 func (h *VoteHandler) GetPostVotes(w http.ResponseWriter, r *http.Request) {
 	postID, ok := ParseUintParam(w, r, "id", "Post")
 	if !ok {

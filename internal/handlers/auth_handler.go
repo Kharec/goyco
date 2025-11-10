@@ -138,7 +138,7 @@ func NewAuthHandler(authService AuthServiceInterface, userRepo repositories.User
 // @Failure 401 {object} AuthResponse "Invalid credentials"
 // @Failure 403 {object} AuthResponse "Account is locked"
 // @Failure 500 {object} AuthResponse "Internal server error"
-// @Router /auth/login [post]
+// @Router /api/auth/login [post]
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Username string `json:"username"`
@@ -180,7 +180,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} AuthResponse "Invalid request data or validation failed"
 // @Failure 409 {object} AuthResponse "Username or email already exists"
 // @Failure 500 {object} AuthResponse "Internal server error"
-// @Router /auth/register [post]
+// @Router /api/auth/register [post]
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Username string `json:"username"`
@@ -256,7 +256,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} AuthResponse "Email confirmed successfully"
 // @Failure 400 {object} AuthResponse "Invalid or missing token"
 // @Failure 500 {object} AuthResponse "Internal server error"
-// @Router /auth/confirm [get]
+// @Router /api/auth/confirm [get]
 func (h *AuthHandler) ConfirmEmail(w http.ResponseWriter, r *http.Request) {
 	token := strings.TrimSpace(r.URL.Query().Get("token"))
 	if token == "" {
@@ -288,7 +288,7 @@ func (h *AuthHandler) ConfirmEmail(w http.ResponseWriter, r *http.Request) {
 // @Failure 429 {object} AuthResponse
 // @Failure 503 {object} AuthResponse
 // @Failure 500 {object} AuthResponse
-// @Router /auth/resend-verification [post]
+// @Router /api/auth/resend-verification [post]
 func (h *AuthHandler) ResendVerificationEmail(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Email string `json:"email"`
@@ -337,7 +337,7 @@ func (h *AuthHandler) ResendVerificationEmail(w http.ResponseWriter, r *http.Req
 // @Success 200 {object} AuthResponse "User profile retrieved successfully"
 // @Failure 401 {object} AuthResponse "Authentication required"
 // @Failure 404 {object} AuthResponse "User not found"
-// @Router /auth/me [get]
+// @Router /api/auth/me [get]
 func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	userID, ok := RequireAuth(w, r)
 	if !ok {
@@ -362,7 +362,7 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 // @Param request body ForgotPasswordRequest true "Username or email"
 // @Success 200 {object} AuthResponse "Password reset email sent if account exists"
 // @Failure 400 {object} AuthResponse "Invalid request data"
-// @Router /auth/forgot-password [post]
+// @Router /api/auth/forgot-password [post]
 func (h *AuthHandler) RequestPasswordReset(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		UsernameOrEmail string `json:"username_or_email"`
@@ -393,7 +393,7 @@ func (h *AuthHandler) RequestPasswordReset(w http.ResponseWriter, r *http.Reques
 // @Success 200 {object} AuthResponse "Password reset successfully"
 // @Failure 400 {object} AuthResponse "Invalid or expired token, or validation failed"
 // @Failure 500 {object} AuthResponse "Internal server error"
-// @Router /auth/reset-password [post]
+// @Router /api/auth/reset-password [post]
 func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Token       string `json:"token"`
@@ -450,7 +450,7 @@ func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 // @Failure 409 {object} AuthResponse
 // @Failure 503 {object} AuthResponse
 // @Failure 500 {object} AuthResponse
-// @Router /auth/email [put]
+// @Router /api/auth/email [put]
 func (h *AuthHandler) UpdateEmail(w http.ResponseWriter, r *http.Request) {
 	userID, ok := RequireAuth(w, r)
 	if !ok {
@@ -504,7 +504,7 @@ func (h *AuthHandler) UpdateEmail(w http.ResponseWriter, r *http.Request) {
 // @Failure 401 {object} AuthResponse
 // @Failure 409 {object} AuthResponse
 // @Failure 500 {object} AuthResponse
-// @Router /auth/username [put]
+// @Router /api/auth/username [put]
 func (h *AuthHandler) UpdateUsername(w http.ResponseWriter, r *http.Request) {
 	userID, ok := RequireAuth(w, r)
 	if !ok {
@@ -553,7 +553,7 @@ func (h *AuthHandler) UpdateUsername(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} AuthResponse
 // @Failure 401 {object} AuthResponse
 // @Failure 500 {object} AuthResponse
-// @Router /auth/password [put]
+// @Router /api/auth/password [put]
 func (h *AuthHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 	userID, ok := RequireAuth(w, r)
 	if !ok {
@@ -608,7 +608,7 @@ func (h *AuthHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 // @Failure 401 {object} AuthResponse "Authentication required"
 // @Failure 503 {object} AuthResponse "Email delivery unavailable"
 // @Failure 500 {object} AuthResponse "Internal server error"
-// @Router /auth/account [delete]
+// @Router /api/auth/account [delete]
 func (h *AuthHandler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 	userID, ok := RequireAuth(w, r)
 	if !ok {
@@ -638,7 +638,7 @@ func (h *AuthHandler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} AuthResponse "Invalid or expired token"
 // @Failure 503 {object} AuthResponse "Email delivery unavailable"
 // @Failure 500 {object} AuthResponse "Internal server error"
-// @Router /auth/account/confirm [post]
+// @Router /api/auth/account/confirm [post]
 func (h *AuthHandler) ConfirmAccountDeletion(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Token       string `json:"token"`
@@ -684,7 +684,7 @@ func (h *AuthHandler) ConfirmAccountDeletion(w http.ResponseWriter, r *http.Requ
 // @Security BearerAuth
 // @Success 200 {object} AuthResponse "Logged out successfully"
 // @Failure 401 {object} AuthResponse "Authentication required"
-// @Router /auth/logout [post]
+// @Router /api/auth/logout [post]
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	SendSuccessResponse(w, "Logged out successfully", nil)
 }
@@ -700,7 +700,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 // @Failure 401 {object} AuthResponse "Invalid or expired refresh token"
 // @Failure 403 {object} AuthResponse "Account is locked"
 // @Failure 500 {object} AuthResponse "Internal server error"
-// @Router /auth/refresh [post]
+// @Router /api/auth/refresh [post]
 func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 	var req RefreshTokenRequest
 
@@ -732,7 +732,7 @@ func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} AuthResponse "Invalid request body or missing refresh token"
 // @Failure 401 {object} AuthResponse "Invalid or expired access token"
 // @Failure 500 {object} AuthResponse "Internal server error"
-// @Router /auth/revoke [post]
+// @Router /api/auth/revoke [post]
 func (h *AuthHandler) RevokeToken(w http.ResponseWriter, r *http.Request) {
 	var req RevokeTokenRequest
 
@@ -763,7 +763,7 @@ func (h *AuthHandler) RevokeToken(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} AuthResponse "All tokens revoked successfully"
 // @Failure 401 {object} AuthResponse "Invalid or expired access token"
 // @Failure 500 {object} AuthResponse "Internal server error"
-// @Router /auth/revoke-all [post]
+// @Router /api/auth/revoke-all [post]
 func (h *AuthHandler) RevokeAllTokens(w http.ResponseWriter, r *http.Request) {
 	userID, ok := RequireAuth(w, r)
 	if !ok {

@@ -51,7 +51,7 @@ type UpdatePostRequest struct {
 // @Success 200 {object} PostResponse "Posts retrieved successfully with vote statistics"
 // @Failure 400 {object} PostResponse "Invalid pagination parameters"
 // @Failure 500 {object} PostResponse "Internal server error"
-// @Router /posts [get]
+// @Router /api/posts [get]
 func (h *PostHandler) GetPosts(w http.ResponseWriter, r *http.Request) {
 	limit, offset := parsePagination(r)
 
@@ -87,7 +87,7 @@ func (h *PostHandler) GetPosts(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} PostResponse "Invalid post ID"
 // @Failure 404 {object} PostResponse "Post not found"
 // @Failure 500 {object} PostResponse "Internal server error"
-// @Router /posts/{id} [get]
+// @Router /api/posts/{id} [get]
 func (h *PostHandler) GetPost(w http.ResponseWriter, r *http.Request) {
 	postID, ok := ParseUintParam(w, r, "id", "Post")
 	if !ok {
@@ -118,7 +118,7 @@ func (h *PostHandler) GetPost(w http.ResponseWriter, r *http.Request) {
 // @Failure 409 {object} PostResponse "URL already submitted"
 // @Failure 502 {object} PostResponse "Failed to fetch title from URL"
 // @Failure 500 {object} PostResponse "Internal server error"
-// @Router /posts [post]
+// @Router /api/posts [post]
 func (h *PostHandler) CreatePost(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Title   string `json:"title"`
@@ -218,7 +218,7 @@ func (h *PostHandler) CreatePost(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} PostResponse "Search results with vote statistics"
 // @Failure 400 {object} PostResponse "Invalid search parameters"
 // @Failure 500 {object} PostResponse "Internal server error"
-// @Router /posts/search [get]
+// @Router /api/posts/search [get]
 func (h *PostHandler) SearchPosts(w http.ResponseWriter, r *http.Request) {
 	query := strings.TrimSpace(r.URL.Query().Get("q"))
 	limit, offset := parsePagination(r)
@@ -264,7 +264,7 @@ func (h *PostHandler) SearchPosts(w http.ResponseWriter, r *http.Request) {
 // @Failure 403 {object} PostResponse "Not authorized to update this post"
 // @Failure 404 {object} PostResponse "Post not found"
 // @Failure 500 {object} PostResponse "Internal server error"
-// @Router /posts/{id} [put]
+// @Router /api/posts/{id} [put]
 func (h *PostHandler) UpdatePost(w http.ResponseWriter, r *http.Request) {
 	userID, ok := RequireAuth(w, r)
 	if !ok {
@@ -343,7 +343,7 @@ func (h *PostHandler) UpdatePost(w http.ResponseWriter, r *http.Request) {
 // @Failure 403 {object} PostResponse "Not authorized to delete this post"
 // @Failure 404 {object} PostResponse "Post not found"
 // @Failure 500 {object} PostResponse "Internal server error"
-// @Router /posts/{id} [delete]
+// @Router /api/posts/{id} [delete]
 func (h *PostHandler) DeletePost(w http.ResponseWriter, r *http.Request) {
 	userID, ok := RequireAuth(w, r)
 	if !ok {
@@ -388,7 +388,7 @@ func (h *PostHandler) DeletePost(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} PostResponse "Invalid URL or URL parameter missing"
 // @Failure 501 {object} PostResponse "Title fetching is not available"
 // @Failure 502 {object} PostResponse "Failed to fetch title from URL"
-// @Router /posts/title [get]
+// @Router /api/posts/title [get]
 func (h *PostHandler) FetchTitleFromURL(w http.ResponseWriter, r *http.Request) {
 	if h.titleFetcher == nil {
 		SendErrorResponse(w, "Title fetching is not available", http.StatusNotImplemented)

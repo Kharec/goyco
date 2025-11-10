@@ -36,7 +36,7 @@ type UserResponse = CommonResponse
 // @Success 200 {object} UserResponse "Users retrieved successfully"
 // @Failure 401 {object} UserResponse "Authentication required"
 // @Failure 500 {object} UserResponse "Internal server error"
-// @Router /users [get]
+// @Router /api/users [get]
 func (h *UserHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 	limit, offset := parsePagination(r)
 
@@ -68,7 +68,7 @@ func (h *UserHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 // @Failure 401 {object} UserResponse "Authentication required"
 // @Failure 404 {object} UserResponse "User not found"
 // @Failure 500 {object} UserResponse "Internal server error"
-// @Router /users/{id} [get]
+// @Router /api/users/{id} [get]
 func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	userID, ok := ParseUintParam(w, r, "id", "User")
 	if !ok {
@@ -97,7 +97,7 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 // @Failure 401 {object} UserResponse "Authentication required"
 // @Failure 409 {object} UserResponse "Username or email already exists"
 // @Failure 500 {object} UserResponse "Internal server error"
-// @Router /users [post]
+// @Router /api/users [post]
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Username string `json:"username"`
@@ -155,7 +155,7 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} UserResponse "Invalid user ID or pagination parameters"
 // @Failure 401 {object} UserResponse "Authentication required"
 // @Failure 500 {object} UserResponse "Internal server error"
-// @Router /users/{id}/posts [get]
+// @Router /api/users/{id}/posts [get]
 func (h *UserHandler) GetUserPosts(w http.ResponseWriter, r *http.Request) {
 	userID, ok := ParseUintParam(w, r, "id", "User")
 	if !ok {
