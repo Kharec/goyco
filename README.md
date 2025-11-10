@@ -427,14 +427,6 @@ Then, I'll review your changes and merge them if they are good.
 
 This project is licensed under the GNU General Public License v3.0 or later (GPLv3+). See the [LICENSE](LICENSE) file for details.
 
-## Support
-
-For support and questions:
-
-- Create an issue on GitHub
-- Check the documentation
-- Review the API documentation at `/swagger/index.html`
-
 ---
 
 **Goyco** - A modern news aggregation platform built with Go, PostgreSQL and most importantly, love.
