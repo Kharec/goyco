@@ -369,7 +369,7 @@ make e2e-tests
 
 # Run fuzz testing (can take a bit of CPU and time)
 make fuzz-tests
-````
+```
 
 ### Code Quality
 
@@ -435,3 +435,4 @@ For support and questions:
 ---
 
 **Goyco** - A modern news aggregation platform built with Go, PostgreSQL and most importantly, love.
+````
