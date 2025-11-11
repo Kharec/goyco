@@ -262,28 +262,7 @@ func (s *URLMetadataService) FetchTitle(ctx context.Context, rawURL string) (str
 }
 
 func (s *URLMetadataService) ExtractTitleFromHTML(html string) string {
-
-	if title := s.ExtractFromTitleTag(html); title != "" {
-		return title
-	}
-
-	if title := s.ExtractFromOpenGraph(html); title != "" {
-		return title
-	}
-
-	if title := s.ExtractFromJSONLD(html); title != "" {
-		return title
-	}
-
-	if title := s.ExtractFromTwitterCard(html); title != "" {
-		return title
-	}
-
-	if title := s.extractFromMetaTags(html); title != "" {
-		return title
-	}
-
-	return ""
+	return s.ExtractFromTitleTag(html)
 }
 
 func (s *URLMetadataService) ExtractFromTitleTag(htmlContent string) string {
@@ -311,109 +290,6 @@ func (s *URLMetadataService) ExtractFromTitleTag(htmlContent string) string {
 			}
 		}
 	}
-}
-
-func (s *URLMetadataService) ExtractFromOpenGraph(htmlContent string) string {
-
-	lines := strings.Split(htmlContent, "\n")
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if strings.Contains(strings.ToLower(line), `property="og:title"`) && strings.Contains(line, `content="`) {
-			start := strings.Index(line, `content="`)
-			if start != -1 {
-				start += 9
-				end := strings.Index(line[start:], `"`)
-				if end != -1 {
-					title := line[start : start+end]
-					cleaned := s.optimizedTitleClean(title)
-					if cleaned != "" {
-						return cleaned
-					}
-				}
-			}
-		}
-	}
-	return ""
-}
-
-func (s *URLMetadataService) ExtractFromJSONLD(htmlContent string) string {
-
-	lines := strings.Split(htmlContent, "\n")
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if strings.Contains(line, `"@type":"VideoObject"`) || strings.Contains(line, `"@type":"WebPage"`) {
-
-			if strings.Contains(line, `"name":`) {
-				start := strings.Index(line, `"name":`)
-				if start != -1 {
-					start += 7
-
-					for i := start; i < len(line); i++ {
-						if line[i] == '"' {
-							start = i + 1
-							break
-						}
-					}
-					end := strings.Index(line[start:], `"`)
-					if end != -1 {
-						title := line[start : start+end]
-						cleaned := s.optimizedTitleClean(title)
-						if cleaned != "" {
-							return cleaned
-						}
-					}
-				}
-			}
-		}
-	}
-	return ""
-}
-
-func (s *URLMetadataService) ExtractFromTwitterCard(htmlContent string) string {
-
-	lines := strings.Split(htmlContent, "\n")
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if strings.Contains(strings.ToLower(line), `name="twitter:title"`) && strings.Contains(line, `content="`) {
-			start := strings.Index(line, `content="`)
-			if start != -1 {
-				start += 9
-				end := strings.Index(line[start:], `"`)
-				if end != -1 {
-					title := line[start : start+end]
-					cleaned := s.optimizedTitleClean(title)
-					if cleaned != "" {
-						return cleaned
-					}
-				}
-			}
-		}
-	}
-	return ""
-}
-
-func (s *URLMetadataService) extractFromMetaTags(htmlContent string) string {
-
-	lines := strings.Split(htmlContent, "\n")
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-
-		if strings.Contains(strings.ToLower(line), `name="title"`) && strings.Contains(line, `content="`) {
-			start := strings.Index(line, `content="`)
-			if start != -1 {
-				start += 9
-				end := strings.Index(line[start:], `"`)
-				if end != -1 {
-					title := line[start : start+end]
-					cleaned := s.optimizedTitleClean(title)
-					if cleaned != "" {
-						return cleaned
-					}
-				}
-			}
-		}
-	}
-	return ""
 }
 
 func (s *URLMetadataService) optimizedTitleClean(title string) string {
