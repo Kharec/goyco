@@ -450,38 +450,24 @@ func (s *URLMetadataService) optimizedTitleClean(title string) string {
 }
 
 func (s *URLMetadataService) validateURLForSSRF(u *url.URL) error {
-	if u == nil {
+	switch {
+	case u == nil,
+		u.Scheme != "http" && u.Scheme != "https",
+		u.Host == "",
+		u.Hostname() == "",
+		isLocalhost(u.Hostname()):
 		return ErrSSRFBlocked
 	}
 
-	if u.Scheme != "http" && u.Scheme != "https" {
-		return ErrSSRFBlocked
-	}
-
-	if u.Host == "" {
-		return ErrSSRFBlocked
-	}
-
-	hostname := u.Hostname()
-	if hostname == "" {
-		return ErrSSRFBlocked
-	}
-
-	if isLocalhost(hostname) {
-		return ErrSSRFBlocked
-	}
-
-	ips, err := s.resolver.LookupIP(hostname)
+	ips, err := s.resolver.LookupIP(u.Hostname())
 	if err != nil {
 		return ErrSSRFBlocked
 	}
-
 	for _, ip := range ips {
 		if isPrivateOrReservedIP(ip) {
 			return ErrSSRFBlocked
 		}
 	}
-
 	return nil
 }
 
