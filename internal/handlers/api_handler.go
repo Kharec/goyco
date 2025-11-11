@@ -256,4 +256,9 @@ func (h *APIHandler) GetMetrics(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *APIHandler) MountRoutes(r chi.Router, config RouteModuleConfig) {
+	public := r
+	if config.GeneralRateLimit != nil {
+		public = config.GeneralRateLimit(r)
+	}
+	public.Get("/", h.GetAPIInfo)
 }
