@@ -129,6 +129,8 @@ SMTP_FROM=noreply@example.com
 
 Be sure to check `.env.example` for more details.
 
+Don't underestimate RATE_LIMIT parameters. You might want to set them to higher values if you are running a production environment.
+
 ### Reverse Proxy Configuration
 
 To use a reverse proxy in order to offload the SSL termination (for example), here's a sample nginx configuration:
