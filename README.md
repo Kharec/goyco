@@ -256,7 +256,7 @@ Goyco includes a comprehensive CLI for administration:
 ### Get the sources
 
 ```bash
-git clone https://github.com/sandrocazzaniga/goyco.git
+git clone https://git.kharec.info/Kharec/goyco.git
 cd goyco
 ```
 

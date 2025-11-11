@@ -1,6 +1,6 @@
 [Unit]
 Description=Goyco - Self-hosted news aggregation platform
-Documentation=https://github.com/sandrocazzaniga/goyco
+Documentation=https://git.kharec.info/Kharec/goyco
 After=network-online.target postgresql.service
 
 [Service]
