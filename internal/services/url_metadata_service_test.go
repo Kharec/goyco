@@ -539,239 +539,6 @@ func TestExtractFromTitleTag(t *testing.T) {
 	}
 }
 
-func TestExtractFromOpenGraph(t *testing.T) {
-	svc := NewURLMetadataService()
-
-	tests := []struct {
-		name     string
-		html     string
-		expected string
-	}{
-		{
-			name:     "simple og:title",
-			html:     `<meta property="og:title" content="Open Graph Title">`,
-			expected: "Open Graph Title",
-		},
-		{
-			name:     "og:title with whitespace",
-			html:     `<meta property="og:title" content="  Open   Graph   Title  ">`,
-			expected: "Open Graph Title",
-		},
-
-		{
-			name:     "empty og:title",
-			html:     `<meta property="og:title" content="">`,
-			expected: "",
-		},
-		{
-			name:     "whitespace only og:title",
-			html:     `<meta property="og:title" content="   ">`,
-			expected: "",
-		},
-		{
-			name:     "no og:title",
-			html:     `<meta property="og:description" content="Description">`,
-			expected: "",
-		},
-		{
-			name:     "case insensitive property",
-			html:     `<meta PROPERTY="OG:TITLE" content="Case Insensitive Title">`,
-			expected: "Case Insensitive Title",
-		},
-		{
-			name:     "multiple og:title (first one)",
-			html:     `<meta property="og:title" content="First Title"><meta property="og:title" content="Second Title">`,
-			expected: "First Title",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := svc.ExtractFromOpenGraph(tt.html)
-			if result != tt.expected {
-				t.Fatalf("expected %q, got %q", tt.expected, result)
-			}
-		})
-	}
-}
-
-func TestExtractFromJSONLD(t *testing.T) {
-	svc := NewURLMetadataService()
-
-	tests := []struct {
-		name     string
-		html     string
-		expected string
-	}{
-		{
-			name:     "VideoObject with name",
-			html:     `{"@type":"VideoObject","name":"Video Title"}`,
-			expected: "Video Title",
-		},
-		{
-			name:     "WebPage with name",
-			html:     `{"@type":"WebPage","name":"Page Title"}`,
-			expected: "Page Title",
-		},
-		{
-			name:     "VideoObject with whitespace in name",
-			html:     `{"@type":"VideoObject","name":"  Video   Title  "}`,
-			expected: "Video Title",
-		},
-		{
-			name:     "empty name",
-			html:     `{"@type":"VideoObject","name":""}`,
-			expected: "",
-		},
-		{
-			name:     "whitespace only name",
-			html:     `{"@type":"VideoObject","name":"   "}`,
-			expected: "",
-		},
-		{
-			name:     "no name field",
-			html:     `{"@type":"VideoObject","description":"Description"}`,
-			expected: "",
-		},
-		{
-			name:     "wrong type",
-			html:     `{"@type":"Article","name":"Article Title"}`,
-			expected: "",
-		},
-		{
-			name:     "no @type",
-			html:     `{"name":"Some Title"}`,
-			expected: "",
-		},
-		{
-			name:     "multiple objects (first VideoObject)",
-			html:     `{"@type":"VideoObject","name":"Video Title"} {"@type":"WebPage","name":"Page Title"}`,
-			expected: "Video Title",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := svc.ExtractFromJSONLD(tt.html)
-			if result != tt.expected {
-				t.Fatalf("expected %q, got %q", tt.expected, result)
-			}
-		})
-	}
-}
-
-func TestExtractFromTwitterCard(t *testing.T) {
-	svc := NewURLMetadataService()
-
-	tests := []struct {
-		name     string
-		html     string
-		expected string
-	}{
-		{
-			name:     "simple twitter:title",
-			html:     `<meta name="twitter:title" content="Twitter Title">`,
-			expected: "Twitter Title",
-		},
-		{
-			name:     "twitter:title with whitespace",
-			html:     `<meta name="twitter:title" content="  Twitter   Title  ">`,
-			expected: "Twitter Title",
-		},
-
-		{
-			name:     "empty twitter:title",
-			html:     `<meta name="twitter:title" content="">`,
-			expected: "",
-		},
-		{
-			name:     "whitespace only twitter:title",
-			html:     `<meta name="twitter:title" content="   ">`,
-			expected: "",
-		},
-		{
-			name:     "no twitter:title",
-			html:     `<meta name="twitter:description" content="Description">`,
-			expected: "",
-		},
-		{
-			name:     "case insensitive name",
-			html:     `<meta NAME="TWITTER:TITLE" content="Case Insensitive Title">`,
-			expected: "Case Insensitive Title",
-		},
-		{
-			name:     "multiple twitter:title (first one)",
-			html:     `<meta name="twitter:title" content="First Title"><meta name="twitter:title" content="Second Title">`,
-			expected: "First Title",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := svc.ExtractFromTwitterCard(tt.html)
-			if result != tt.expected {
-				t.Fatalf("expected %q, got %q", tt.expected, result)
-			}
-		})
-	}
-}
-
-func TestExtractFromMetaTags(t *testing.T) {
-	svc := NewURLMetadataService()
-
-	tests := []struct {
-		name     string
-		html     string
-		expected string
-	}{
-		{
-			name:     "simple meta title",
-			html:     `<meta name="title" content="Meta Title">`,
-			expected: "Meta Title",
-		},
-		{
-			name:     "meta title with whitespace",
-			html:     `<meta name="title" content="  Meta   Title  ">`,
-			expected: "Meta Title",
-		},
-
-		{
-			name:     "empty meta title",
-			html:     `<meta name="title" content="">`,
-			expected: "",
-		},
-		{
-			name:     "whitespace only meta title",
-			html:     `<meta name="title" content="   ">`,
-			expected: "",
-		},
-		{
-			name:     "no meta title",
-			html:     `<meta name="description" content="Description">`,
-			expected: "",
-		},
-		{
-			name:     "case insensitive name",
-			html:     `<meta NAME="TITLE" content="Case Insensitive Title">`,
-			expected: "Case Insensitive Title",
-		},
-		{
-			name:     "multiple meta title (first one)",
-			html:     `<meta name="title" content="First Title"><meta name="title" content="Second Title">`,
-			expected: "First Title",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := svc.extractFromMetaTags(tt.html)
-			if result != tt.expected {
-				t.Fatalf("expected %q, got %q", tt.expected, result)
-			}
-		})
-	}
-}
-
 func TestExtractTitleFromHTML(t *testing.T) {
 	svc := NewURLMetadataService()
 
@@ -781,39 +548,24 @@ func TestExtractTitleFromHTML(t *testing.T) {
 		expected string
 	}{
 		{
-			name:     "title tag takes precedence",
+			name:     "title tag extracted",
 			html:     `<html><head><title>Title Tag</title><meta property="og:title" content="OG Title"></head></html>`,
 			expected: "Title Tag",
 		},
 		{
-			name:     "og:title fallback when no title tag",
+			name:     "no title tag returns empty",
 			html:     `<html><head><meta property="og:title" content="OG Title"></head></html>`,
-			expected: "OG Title",
+			expected: "",
 		},
 		{
-			name:     "JSON-LD fallback when no title or og",
-			html:     `<html><head><script type="application/ld+json">{"@type":"VideoObject","name":"JSON Title"}</script></head></html>`,
-			expected: "JSON Title",
-		},
-		{
-			name:     "twitter fallback when no title, og, or json",
-			html:     `<html><head><meta name="twitter:title" content="Twitter Title"></head></html>`,
-			expected: "Twitter Title",
-		},
-		{
-			name:     "meta title fallback when no other methods work",
-			html:     `<html><head><meta name="title" content="Meta Title"></head></html>`,
-			expected: "Meta Title",
-		},
-		{
-			name:     "empty title tag falls back to og:title",
+			name:     "empty title tag returns empty",
 			html:     `<html><head><title></title><meta property="og:title" content="OG Title"></head></html>`,
-			expected: "OG Title",
+			expected: "",
 		},
 		{
-			name:     "whitespace title tag falls back to og:title",
+			name:     "whitespace title tag returns empty",
 			html:     `<html><head><title>   </title><meta property="og:title" content="OG Title"></head></html>`,
-			expected: "OG Title",
+			expected: "",
 		},
 		{
 			name:     "no title found",
