@@ -5,11 +5,12 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	httpSwagger "github.com/swaggo/http-swagger"
 	"goyco/internal/config"
 	"goyco/internal/handlers"
 	"goyco/internal/middleware"
+
+	"github.com/go-chi/chi/v5"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 type RouterConfig struct {
@@ -108,14 +109,12 @@ func NewRouter(cfg RouterConfig) http.Handler {
 		if cfg.UserHandler != nil {
 			modules = append(modules, cfg.UserHandler)
 		}
+		if cfg.APIHandler != nil {
+			modules = append(modules, cfg.APIHandler)
+		}
 
 		for _, module := range modules {
 			module.MountRoutes(api, routeConfig)
-		}
-
-		if cfg.APIHandler != nil {
-			apiRateLimited := api.With(middleware.GeneralRateLimitMiddlewareWithLimit(cfg.RateLimitConfig.GeneralLimit))
-			apiRateLimited.Get("/", cfg.APIHandler.GetAPIInfo)
 		}
 	})
 
