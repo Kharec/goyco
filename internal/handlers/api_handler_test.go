@@ -13,6 +13,8 @@ import (
 	"goyco/internal/repositories"
 	"goyco/internal/services"
 	"goyco/internal/testutils"
+
+	"github.com/go-chi/chi/v5"
 )
 
 func TestAPIHandlerGetAPIInfo(t *testing.T) {
@@ -277,4 +279,50 @@ func TestNewAPIHandlerWithMonitoring_NilDB(t *testing.T) {
 	if handler.metricsCollector != nil {
 		t.Error("Expected metricsCollector to be nil when db is nil")
 	}
+}
+
+func TestAPIHandlerMountRoutes(t *testing.T) {
+	mockPostRepo := testutils.NewPostRepositoryStub()
+	mockUserRepo := testutils.NewUserRepositoryStub()
+	handler := newAPIHandlerForTest(mockPostRepo, mockUserRepo)
+
+	router := chi.NewRouter()
+	config := RouteModuleConfig{}
+
+	router.Route("/api", func(r chi.Router) {
+		handler.MountRoutes(r, config)
+	})
+
+	t.Run("GET route works", func(t *testing.T) {
+		request := httptest.NewRequest(http.MethodGet, "/api", nil)
+		recorder := httptest.NewRecorder()
+
+		router.ServeHTTP(recorder, request)
+
+		testutils.AssertHTTPStatus(t, recorder, http.StatusOK)
+
+		var resp APIInfo
+		if err := json.NewDecoder(recorder.Body).Decode(&resp); err != nil {
+			t.Fatalf("failed to decode response: %v", err)
+		}
+
+		if !resp.Success {
+			t.Fatalf("expected success response, got %+v", resp)
+		}
+	})
+
+	t.Run("only GET is mounted", func(t *testing.T) {
+		methods := []string{http.MethodPost, http.MethodPut, http.MethodDelete}
+
+		for _, method := range methods {
+			request := httptest.NewRequest(method, "/api", nil)
+			recorder := httptest.NewRecorder()
+
+			router.ServeHTTP(recorder, request)
+
+			if recorder.Code != http.StatusMethodNotAllowed && recorder.Code != http.StatusNotFound {
+				t.Errorf("expected method not allowed or not found for %s, got %d", method, recorder.Code)
+			}
+		}
+	})
 }
