@@ -26,52 +26,10 @@ UNIT_TEST_PACKAGES := ./cmd/goyco ./internal/config ./internal/database ./intern
 INTEGRATION_TEST_PACKAGE := ./internal/integration/...
 E2E_TEST_PACKAGE := ./internal/e2e/...
 
-FUZZ_CASES := \
-	./internal/validation::FuzzValidateEmail \
-	./internal/validation::FuzzValidateUsername \
-	./internal/validation::FuzzValidatePassword \
-	./internal/validation::FuzzValidateURL \
-	./internal/validation::FuzzValidateTitle \
-	./internal/validation::FuzzValidateContent \
-	./internal/validation::FuzzValidateSearchQuery \
-	./internal/validation::FuzzSanitizeString \
-	./internal/security::FuzzSanitizeInput \
-	./internal/security::FuzzSanitizeUsername \
-	./internal/security::FuzzSanitizeEmail \
-	./internal/security::FuzzSanitizePostContent \
-	./internal/security::FuzzSanitizeURL \
-	./internal/security::FuzzInputSanitizerUsernameCLI \
-	./internal/security::FuzzInputSanitizerEmailCLI \
-	./internal/security::FuzzInputSanitizerPasswordCLI \
-	./internal/security::FuzzInputSanitizerSearchTerm \
-	./internal/security::FuzzInputSanitizerTitleCLI \
-	./internal/security::FuzzInputSanitizerContentCLI \
-	./internal/security::FuzzInputSanitizerID \
-	./internal/handlers::FuzzJSONParsing \
-	./internal/handlers::FuzzURLParsing \
-	./internal/handlers::FuzzQueryParameters \
-	./internal/handlers::FuzzHTTPHeaders \
-	./cmd/goyco::FuzzCLIArgs \
-	./cmd/goyco::FuzzCommandDispatch \
-	./cmd/goyco::FuzzRunCommandHandler \
-	./internal/fuzz::FuzzSearchRepository \
-	./internal/fuzz::FuzzPostRepository \
-	./internal/fuzz::FuzzIntegrationHandlers \
-	./internal/fuzz::FuzzIntegrationServices \
-	./internal/fuzz::FuzzIntegrationRepositories
+FUZZ_PACKAGES := ./internal/validation ./internal/security ./internal/handlers ./cmd/goyco ./internal/fuzz
 
 .PHONY: build test clean format lint build-deps clean-deps docker-image swagger \
 	unit-tests integration-tests e2e-tests fuzz-tests install uninstall release migrations
-
-define run-fuzz-cases
-	@set -e; \
-	for case in $(1); do \
-		pkg=$${case%%::*}; \
-		target=$${case##*::}; \
-		echo "==> $$pkg $$target"; \
-		$(GO) test -fuzz=$$target -fuzztime=$(FUZZ_TIME) $$pkg; \
-	done
-endef
 
 build:
 	@mkdir -p $(dir $(BINARY))
@@ -116,7 +74,11 @@ e2e-tests:
 
 fuzz-tests:
 	@echo "Running fuzz tests..."
-	$(call run-fuzz-cases,$(FUZZ_CASES))
+	@set -e; \
+	for pkg in $(FUZZ_PACKAGES); do \
+		echo "==> Fuzzing $$pkg"; \
+		$(GO) test -fuzz=. -fuzztime=$(FUZZ_TIME) $$pkg; \
+	done
 
 install:
 	@useradd -r -m -d $(INSTALL_DIR) -s /usr/sbin/nologin goyco	
