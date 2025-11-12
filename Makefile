@@ -62,10 +62,8 @@ FUZZ_CENTRALIZED_CASES := \
 	./internal/fuzz::FuzzIntegrationServices \
 	./internal/fuzz::FuzzIntegrationRepositories
 
-PHONY_TARGETS := build test clean format lint build-deps clean-deps docker-image swagger \
+.PHONY: build test clean format lint build-deps clean-deps docker-image swagger \
 	unit-tests integration-tests e2e-tests fuzz-tests install uninstall release migrations
-
-.PHONY: $(PHONY_TARGETS)
 
 define run-fuzz-cases
 	@set -e; \
