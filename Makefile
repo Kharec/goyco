@@ -26,7 +26,7 @@ UNIT_TEST_PACKAGES := ./cmd/goyco ./internal/config ./internal/database ./intern
 INTEGRATION_TEST_PACKAGE := ./internal/integration/...
 E2E_TEST_PACKAGE := ./internal/e2e/...
 
-FUZZ_UNIT_CASES := \
+FUZZ_CASES := \
 	./internal/validation::FuzzValidateEmail \
 	./internal/validation::FuzzValidateUsername \
 	./internal/validation::FuzzValidatePassword \
@@ -53,9 +53,7 @@ FUZZ_UNIT_CASES := \
 	./internal/handlers::FuzzHTTPHeaders \
 	./cmd/goyco::FuzzCLIArgs \
 	./cmd/goyco::FuzzCommandDispatch \
-	./cmd/goyco::FuzzRunCommandHandler
-
-FUZZ_CENTRALIZED_CASES := \
+	./cmd/goyco::FuzzRunCommandHandler \
 	./internal/fuzz::FuzzSearchRepository \
 	./internal/fuzz::FuzzPostRepository \
 	./internal/fuzz::FuzzIntegrationHandlers \
@@ -118,7 +116,7 @@ e2e-tests:
 
 fuzz-tests:
 	@echo "Running fuzz tests..."
-	$(call run-fuzz-cases,$(FUZZ_UNIT_CASES) $(FUZZ_CENTRALIZED_CASES))
+	$(call run-fuzz-cases,$(FUZZ_CASES))
 
 install:
 	@useradd -r -m -d $(INSTALL_DIR) -s /usr/sbin/nologin goyco	
