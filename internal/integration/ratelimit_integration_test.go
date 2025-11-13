@@ -65,9 +65,7 @@ func TestIntegration_RateLimiting(t *testing.T) {
 
 		assertErrorResponse(t, rec, http.StatusTooManyRequests)
 
-		if rec.Header().Get("Retry-After") == "" {
-			t.Error("Expected Retry-After header")
-		}
+		assertHeader(t, rec, "Retry-After", "")
 
 		var response map[string]any
 		if err := json.NewDecoder(rec.Body).Decode(&response); err == nil {
