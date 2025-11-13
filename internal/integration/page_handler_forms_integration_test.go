@@ -185,17 +185,7 @@ func TestIntegration_PageHandlerFormWorkflows(t *testing.T) {
 		freshCtx.Router.ServeHTTP(rec, req)
 
 		assertStatus(t, rec, http.StatusSeeOther)
-		cookies := rec.Result().Cookies()
-		authCookieSet := false
-		for _, cookie := range cookies {
-			if cookie.Name == "auth_token" && cookie.Value != "" {
-				authCookieSet = true
-				break
-			}
-		}
-		if !authCookieSet {
-			t.Error("Expected auth cookie to be set on login")
-		}
+		assertCookie(t, rec, "auth_token", "")
 	})
 
 	t.Run("Email_Confirmation_Page_Handler", func(t *testing.T) {
