@@ -35,21 +35,11 @@ func setupRateLimitRouter(t *testing.T, rateLimitConfig config.RateLimitConfig) 
 
 	staticDir := t.TempDir()
 
-	router := server.NewRouter(server.RouterConfig{
-		AuthHandler:        authHandler,
-		PostHandler:        postHandler,
-		VoteHandler:        voteHandler,
-		UserHandler:        userHandler,
-		APIHandler:         apiHandler,
-		AuthService:        authService,
-		PageHandler:        nil,
-		StaticDir:          staticDir,
-		Debug:              false,
-		DisableCache:       false,
-		DisableCompression: false,
-		DBMonitor:          middleware.NewInMemoryDBMonitor(),
-		RateLimitConfig:    rateLimitConfig,
-	})
+	router := server.NewRouter(newRouterConfigBuilder().
+		withIndividualHandlers(authHandler, postHandler, voteHandler, userHandler, apiHandler, authService).
+		withStaticDir(staticDir).
+		withRateLimitConfig(rateLimitConfig).
+		build())
 
 	return router, suite
 }

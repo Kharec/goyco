@@ -36,21 +36,10 @@ func setupCachingTestContext(t *testing.T) *testContext {
 
 	staticDir := t.TempDir()
 
-	router := server.NewRouter(server.RouterConfig{
-		AuthHandler:        authHandler,
-		PostHandler:        postHandler,
-		VoteHandler:        voteHandler,
-		UserHandler:        userHandler,
-		APIHandler:         apiHandler,
-		AuthService:        authService,
-		PageHandler:        nil,
-		StaticDir:          staticDir,
-		Debug:              false,
-		DisableCache:       false,
-		DisableCompression: false,
-		DBMonitor:          middleware.NewInMemoryDBMonitor(),
-		RateLimitConfig:    testutils.AppTestConfig.RateLimit,
-	})
+	router := server.NewRouter(newRouterConfigBuilder().
+		withIndividualHandlers(authHandler, postHandler, voteHandler, userHandler, apiHandler, authService).
+		withStaticDir(staticDir).
+		build())
 
 	return &testContext{
 		Router:      router,
