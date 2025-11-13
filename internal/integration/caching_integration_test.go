@@ -78,7 +78,7 @@ func TestIntegration_Caching(t *testing.T) {
 
 	t.Run("Cache_Invalidation_On_POST", func(t *testing.T) {
 		ctx.Suite.EmailSender.Reset()
-		user := createAuthenticatedUser(t, ctx.AuthService, ctx.Suite.UserRepo, "cache_post_user", "cache_post@example.com")
+		user := createUserWithCleanup(t, ctx, "cache_post_user", "cache_post@example.com")
 
 		req1 := httptest.NewRequest("GET", "/api/posts", nil)
 		rec1 := httptest.NewRecorder()
@@ -122,7 +122,7 @@ func TestIntegration_Caching(t *testing.T) {
 
 	t.Run("Cache_Invalidation_On_DELETE", func(t *testing.T) {
 		ctx.Suite.EmailSender.Reset()
-		user := createAuthenticatedUser(t, ctx.AuthService, ctx.Suite.UserRepo, "cache_delete_user", "cache_delete@example.com")
+		user := createUserWithCleanup(t, ctx, "cache_delete_user", "cache_delete@example.com")
 
 		post := testutils.CreatePostWithRepo(t, ctx.Suite.PostRepo, user.User.ID, "Cache Delete Post", "https://example.com/cache-delete")
 
