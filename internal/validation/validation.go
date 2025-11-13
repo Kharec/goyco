@@ -302,7 +302,7 @@ func isEmptyValue(v reflect.Value) bool {
 		return v.Float() == 0
 	case reflect.Bool:
 		return !v.Bool()
-	case reflect.Ptr, reflect.Interface, reflect.Slice, reflect.Map:
+	case reflect.Pointer, reflect.Interface, reflect.Slice, reflect.Map:
 		return v.IsNil()
 	default:
 		return false
