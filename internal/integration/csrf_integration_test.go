@@ -180,7 +180,7 @@ func TestIntegration_CSRF_Protection(t *testing.T) {
 
 	t.Run("CSRF_With_PageHandler_Forms", func(t *testing.T) {
 		ctx.Suite.EmailSender.Reset()
-		user := createAuthenticatedUser(t, ctx.AuthService, ctx.Suite.UserRepo, "csrf_form_user", "csrf_form@example.com")
+		user := createUserWithCleanup(t, ctx, "csrf_form_user", "csrf_form@example.com")
 
 		getReq := httptest.NewRequest("GET", "/posts/new", nil)
 		getReq.AddCookie(&http.Cookie{Name: "auth_token", Value: user.Token})
