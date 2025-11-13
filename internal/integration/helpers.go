@@ -11,6 +11,9 @@ import (
 	"testing"
 	"time"
 
+	"golang.org/x/crypto/bcrypt"
+
+	"goyco/internal/config"
 	"goyco/internal/database"
 	"goyco/internal/handlers"
 	"goyco/internal/middleware"
@@ -18,8 +21,6 @@ import (
 	"goyco/internal/server"
 	"goyco/internal/services"
 	"goyco/internal/testutils"
-
-	"golang.org/x/crypto/bcrypt"
 )
 
 type testContext struct {
@@ -74,22 +75,98 @@ func setupCommonHandlers(t *testing.T, suite *testutils.ServiceSuite, useMonitor
 	}
 }
 
-func buildRouterConfig(h *commonHandlers, staticDir string, pageHandler *handlers.PageHandler) server.RouterConfig {
-	return server.RouterConfig{
-		AuthHandler:        h.AuthHandler,
-		PostHandler:        h.PostHandler,
-		VoteHandler:        h.VoteHandler,
-		UserHandler:        h.UserHandler,
-		APIHandler:         h.APIHandler,
-		AuthService:        h.AuthService,
-		PageHandler:        pageHandler,
-		StaticDir:          staticDir,
-		Debug:              false,
-		DisableCache:       false,
-		DisableCompression: false,
-		DBMonitor:          middleware.NewInMemoryDBMonitor(),
-		RateLimitConfig:    testutils.AppTestConfig.RateLimit,
+type routerConfigBuilder struct {
+	authHandler        *handlers.AuthHandler
+	postHandler        *handlers.PostHandler
+	voteHandler        *handlers.VoteHandler
+	userHandler        *handlers.UserHandler
+	apiHandler         *handlers.APIHandler
+	authService        middleware.TokenVerifier
+	pageHandler        *handlers.PageHandler
+	staticDir          string
+	debug              bool
+	disableCache       bool
+	disableCompression bool
+	dbMonitor          middleware.DBMonitor
+	rateLimitConfig    config.RateLimitConfig
+}
+
+func newRouterConfigBuilder() *routerConfigBuilder {
+	return &routerConfigBuilder{
+		debug:              false,
+		disableCache:       false,
+		disableCompression: false,
+		dbMonitor:          middleware.NewInMemoryDBMonitor(),
+		rateLimitConfig:    testutils.AppTestConfig.RateLimit,
 	}
+}
+
+func (b *routerConfigBuilder) withHandlers(h *commonHandlers) *routerConfigBuilder {
+	b.authHandler = h.AuthHandler
+	b.postHandler = h.PostHandler
+	b.voteHandler = h.VoteHandler
+	b.userHandler = h.UserHandler
+	b.apiHandler = h.APIHandler
+	b.authService = h.AuthService
+	return b
+}
+
+func (b *routerConfigBuilder) withIndividualHandlers(
+	authHandler *handlers.AuthHandler,
+	postHandler *handlers.PostHandler,
+	voteHandler *handlers.VoteHandler,
+	userHandler *handlers.UserHandler,
+	apiHandler *handlers.APIHandler,
+	authService middleware.TokenVerifier,
+) *routerConfigBuilder {
+	b.authHandler = authHandler
+	b.postHandler = postHandler
+	b.voteHandler = voteHandler
+	b.userHandler = userHandler
+	b.apiHandler = apiHandler
+	b.authService = authService
+	return b
+}
+
+func (b *routerConfigBuilder) withPageHandler(pageHandler *handlers.PageHandler) *routerConfigBuilder {
+	b.pageHandler = pageHandler
+	return b
+}
+
+func (b *routerConfigBuilder) withStaticDir(staticDir string) *routerConfigBuilder {
+	b.staticDir = staticDir
+	return b
+}
+
+func (b *routerConfigBuilder) withRateLimitConfig(rateLimitConfig config.RateLimitConfig) *routerConfigBuilder {
+	b.rateLimitConfig = rateLimitConfig
+	return b
+}
+
+func (b *routerConfigBuilder) build() server.RouterConfig {
+	return server.RouterConfig{
+		AuthHandler:        b.authHandler,
+		PostHandler:        b.postHandler,
+		VoteHandler:        b.voteHandler,
+		UserHandler:        b.userHandler,
+		APIHandler:         b.apiHandler,
+		AuthService:        b.authService,
+		PageHandler:        b.pageHandler,
+		StaticDir:          b.staticDir,
+		Debug:              b.debug,
+		DisableCache:       b.disableCache,
+		DisableCompression: b.disableCompression,
+		DBMonitor:          b.dbMonitor,
+		RateLimitConfig:    b.rateLimitConfig,
+	}
+}
+
+func buildRouterConfig(h *commonHandlers, staticDir string, pageHandler *handlers.PageHandler) server.RouterConfig {
+	return newRouterConfigBuilder().
+		withHandlers(h).
+		withPageHandler(pageHandler).
+		withStaticDir(staticDir).
+		build()
 }
 
 func setupTestContext(t *testing.T) *testContext {
