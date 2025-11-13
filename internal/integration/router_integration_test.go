@@ -24,17 +24,9 @@ func TestIntegration_Router_FullMiddlewareChain(t *testing.T) {
 
 		assertStatus(t, rec, http.StatusOK)
 
-		headers := []string{
-			"X-Content-Type-Options",
-			"X-Frame-Options",
-			"X-XSS-Protection",
-		}
-
-		for _, header := range headers {
-			if rec.Header().Get(header) == "" {
-				t.Errorf("Expected header %s to be present", header)
-			}
-		}
+		assertHeader(t, rec, "X-Content-Type-Options", "")
+		assertHeader(t, rec, "X-Frame-Options", "")
+		assertHeader(t, rec, "X-XSS-Protection", "")
 	})
 
 	t.Run("CORS_Headers_Present", func(t *testing.T) {
@@ -44,9 +36,7 @@ func TestIntegration_Router_FullMiddlewareChain(t *testing.T) {
 
 		router.ServeHTTP(rec, req)
 
-		if rec.Header().Get("Access-Control-Allow-Origin") == "" {
-			t.Error("Expected CORS headers to be present")
-		}
+		assertHeader(t, rec, "Access-Control-Allow-Origin", "")
 	})
 
 	t.Run("Logging_Middleware_Executes", func(t *testing.T) {
@@ -61,7 +51,7 @@ func TestIntegration_Router_FullMiddlewareChain(t *testing.T) {
 	})
 
 	t.Run("RequestSizeLimit_Enforced", func(t *testing.T) {
-		user := createAuthenticatedUser(t, ctx.AuthService, ctx.Suite.UserRepo, "size_limit_user", "size_limit@example.com")
+		user := createUserWithCleanup(t, ctx, "size_limit_user", "size_limit@example.com")
 		largeBody := strings.Repeat("a", 10*1024*1024)
 		req := httptest.NewRequest("POST", "/api/posts", bytes.NewBufferString(largeBody))
 		req.Header.Set("Content-Type", "application/json")
@@ -150,9 +140,7 @@ func TestIntegration_Router_FullMiddlewareChain(t *testing.T) {
 
 		router.ServeHTTP(rec, req)
 
-		if rec.Header().Get("X-Content-Type-Options") == "" {
-			t.Error("Security headers should be applied before response")
-		}
+		assertHeader(t, rec, "X-Content-Type-Options", "")
 
 		if rec.Code == 0 {
 			t.Error("Response should have status code")
@@ -187,7 +175,7 @@ func TestIntegration_Router_FullMiddlewareChain(t *testing.T) {
 
 	t.Run("Auth_Middleware_Integration", func(t *testing.T) {
 		ctx.Suite.EmailSender.Reset()
-		user := createAuthenticatedUser(t, ctx.AuthService, ctx.Suite.UserRepo, "auth_middleware_user", "auth_middleware@example.com")
+		user := createUserWithCleanup(t, ctx, "auth_middleware_user", "auth_middleware@example.com")
 
 		req := httptest.NewRequest("GET", "/api/auth/me", nil)
 		req.Header.Set("Authorization", "Bearer "+user.Token)
