@@ -62,18 +62,7 @@ func TestIntegration_PageHandler(t *testing.T) {
 
 		router.ServeHTTP(rec, req)
 
-		cookies := rec.Result().Cookies()
-		csrfFound := false
-		for _, cookie := range cookies {
-			if cookie.Name == "csrf_token" {
-				csrfFound = true
-				break
-			}
-		}
-
-		if !csrfFound {
-			t.Error("Expected CSRF token cookie to be set")
-		}
+		assertCookie(t, rec, "csrf_token", "")
 	})
 
 	t.Run("PageHandler_Form_Submission", func(t *testing.T) {
@@ -114,7 +103,7 @@ func TestIntegration_PageHandler(t *testing.T) {
 
 	t.Run("PageHandler_Authenticated_Access", func(t *testing.T) {
 		ctx.Suite.EmailSender.Reset()
-		user := createAuthenticatedUser(t, ctx.AuthService, ctx.Suite.UserRepo, "page_auth_user", "page_auth@example.com")
+		user := createUserWithCleanup(t, ctx, "page_auth_user", "page_auth@example.com")
 
 		req := httptest.NewRequest("GET", "/settings", nil)
 		req.AddCookie(&http.Cookie{Name: "auth_token", Value: user.Token})
@@ -127,7 +116,7 @@ func TestIntegration_PageHandler(t *testing.T) {
 
 	t.Run("PageHandler_Post_Display", func(t *testing.T) {
 		ctx.Suite.EmailSender.Reset()
-		user := createAuthenticatedUser(t, ctx.AuthService, ctx.Suite.UserRepo, "page_post_user", "page_post@example.com")
+		user := createUserWithCleanup(t, ctx, "page_post_user", "page_post@example.com")
 
 		post := testutils.CreatePostWithRepo(t, ctx.Suite.PostRepo, user.User.ID, "Page Test Post", "https://example.com/page-test")
 
