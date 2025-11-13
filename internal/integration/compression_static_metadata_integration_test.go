@@ -25,7 +25,9 @@ func TestIntegration_Compression(t *testing.T) {
 
 		router.ServeHTTP(rec, req)
 
-		if rec.Header().Get("Content-Encoding") == "gzip" {
+		contentEncoding := rec.Header().Get("Content-Encoding")
+		if contentEncoding != "" && strings.Contains(contentEncoding, "gzip") {
+			assertHeaderContains(t, rec, "Content-Encoding", "gzip")
 			reader, err := gzip.NewReader(rec.Body)
 			if err != nil {
 				t.Fatalf("Failed to create gzip reader: %v", err)
@@ -52,7 +54,9 @@ func TestIntegration_Compression(t *testing.T) {
 
 		router.ServeHTTP(rec, req)
 
-		if rec.Header().Get("Vary") == "" {
+		if rec.Header().Get("Vary") != "" {
+			assertHeaderContains(t, rec, "Vary", "Accept-Encoding")
+		} else {
 			t.Log("Vary header may not always be present")
 		}
 	})
