@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"testing"
 
-	"golang.org/x/crypto/bcrypt"
 	"goyco/internal/database"
 	"goyco/internal/repositories"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 func TestIntegration_Repositories(t *testing.T) {
@@ -320,9 +321,10 @@ func TestIntegration_Repositories(t *testing.T) {
 
 		var upVotes, downVotes int64
 		for _, vote := range votes {
-			if vote.Type == database.VoteUp {
+			switch vote.Type {
+			case database.VoteUp:
 				upVotes++
-			} else if vote.Type == database.VoteDown {
+			case database.VoteDown:
 				downVotes++
 			}
 		}
