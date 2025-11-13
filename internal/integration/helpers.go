@@ -11,7 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"golang.org/x/crypto/bcrypt"
 	"goyco/internal/database"
 	"goyco/internal/handlers"
 	"goyco/internal/middleware"
@@ -19,6 +18,8 @@ import (
 	"goyco/internal/server"
 	"goyco/internal/services"
 	"goyco/internal/testutils"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 type testContext struct {
@@ -27,10 +28,19 @@ type testContext struct {
 	AuthService *services.AuthFacade
 }
 
-func setupTestContext(t *testing.T) *testContext {
+type commonHandlers struct {
+	AuthService     *services.AuthFacade
+	VoteService     *services.VoteService
+	MetadataService services.TitleFetcher
+	AuthHandler     *handlers.AuthHandler
+	PostHandler     *handlers.PostHandler
+	VoteHandler     *handlers.VoteHandler
+	UserHandler     *handlers.UserHandler
+	APIHandler      *handlers.APIHandler
+}
+
+func setupCommonHandlers(t *testing.T, suite *testutils.ServiceSuite, useMonitoring bool) *commonHandlers {
 	t.Helper()
-	middleware.StopAllRateLimiters()
-	suite := testutils.NewServiceSuite(t)
 
 	authService, err := services.NewAuthFacadeForTest(testutils.AppTestConfig, suite.UserRepo, suite.PostRepo, suite.DeletionRepo, suite.RefreshTokenRepo, suite.EmailSender)
 	if err != nil {
@@ -44,32 +54,61 @@ func setupTestContext(t *testing.T) *testContext {
 	postHandler := handlers.NewPostHandler(suite.PostRepo, metadataService, voteService)
 	voteHandler := handlers.NewVoteHandler(voteService)
 	userHandler := handlers.NewUserHandler(suite.UserRepo, authService)
-	apiHandler := handlers.NewAPIHandlerWithMonitoring(testutils.AppTestConfig, suite.PostRepo, suite.UserRepo, voteService, suite.DB, middleware.NewInMemoryDBMonitor())
 
-	staticDir := t.TempDir()
-	robotsFile := filepath.Join(staticDir, "robots.txt")
-	os.WriteFile(robotsFile, []byte("User-agent: *\nDisallow: /"), 0644)
+	var apiHandler *handlers.APIHandler
+	if useMonitoring {
+		apiHandler = handlers.NewAPIHandlerWithMonitoring(testutils.AppTestConfig, suite.PostRepo, suite.UserRepo, voteService, suite.DB, middleware.NewInMemoryDBMonitor())
+	} else {
+		apiHandler = handlers.NewAPIHandler(testutils.AppTestConfig, suite.PostRepo, suite.UserRepo, voteService)
+	}
 
-	router := server.NewRouter(server.RouterConfig{
-		AuthHandler:        authHandler,
-		PostHandler:        postHandler,
-		VoteHandler:        voteHandler,
-		UserHandler:        userHandler,
-		APIHandler:         apiHandler,
-		AuthService:        authService,
-		PageHandler:        nil,
+	return &commonHandlers{
+		AuthService:     authService,
+		VoteService:     voteService,
+		MetadataService: metadataService,
+		AuthHandler:     authHandler,
+		PostHandler:     postHandler,
+		VoteHandler:     voteHandler,
+		UserHandler:     userHandler,
+		APIHandler:      apiHandler,
+	}
+}
+
+func buildRouterConfig(h *commonHandlers, staticDir string, pageHandler *handlers.PageHandler) server.RouterConfig {
+	return server.RouterConfig{
+		AuthHandler:        h.AuthHandler,
+		PostHandler:        h.PostHandler,
+		VoteHandler:        h.VoteHandler,
+		UserHandler:        h.UserHandler,
+		APIHandler:         h.APIHandler,
+		AuthService:        h.AuthService,
+		PageHandler:        pageHandler,
 		StaticDir:          staticDir,
 		Debug:              false,
 		DisableCache:       false,
 		DisableCompression: false,
 		DBMonitor:          middleware.NewInMemoryDBMonitor(),
 		RateLimitConfig:    testutils.AppTestConfig.RateLimit,
-	})
+	}
+}
+
+func setupTestContext(t *testing.T) *testContext {
+	t.Helper()
+	middleware.StopAllRateLimiters()
+	suite := testutils.NewServiceSuite(t)
+
+	h := setupCommonHandlers(t, suite, true)
+
+	staticDir := t.TempDir()
+	robotsFile := filepath.Join(staticDir, "robots.txt")
+	os.WriteFile(robotsFile, []byte("User-agent: *\nDisallow: /"), 0644)
+
+	router := server.NewRouter(buildRouterConfig(h, staticDir, nil))
 
 	return &testContext{
 		Router:      router,
 		Suite:       suite,
-		AuthService: authService,
+		AuthService: h.AuthService,
 	}
 }
 
@@ -78,19 +117,7 @@ func setupPageHandlerTestContext(t *testing.T) *testContext {
 	middleware.StopAllRateLimiters()
 	suite := testutils.NewServiceSuite(t)
 
-	authService, err := services.NewAuthFacadeForTest(testutils.AppTestConfig, suite.UserRepo, suite.PostRepo, suite.DeletionRepo, suite.RefreshTokenRepo, suite.EmailSender)
-	if err != nil {
-		t.Fatalf("Failed to create auth service: %v", err)
-	}
-
-	voteService := services.NewVoteService(suite.VoteRepo, suite.PostRepo, suite.DB)
-	metadataService := suite.TitleFetcher
-
-	authHandler := handlers.NewAuthHandler(authService, suite.UserRepo)
-	postHandler := handlers.NewPostHandler(suite.PostRepo, metadataService, voteService)
-	voteHandler := handlers.NewVoteHandler(voteService)
-	userHandler := handlers.NewUserHandler(suite.UserRepo, authService)
-	apiHandler := handlers.NewAPIHandler(testutils.AppTestConfig, suite.PostRepo, suite.UserRepo, voteService)
+	h := setupCommonHandlers(t, suite, false)
 
 	staticDir := t.TempDir()
 	templatesDir := t.TempDir()
@@ -162,31 +189,17 @@ func setupPageHandlerTestContext(t *testing.T) *testContext {
 	confirmDeleteTemplate := `{{define "content"}}<h1>Confirm Delete</h1>{{end}}`
 	os.WriteFile(filepath.Join(templatesDir, "confirm_delete.gohtml"), []byte(confirmDeleteTemplate), 0644)
 
-	pageHandler, err := handlers.NewPageHandler(templatesDir, authService, suite.PostRepo, voteService, suite.UserRepo, metadataService, testutils.AppTestConfig)
+	pageHandler, err := handlers.NewPageHandler(templatesDir, h.AuthService, suite.PostRepo, h.VoteService, suite.UserRepo, h.MetadataService, testutils.AppTestConfig)
 	if err != nil {
 		t.Fatalf("Failed to create page handler: %v", err)
 	}
 
-	router := server.NewRouter(server.RouterConfig{
-		AuthHandler:        authHandler,
-		PostHandler:        postHandler,
-		VoteHandler:        voteHandler,
-		UserHandler:        userHandler,
-		APIHandler:         apiHandler,
-		AuthService:        authService,
-		PageHandler:        pageHandler,
-		StaticDir:          staticDir,
-		Debug:              false,
-		DisableCache:       false,
-		DisableCompression: false,
-		DBMonitor:          middleware.NewInMemoryDBMonitor(),
-		RateLimitConfig:    testutils.AppTestConfig.RateLimit,
-	})
+	router := server.NewRouter(buildRouterConfig(h, staticDir, pageHandler))
 
 	return &testContext{
 		Router:      router,
 		Suite:       suite,
-		AuthService: authService,
+		AuthService: h.AuthService,
 	}
 }
 
