@@ -11,14 +11,15 @@ import (
 	"strings"
 	"testing"
 
-	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 	"goyco/internal/config"
 	"goyco/internal/database"
 	"goyco/internal/middleware"
 	"goyco/internal/repositories"
 	"goyco/internal/services"
 	"goyco/internal/testutils"
+
+	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 func newAuthHandler(repo repositories.UserRepository) *AuthHandler {
@@ -233,26 +234,6 @@ func (m *mockRefreshTokenRepository) GetByUserID(userID uint) ([]database.Refres
 
 func (m *mockRefreshTokenRepository) CountByUserID(userID uint) (int64, error) {
 	return 0, nil
-}
-
-func newMockAuthService() *mockAuthService {
-	return &mockAuthService{}
-}
-
-func newMockAuthServiceWithLogin(fn func(string, string) (*services.AuthResult, error)) *mockAuthService {
-	return &mockAuthService{loginFunc: fn}
-}
-
-func newMockAuthServiceWithRegister(fn func(string, string, string) (*services.RegistrationResult, error)) *mockAuthService {
-	return &mockAuthService{registerFunc: fn}
-}
-
-func newMockAuthServiceWithRefreshToken(fn func(string) (*services.AuthResult, error)) *mockAuthService {
-	return &mockAuthService{refreshAccessTokenFunc: fn}
-}
-
-func newMockAuthServiceWithRevokeToken(fn func(string) error) *mockAuthService {
-	return &mockAuthService{revokeRefreshTokenFunc: fn}
 }
 
 func newMockAuthHandler(repo repositories.UserRepository, mockService *mockAuthService) *AuthHandler {
