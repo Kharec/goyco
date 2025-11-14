@@ -40,12 +40,7 @@ func (f *FuzzInputValidator) ValidateFuzzInputStrict(data []byte) bool {
 	}
 
 	input := string(data)
-
-	if len(strings.TrimSpace(input)) == 0 {
-		return false
-	}
-
-	return true
+	return len(strings.TrimSpace(input)) != 0
 }
 
 func ValidateUTF8String(s string) {
@@ -210,8 +205,8 @@ func (r *FuzzHTTPRequest) CreateTestRequest(method, url string, body []byte, hea
 }
 
 func (r *FuzzHTTPRequest) ValidateHTTPRequest(req *http.Request) {
-	pathParts := strings.Split(req.URL.Path, "/")
-	for _, part := range pathParts {
+	pathParts := strings.SplitSeq(req.URL.Path, "/")
+	for part := range pathParts {
 		ValidateUTF8String(part)
 	}
 
