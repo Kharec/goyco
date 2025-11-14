@@ -223,94 +223,6 @@ func uniqueEmail(t *testing.T, prefix string) string {
 	return fmt.Sprintf("%s_%s@example.com", prefix, uniqueTestID(t))
 }
 
-type TestUserBuilder struct {
-	username string
-	email    string
-	password string
-}
-
-func NewTestUserBuilder() *TestUserBuilder {
-	return &TestUserBuilder{
-		username: "",
-		email:    "",
-		password: "Password123!",
-	}
-}
-
-func (b *TestUserBuilder) WithUsername(username string) *TestUserBuilder {
-	b.username = username
-	return b
-}
-
-func (b *TestUserBuilder) WithEmail(email string) *TestUserBuilder {
-	b.email = email
-	return b
-}
-
-func (b *TestUserBuilder) WithPassword(password string) *TestUserBuilder {
-	b.password = password
-	return b
-}
-
-func (b *TestUserBuilder) Build(ctx *testContext, t *testing.T) *TestUser {
-	t.Helper()
-	username := b.username
-	if username == "" {
-		username = uniqueUsername(t, "builder")
-	}
-	email := b.email
-	if email == "" {
-		email = uniqueEmail(t, "builder")
-	}
-	return ctx.createUserWithCleanup(t, username, b.password)
-}
-
-type TestPostBuilder struct {
-	title   string
-	url     string
-	content string
-}
-
-func NewTestPostBuilder() *TestPostBuilder {
-	return &TestPostBuilder{
-		title:   "",
-		url:     "",
-		content: "",
-	}
-}
-
-func (b *TestPostBuilder) WithTitle(title string) *TestPostBuilder {
-	b.title = title
-	return b
-}
-
-func (b *TestPostBuilder) WithURL(url string) *TestPostBuilder {
-	b.url = url
-	return b
-}
-
-func (b *TestPostBuilder) WithContent(content string) *TestPostBuilder {
-	b.content = content
-	return b
-}
-
-func (b *TestPostBuilder) Build(authClient *AuthenticatedClient, t *testing.T) *TestPost {
-	t.Helper()
-	title := b.title
-	if title == "" {
-		title = "Test Post"
-	}
-	url := b.url
-	if url == "" {
-		url = "https://example.com/test"
-	}
-	content := b.content
-	if content == "" {
-		content = "Test content"
-	}
-	return authClient.CreatePost(t, title, url, content)
-}
-
 type TestFixtures struct {
 	VerifiedUser   *TestUser
 	UnverifiedUser *TestUser
@@ -873,26 +785,6 @@ func (ctx *testContext) resendVerification(t *testing.T, email string) int {
 	return testutils.ResendVerificationEmail(t, ctx.client, ctx.baseURL, email)
 }
 
-func (ctx *testContext) verifyDatabaseClean(t *testing.T) {
-	t.Helper()
-	var userCount int64
-	var postCount int64
-	var voteCount int64
-	var tokenCount int64
-	var deletionCount int64
-
-	ctx.server.DB.Model(&database.User{}).Count(&userCount)
-	ctx.server.DB.Model(&database.Post{}).Count(&postCount)
-	ctx.server.DB.Model(&database.Vote{}).Count(&voteCount)
-	ctx.server.DB.Model(&database.RefreshToken{}).Count(&tokenCount)
-	ctx.server.DB.Model(&database.AccountDeletionRequest{}).Count(&deletionCount)
-
-	if userCount > 0 || postCount > 0 || voteCount > 0 || tokenCount > 0 || deletionCount > 0 {
-		t.Logf("Database not clean: users=%d, posts=%d, votes=%d, tokens=%d, deletions=%d",
-			userCount, postCount, voteCount, tokenCount, deletionCount)
-	}
-}
-
 func (ctx *testContext) createTestFixtures(t *testing.T) *TestFixtures {
 	t.Helper()
 	fixtures := &TestFixtures{}
@@ -940,42 +832,10 @@ func (ctx *testContext) waitForCondition(t *testing.T, condition func() bool, ti
 	}
 }
 
-func (ctx *testContext) retryOperation(t *testing.T, operation func() error, maxRetries int) error {
-	t.Helper()
-	var lastErr error
-	for i := 0; i < maxRetries; i++ {
-		err := operation()
-		if err == nil {
-			return nil
-		}
-		lastErr = err
-		if i < maxRetries-1 {
-			backoff := time.Duration(i+1) * 100 * time.Millisecond
-			time.Sleep(backoff)
-		}
-	}
-	return lastErr
-}
-
 func (ctx *testContext) assertEventually(t *testing.T, assertion func() bool, timeout time.Duration) {
 	t.Helper()
 	if !ctx.waitForCondition(t, assertion, timeout) {
 		t.Errorf("Assertion failed after %v timeout", timeout)
-	}
-}
-
-func withTestTimeout(t *testing.T, timeout time.Duration, testFunc func()) {
-	t.Helper()
-	done := make(chan struct{})
-	go func() {
-		defer close(done)
-		testFunc()
-	}()
-
-	select {
-	case <-done:
-	case <-time.After(timeout):
-		t.Fatalf("Test exceeded timeout of %v", timeout)
 	}
 }
 
@@ -985,39 +845,6 @@ var (
 	getMetrics       = testutils.GetMetrics
 	assertVoteData   = testutils.AssertVoteData
 )
-
-func assertPostResponse(t *testing.T, resp *PostResponse, expectedPost *TestPost) {
-	t.Helper()
-	if resp == nil {
-		t.Fatalf("Expected post response, got nil")
-	}
-	if !resp.Success {
-		t.Errorf("Expected post response success=true, got false: %s", resp.Message)
-	}
-	if resp.Data.ID != expectedPost.ID {
-		t.Errorf("Expected post ID %d, got %d", expectedPost.ID, resp.Data.ID)
-	}
-	if resp.Data.Title != expectedPost.Title {
-		t.Errorf("Expected post title '%s', got '%s'", expectedPost.Title, resp.Data.Title)
-	}
-	if resp.Data.URL != expectedPost.URL {
-		t.Errorf("Expected post URL '%s', got '%s'", expectedPost.URL, resp.Data.URL)
-	}
-	if resp.Data.Content != expectedPost.Content {
-		t.Errorf("Expected post content '%s', got '%s'", expectedPost.Content, resp.Data.Content)
-	}
-	if resp.Data.AuthorID != expectedPost.AuthorID {
-		t.Errorf("Expected post author ID %d, got %d", expectedPost.AuthorID, resp.Data.AuthorID)
-	}
-	if resp.Data.CreatedAt == "" {
-		t.Errorf("Expected post CreatedAt to be set")
-	}
-	if resp.Data.UpdatedAt == "" {
-		t.Errorf("Expected post UpdatedAt to be set")
-	}
-	validateTimestamp(t, resp.Data.CreatedAt, "CreatedAt")
-	validateTimestamp(t, resp.Data.UpdatedAt, "UpdatedAt")
-}
 
 func assertUserResponse(t *testing.T, resp *ProfileResponse, expectedUser *TestUser) {
 	t.Helper()
@@ -1069,21 +896,6 @@ func assertVoteResponse(t *testing.T, resp *VoteResponse, expectedType string) {
 	}
 }
 
-func assertErrorResponse(t *testing.T, resp *http.Response, expectedCode int, expectedMessage string) {
-	t.Helper()
-	if resp.StatusCode != expectedCode {
-		t.Errorf("Expected status code %d, got %d", expectedCode, resp.StatusCode)
-	}
-	var apiResp APIResponse
-	decodeJSONResponse(t, resp, &apiResp)
-	if apiResp.Success {
-		t.Errorf("Expected error response success=false, got true")
-	}
-	if expectedMessage != "" && !strings.Contains(apiResp.Message, expectedMessage) {
-		t.Errorf("Expected error message to contain '%s', got '%s'", expectedMessage, apiResp.Message)
-	}
-}
-
 func validateTimestamp(t *testing.T, timestampStr, fieldName string) {
 	t.Helper()
 	if timestampStr == "" {
@@ -1096,96 +908,5 @@ func validateTimestamp(t *testing.T, timestampStr, fieldName string) {
 		if err != nil {
 			t.Errorf("Invalid timestamp format for %s: '%s'", fieldName, timestampStr)
 		}
-	}
-}
-
-func (ctx *testContext) verifyPostInDatabase(t *testing.T, postID uint, expectedPost *TestPost) {
-	t.Helper()
-	var post database.Post
-	if err := ctx.server.DB.First(&post, postID).Error; err != nil {
-		t.Fatalf("Failed to find post %d in database: %v", postID, err)
-	}
-	if post.Title != expectedPost.Title {
-		t.Errorf("Expected post title '%s' in database, got '%s'", expectedPost.Title, post.Title)
-	}
-	if post.URL != expectedPost.URL {
-		t.Errorf("Expected post URL '%s' in database, got '%s'", expectedPost.URL, post.URL)
-	}
-	if post.Content != expectedPost.Content {
-		t.Errorf("Expected post content '%s' in database, got '%s'", expectedPost.Content, post.Content)
-	}
-	if expectedPost.AuthorID != 0 {
-		if post.AuthorID == nil || *post.AuthorID != expectedPost.AuthorID {
-			t.Errorf("Expected post author ID %d in database, got %v", expectedPost.AuthorID, post.AuthorID)
-		}
-	}
-}
-
-func (ctx *testContext) verifyUserInDatabase(t *testing.T, userID uint, expectedUser *TestUser) {
-	t.Helper()
-	var user database.User
-	if err := ctx.server.DB.First(&user, userID).Error; err != nil {
-		t.Fatalf("Failed to find user %d in database: %v", userID, err)
-	}
-	if user.Username != expectedUser.Username {
-		t.Errorf("Expected username '%s' in database, got '%s'", expectedUser.Username, user.Username)
-	}
-	if user.Email != expectedUser.Email {
-		t.Errorf("Expected email '%s' in database, got '%s'", expectedUser.Email, user.Email)
-	}
-	if user.EmailVerified != expectedUser.EmailVerified {
-		t.Errorf("Expected EmailVerified %v in database, got %v", expectedUser.EmailVerified, user.EmailVerified)
-	}
-}
-
-func (ctx *testContext) verifyVoteInDatabase(t *testing.T, userID uint, postID uint, expectedType database.VoteType) {
-	t.Helper()
-	var vote database.Vote
-	query := ctx.server.DB.Where("user_id = ? AND post_id = ?", userID, postID).First(&vote)
-	if query.Error != nil {
-		t.Fatalf("Failed to find vote in database: %v", query.Error)
-	}
-	if vote.Type != expectedType {
-		t.Errorf("Expected vote type '%s' in database, got '%s'", expectedType, vote.Type)
-	}
-}
-
-func validateResponsePayload(t *testing.T, data map[string]any, expectedFields []string) {
-	t.Helper()
-	for _, field := range expectedFields {
-		if _, exists := data[field]; !exists {
-			t.Errorf("Expected field '%s' to be present in response", field)
-		}
-	}
-	for key := range data {
-		found := false
-		for _, expected := range expectedFields {
-			if key == expected {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Logf("Unexpected field '%s' in response (may be acceptable)", key)
-		}
-	}
-}
-
-func (ctx *testContext) recordTestCoverage(t *testing.T, category string) {
-	t.Helper()
-	t.Logf("Coverage: %s", category)
-}
-
-func getTestCoverageMetrics() map[string]int {
-	return map[string]int{
-		"auth":           9,
-		"security":       22,
-		"workflows":      15,
-		"posts_votes":    4,
-		"error_handling": 13,
-		"consistency":    6,
-		"performance":    5,
-		"middleware":     8,
-		"other":          16,
 	}
 }
