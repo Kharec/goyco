@@ -25,7 +25,8 @@ func TestE2E_StaticFileServing(t *testing.T) {
 		}
 		defer resp.Body.Close()
 
-		if resp.StatusCode == http.StatusOK {
+		switch resp.StatusCode {
+		case http.StatusOK:
 			contentType := resp.Header.Get("Content-Type")
 			if !strings.Contains(contentType, "text/css") && !strings.Contains(contentType, "application/octet-stream") {
 				t.Logf("Unexpected Content-Type for CSS file: %s", contentType)
@@ -39,9 +40,9 @@ func TestE2E_StaticFileServing(t *testing.T) {
 			if len(body) == 0 {
 				t.Error("Static CSS file is empty")
 			}
-		} else if resp.StatusCode == http.StatusNotFound {
+		case http.StatusNotFound:
 			t.Log("Static CSS file not found (may not exist in test environment)")
-		} else {
+		default:
 			t.Errorf("Expected status 200 or 404, got %d", resp.StatusCode)
 		}
 	})
@@ -95,12 +96,13 @@ func TestE2E_StaticFileServing(t *testing.T) {
 		}
 		defer resp.Body.Close()
 
-		if resp.StatusCode == http.StatusOK {
+		switch resp.StatusCode {
+		case http.StatusOK:
 			contentType := resp.Header.Get("Content-Type")
 			if !strings.Contains(contentType, "image") && !strings.Contains(contentType, "application/octet-stream") {
 				t.Logf("Unexpected Content-Type for favicon: %s", contentType)
 			}
-		} else if resp.StatusCode == http.StatusNotFound {
+		case http.StatusNotFound:
 			t.Log("Favicon not found (may not exist in test environment)")
 		}
 	})
