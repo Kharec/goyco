@@ -123,8 +123,8 @@ type HTTPFuzzTestCase struct {
 }
 
 func (h *FuzzTestHelper) validateHTTPRequest(t *testing.T, req *http.Request) {
-	pathParts := strings.Split(req.URL.Path, "/")
-	for _, part := range pathParts {
+	pathParts := strings.SplitSeq(req.URL.Path, "/")
+	for part := range pathParts {
 		if !utf8.ValidString(part) {
 			t.Fatal("Path contains invalid UTF-8")
 		}
