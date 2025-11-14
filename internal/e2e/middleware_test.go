@@ -100,9 +100,10 @@ func TestE2E_CompressionMiddleware(t *testing.T) {
 		}
 		defer resp.Body.Close()
 
-		if resp.StatusCode == http.StatusBadRequest {
+		switch resp.StatusCode {
+		case http.StatusBadRequest:
 			t.Log("Decompression middleware rejected invalid gzip")
-		} else if resp.StatusCode == http.StatusCreated || resp.StatusCode == http.StatusOK {
+		case http.StatusCreated, http.StatusOK:
 			t.Log("Decompression middleware handled gzip request successfully")
 		}
 	})
