@@ -15,10 +15,6 @@ func TestNewGormDBMonitor(t *testing.T) {
 	monitor := middleware.NewInMemoryDBMonitor()
 	gormMonitor := NewGormDBMonitor(monitor)
 
-	if gormMonitor == nil {
-		t.Fatal("Expected non-nil GormDBMonitor")
-	}
-
 	if gormMonitor.monitor != monitor {
 		t.Error("Expected monitor to be set correctly")
 	}
@@ -40,7 +36,7 @@ func TestGormDBMonitor_Initialize(t *testing.T) {
 	db := newTestDB(t)
 	defer func() {
 		if sqlDB, err := db.DB(); err == nil {
-			sqlDB.Close()
+			_ = sqlDB.Close()
 		}
 	}()
 
@@ -56,7 +52,7 @@ func TestGormDBMonitor_InitializeWithNilMonitor(t *testing.T) {
 	db := newTestDB(t)
 	defer func() {
 		if sqlDB, err := db.DB(); err == nil {
-			sqlDB.Close()
+			_ = sqlDB.Close()
 		}
 	}()
 
@@ -73,7 +69,7 @@ func TestGormDBMonitor_Callbacks(t *testing.T) {
 	db := newTestDB(t)
 	defer func() {
 		if sqlDB, err := db.DB(); err == nil {
-			sqlDB.Close()
+			_ = sqlDB.Close()
 		}
 	}()
 
@@ -114,7 +110,7 @@ func TestGormDBMonitor_CallbacksWithNilMonitor(t *testing.T) {
 	db := newTestDB(t)
 	defer func() {
 		if sqlDB, err := db.DB(); err == nil {
-			sqlDB.Close()
+			_ = sqlDB.Close()
 		}
 	}()
 
@@ -142,7 +138,7 @@ func TestGormDBMonitor_BuildQueryString(t *testing.T) {
 	db := newTestDB(t)
 	defer func() {
 		if sqlDB, err := db.DB(); err == nil {
-			sqlDB.Close()
+			_ = sqlDB.Close()
 		}
 	}()
 
@@ -280,7 +276,7 @@ func TestGormDBMonitor_WithRealDatabase(t *testing.T) {
 	}
 	defer func() {
 		if sqlDB, err := db.DB(); err == nil {
-			sqlDB.Close()
+			_ = sqlDB.Close()
 		}
 	}()
 
