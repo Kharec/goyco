@@ -382,9 +382,11 @@ make fuzz-tests
 # Format code
 make format
 
-# Run linter
+# Run linter 
 make lint
 ```
+
+Note: `golangci-lint` is set up with `.golangci.yml` file.
 
 ### Regerenate Swagger documentation
 
