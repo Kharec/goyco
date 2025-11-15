@@ -81,7 +81,7 @@ func TestUser_Model(t *testing.T) {
 	db := newTestDB(t)
 	defer func() {
 		if sqlDB, err := db.DB(); err == nil {
-			sqlDB.Close()
+			_ = sqlDB.Close()
 		}
 	}()
 
@@ -195,7 +195,7 @@ func TestPost_Model(t *testing.T) {
 	db := newTestDB(t)
 	defer func() {
 		if sqlDB, err := db.DB(); err == nil {
-			sqlDB.Close()
+			_ = sqlDB.Close()
 		}
 	}()
 
@@ -305,7 +305,7 @@ func TestVote_Model(t *testing.T) {
 	db := newTestDB(t)
 	defer func() {
 		if sqlDB, err := db.DB(); err == nil {
-			sqlDB.Close()
+			_ = sqlDB.Close()
 		}
 	}()
 
@@ -424,7 +424,7 @@ func TestRefreshToken_Model(t *testing.T) {
 	db := newTestDB(t)
 	defer func() {
 		if sqlDB, err := db.DB(); err == nil {
-			sqlDB.Close()
+			_ = sqlDB.Close()
 		}
 	}()
 
@@ -483,7 +483,7 @@ func TestAccountDeletionRequest_Model(t *testing.T) {
 	db := newTestDB(t)
 	defer func() {
 		if sqlDB, err := db.DB(); err == nil {
-			sqlDB.Close()
+			_ = sqlDB.Close()
 		}
 	}()
 
@@ -554,7 +554,7 @@ func TestModel_SoftDelete(t *testing.T) {
 	db := newTestDB(t)
 	defer func() {
 		if sqlDB, err := db.DB(); err == nil {
-			sqlDB.Close()
+			_ = sqlDB.Close()
 		}
 	}()
 
