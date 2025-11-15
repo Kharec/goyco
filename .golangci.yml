@@ -1,0 +1,96 @@
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+  modules-download-mode: readonly
+
+linters:
+  enable:
+    - govet
+    - staticcheck
+    - errcheck
+    - ineffassign
+    - unused
+    - gosec
+    - bodyclose
+    - noctx
+    - sqlclosecheck
+    - revive
+    - gocritic
+    - unparam
+    - wastedassign
+    - durationcheck
+    - goprintffuncname
+    - goconst
+    - misspell
+    - copyloopvar
+    - nilerr
+
+linters-settings:
+  revive:
+    confidence: 0.8
+    ignore-generated-header: true
+    severity: warning
+    rules:
+      - name: indent-error-flow
+      - name: early-return
+      - name: error-naming
+      - name: var-naming
+      - name: if-return
+      - name: exported
+      - name: context-as-argument
+      - name: errorf
+      - name: unexported-return
+      - name: unnecessary-stmt
+      - name: unreachable-code
+
+  gocritic:
+    disabled-checks:
+      - hugeParam
+      - ifElseChain
+    settings:
+      captLocal:
+        paramsOnly: false
+
+  gosec:
+    excludes:
+      - G204
+      - G601
+
+  errcheck:
+    check-type-assertions: true
+    ignore: |
+      fmt:.*
+
+  staticcheck:
+    checks: ["all"]
+    ignore:
+      - SA1019
+
+  goconst:
+    min-len: 3
+    min-occurrences: 2
+
+issues:
+  exclude-dirs:
+    - vendor
+    - tmp
+    - dist
+
+  exclude-rules:
+    - path: ".*_test\\.go"
+      linters:
+        - gosec
+
+    - path: "mock/|mocks/"
+      linters:
+        - gosec
+        - revive
+        - errcheck
+
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+output:
+  format: colored-line-number
