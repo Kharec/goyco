@@ -27,24 +27,47 @@ func (g *GormDBMonitor) Name() string {
 }
 
 func (g *GormDBMonitor) Initialize(db *gorm.DB) error {
+	if err := db.Callback().Create().Before("gorm:create").Register("db_monitor:before_create", g.beforeCreate); err != nil {
+		return err
+	}
+	if err := db.Callback().Create().After("gorm:create").Register("db_monitor:after_create", g.afterCreate); err != nil {
+		return err
+	}
 
-	db.Callback().Create().Before("gorm:create").Register("db_monitor:before_create", g.beforeCreate)
-	db.Callback().Create().After("gorm:create").Register("db_monitor:after_create", g.afterCreate)
+	if err := db.Callback().Query().Before("gorm:query").Register("db_monitor:before_query", g.beforeQuery); err != nil {
+		return err
+	}
+	if err := db.Callback().Query().After("gorm:query").Register("db_monitor:after_query", g.afterQuery); err != nil {
+		return err
+	}
 
-	db.Callback().Query().Before("gorm:query").Register("db_monitor:before_query", g.beforeQuery)
-	db.Callback().Query().After("gorm:query").Register("db_monitor:after_query", g.afterQuery)
+	if err := db.Callback().Update().Before("gorm:update").Register("db_monitor:before_update", g.beforeUpdate); err != nil {
+		return err
+	}
+	if err := db.Callback().Update().After("gorm:update").Register("db_monitor:after_update", g.afterUpdate); err != nil {
+		return err
+	}
 
-	db.Callback().Update().Before("gorm:update").Register("db_monitor:before_update", g.beforeUpdate)
-	db.Callback().Update().After("gorm:update").Register("db_monitor:after_update", g.afterUpdate)
+	if err := db.Callback().Delete().Before("gorm:delete").Register("db_monitor:before_delete", g.beforeDelete); err != nil {
+		return err
+	}
+	if err := db.Callback().Delete().After("gorm:delete").Register("db_monitor:after_delete", g.afterDelete); err != nil {
+		return err
+	}
 
-	db.Callback().Delete().Before("gorm:delete").Register("db_monitor:before_delete", g.beforeDelete)
-	db.Callback().Delete().After("gorm:delete").Register("db_monitor:after_delete", g.afterDelete)
+	if err := db.Callback().Row().Before("gorm:row").Register("db_monitor:before_row", g.beforeRow); err != nil {
+		return err
+	}
+	if err := db.Callback().Row().After("gorm:row").Register("db_monitor:after_row", g.afterRow); err != nil {
+		return err
+	}
 
-	db.Callback().Row().Before("gorm:row").Register("db_monitor:before_row", g.beforeRow)
-	db.Callback().Row().After("gorm:row").Register("db_monitor:after_row", g.afterRow)
-
-	db.Callback().Raw().Before("gorm:raw").Register("db_monitor:before_raw", g.beforeRaw)
-	db.Callback().Raw().After("gorm:raw").Register("db_monitor:after_raw", g.afterRaw)
+	if err := db.Callback().Raw().Before("gorm:raw").Register("db_monitor:before_raw", g.beforeRaw); err != nil {
+		return err
+	}
+	if err := db.Callback().Raw().After("gorm:raw").Register("db_monitor:after_raw", g.afterRaw); err != nil {
+		return err
+	}
 
 	return nil
 }
