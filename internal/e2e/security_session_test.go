@@ -432,7 +432,7 @@ func TestE2E_TokenReplayAttack(t *testing.T) {
 		token := authClient.Token
 
 		t.Run("same_token_multiple_times", func(t *testing.T) {
-			for i := 0; i < 5; i++ {
+			for i := range 5 {
 				statusCode := ctx.makeRequestWithToken(t, token)
 				if statusCode != http.StatusOK {
 					t.Errorf("Expected token to work multiple times (replay %d), got status %d", i+1, statusCode)
