@@ -11,11 +11,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
 	"goyco/internal/config"
 	"goyco/internal/repositories"
 	"goyco/internal/services"
 	"goyco/internal/testutils"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 func TestE2E_APIRegistration(t *testing.T) {
@@ -377,7 +378,7 @@ func TestE2E_RefreshTokenFlow(t *testing.T) {
 			for i := range 3 {
 				var statusCode int
 				var newAccessToken string
-				for attempt := 0; attempt < 3; attempt++ {
+				for attempt := range 3 {
 					newAccessToken, statusCode = authClient.RefreshAccessToken(t, testutils.GenerateTestIP())
 					if statusCode != http.StatusTooManyRequests {
 						break
