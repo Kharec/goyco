@@ -203,10 +203,7 @@ func uniqueUsername(t *testing.T, prefix string) string {
 	fullPrefix := fmt.Sprintf("%s_%s", filePrefix, prefix)
 	username := fmt.Sprintf("%s_%s", fullPrefix, uniqueTestID(t))
 	if len(username) > 50 {
-		maxIDLength := 50 - len(fullPrefix) - 1
-		if maxIDLength < 0 {
-			maxIDLength = 0
-		}
+		maxIDLength := max(50-len(fullPrefix)-1, 0)
 		testID := uniqueTestID(t)
 		if len(testID) > maxIDLength {
 			testID = testID[:maxIDLength]
