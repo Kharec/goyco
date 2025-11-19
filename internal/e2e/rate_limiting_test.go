@@ -17,7 +17,7 @@ func TestE2E_RateLimitingHeaders(t *testing.T) {
 	t.Run("rate_limit_headers_present", func(t *testing.T) {
 		testUser := ctx.createUserWithCleanup(t, "ratelimituser", "StrongPass123!")
 
-		for i := 0; i < 3; i++ {
+		for range 3 {
 			req, err := http.NewRequest("POST", ctx.baseURL+"/api/auth/login", strings.NewReader(`{"username":"`+testUser.Username+`","password":"StrongPass123!"}`))
 			if err != nil {
 				t.Fatalf("Failed to create request: %v", err)
@@ -53,7 +53,7 @@ func TestE2E_RateLimitingHeaders(t *testing.T) {
 		testUser := ctx.createUserWithCleanup(t, "ratelimituser2", "StrongPass123!")
 		testIP := testutils.GenerateTestIP()
 
-		for i := 0; i < 4; i++ {
+		for i := range 4 {
 			req, err := http.NewRequest("POST", ctx.baseURL+"/api/auth/login", strings.NewReader(`{"username":"`+testUser.Username+`","password":"StrongPass123!"}`))
 			if err != nil {
 				t.Fatalf("Failed to create request: %v", err)
@@ -95,7 +95,7 @@ func TestE2E_RateLimitResetBehavior(t *testing.T) {
 		testUser := ctx.createUserWithCleanup(t, "resetuser", "StrongPass123!")
 		testIP := testutils.GenerateTestIP()
 
-		for i := 0; i < 2; i++ {
+		for range 2 {
 			req, err := http.NewRequest("POST", ctx.baseURL+"/api/auth/login", strings.NewReader(`{"username":"`+testUser.Username+`","password":"StrongPass123!"}`))
 			if err != nil {
 				continue
@@ -178,7 +178,7 @@ func TestE2E_RateLimitDifferentScenarios(t *testing.T) {
 		successCount1 := 0
 		successCount2 := 0
 
-		for i := 0; i < 5; i++ {
+		for range 5 {
 			req1, _ := http.NewRequest("POST", ctx.baseURL+"/api/auth/login", strings.NewReader(`{"username":"`+testUser.Username+`","password":"StrongPass123!"}`))
 			req1.Header.Set("Content-Type", "application/json")
 			testutils.WithStandardHeaders(req1)
@@ -221,7 +221,7 @@ func TestE2E_RateLimitDifferentScenarios(t *testing.T) {
 		successCount1 := 0
 		successCount2 := 0
 
-		for i := 0; i < 10; i++ {
+		for range 10 {
 			req1, _ := http.NewRequest("GET", ctx.baseURL+"/api/auth/me", nil)
 			testutils.WithStandardHeaders(req1)
 			req1.Header.Set("Authorization", "Bearer "+authClient1.Token)
