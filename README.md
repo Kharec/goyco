@@ -1,7 +1,7 @@
 # Goyco
 
 [![Go Version](https://img.shields.io/badge/Go-1.25.0-blue.svg)](https://golang.org/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-blue.svg)](https://www.postgresql.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-blue.svg)](https://www.postgresql.org/)
 [![License](https://img.shields.io/badge/License-GPLv3-green.svg)](LICENSE)
 
 Goyco is a Y Combinator-style news aggregation platform built in Go. It will allow you to host your own news aggregation platform, with a modern-ish UI and a fully functional REST API.
@@ -18,14 +18,14 @@ You can get a preview of the application through the [screenshots](screenshots).
 
 ### Technology Stack
 
-It's basically pure Go (using Chi router), raw CSS and PostgreSQL 17.
+It's basically pure Go (using Chi router), raw CSS and PostgreSQL 18.
 
 ## Quick Start
 
 ### Prerequisites
 
 - Go 1.25.0 or later
-- PostgreSQL 17 or later
+- PostgreSQL 18 or later
 - SMTP server for email functionality
 
 ### Setup PostgreSQL database and user
