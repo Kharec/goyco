@@ -422,6 +422,24 @@ func (m *MockUserRepository) GetDeletedUsers() ([]database.User, error) {
 	return []database.User{}, nil
 }
 
+func (m *MockUserRepository) GetByUsernamePrefix(prefix string) (*database.User, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	for _, user := range m.users {
+		if len(user.Username) >= len(prefix) && user.Username[:len(prefix)] == prefix {
+			if len(user.Email) >= 13 && strings.HasSuffix(user.Email, "@goyco.local") {
+				emailPrefix := user.Email[:len(user.Email)-13]
+				if len(emailPrefix) >= len(prefix) && emailPrefix[:len(prefix)] == prefix {
+					return user, nil
+				}
+			}
+		}
+	}
+
+	return nil, gorm.ErrRecordNotFound
+}
+
 func (m *MockUserRepository) HardDeleteAll() (int64, error) {
 	if m.HardDeleteAllFunc != nil {
 		return m.HardDeleteAllFunc()
