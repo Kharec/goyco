@@ -69,14 +69,33 @@ func seedDatabase(userRepo repositories.UserRepository, postRepo repositories.Po
 		return err
 	}
 
+	originalUsers := *numUsers
+	originalPosts := *numPosts
+	originalVotesPerPost := *votesPerPost
+
 	if *numUsers < 0 {
-		return fmt.Errorf("invalid value for --users: %d (must be >= 0)", *numUsers)
+		if !IsJSONOutput() {
+			fmt.Fprintf(os.Stderr, "Warning: --users value %d is negative, clamping to 0\n", *numUsers)
+		}
+		*numUsers = 0
 	}
+
 	if *numPosts <= 0 {
-		return fmt.Errorf("invalid value for --posts: %d (must be > 0)", *numPosts)
+		if !IsJSONOutput() {
+			fmt.Fprintf(os.Stderr, "Warning: --posts value %d is too low, clamping to 1\n", *numPosts)
+		}
+		*numPosts = 1
 	}
+
 	if *votesPerPost < 0 {
-		return fmt.Errorf("invalid value for --votes-per-post: %d (must be >= 0)", *votesPerPost)
+		if !IsJSONOutput() {
+			fmt.Fprintf(os.Stderr, "Warning: --votes-per-post value %d is negative, clamping to 0\n", *votesPerPost)
+		}
+		*votesPerPost = 0
+	}
+
+	if !IsJSONOutput() && (originalUsers != *numUsers || originalPosts != *numPosts || originalVotesPerPost != *votesPerPost) {
+		fmt.Fprintf(os.Stderr, "Using clamped values: --users=%d --posts=%d --votes-per-post=%d\n", *numUsers, *numPosts, *votesPerPost)
 	}
 
 	if !IsJSONOutput() {
