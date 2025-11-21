@@ -269,12 +269,7 @@ func ensureSeedUser(userRepo repositories.UserRepository, passwordHash string) (
 
 	const maxRetries = 10
 	for range maxRetries {
-		user, err := userRepo.GetByEmail(seedEmail)
-		if err == nil {
-			return user, nil
-		}
-
-		user = &database.User{
+		user := &database.User{
 			Username:      seedUsername,
 			Email:         seedEmail,
 			Password:      passwordHash,

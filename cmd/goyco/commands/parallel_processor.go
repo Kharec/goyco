@@ -352,12 +352,7 @@ func (p *ParallelProcessor) createSingleUser(userRepo repositories.UserRepositor
 
 	const maxRetries = 10
 	for range maxRetries {
-		user, err := userRepo.GetByEmail(email)
-		if err == nil {
-			return *user, nil
-		}
-
-		user = &database.User{
+		user := &database.User{
 			Username:      username,
 			Email:         email,
 			Password:      p.passwordHash,
