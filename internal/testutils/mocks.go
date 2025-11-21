@@ -965,6 +965,25 @@ func (m *MockVoteRepository) CountByUserID(userID uint) (int64, error) {
 	return count, nil
 }
 
+func (m *MockVoteRepository) GetVoteCountsByPostID(postID uint) (int, int, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	upVotes := 0
+	downVotes := 0
+	for _, vote := range m.votes {
+		if vote.PostID == postID {
+			switch vote.Type {
+			case database.VoteUp:
+				upVotes++
+			case database.VoteDown:
+				downVotes++
+			}
+		}
+	}
+	return upVotes, downVotes, nil
+}
+
 func (m *MockVoteRepository) Count() (int64, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
