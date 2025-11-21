@@ -7,9 +7,10 @@ import (
 	"sync"
 	"testing"
 
-	"gorm.io/gorm"
 	"goyco/internal/database"
 	"goyco/internal/repositories"
+
+	"gorm.io/gorm"
 )
 
 type mockVoteRepo struct {
@@ -238,6 +239,25 @@ func (m *mockVoteRepo) CountByUserID(userID uint) (int64, error) {
 		}
 	}
 	return count, nil
+}
+
+func (m *mockVoteRepo) GetVoteCountsByPostID(postID uint) (int, int, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	upVotes := 0
+	downVotes := 0
+	for _, vote := range m.votes {
+		if vote.PostID == postID {
+			switch vote.Type {
+			case database.VoteUp:
+				upVotes++
+			case database.VoteDown:
+				downVotes++
+			}
+		}
+	}
+	return upVotes, downVotes, nil
 }
 
 func (m *mockVoteRepo) WithTx(tx *gorm.DB) repositories.VoteRepository {
