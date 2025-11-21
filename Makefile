@@ -44,8 +44,8 @@ clean:
 	rm -fr dist/*
 
 format:
-	$(PRETTIER) -w .
-	$(GO) fmt ./...
+	$(PRETTIER) -w . --ignore-path .prettierignore
+	$(GO) fmt $(shell $(GO) list ./... | grep -v 'docs')
 
 lint:
 	$(GOLANGCI_LINT) run
