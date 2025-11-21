@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -227,4 +228,125 @@ func TestSeedDatabaseFlagParsing(t *testing.T) {
 			t.Errorf("zero votes-per-post should be valid, got error: %v", err)
 		}
 	})
+}
+
+func TestSeedCommandIdempotency(t *testing.T) {
+	dbName := fmt.Sprintf("file:%s?mode=memory&cache=shared", t.Name())
+	db, err := gorm.Open(sqlite.Open(dbName), &gorm.Config{})
+	if err != nil {
+		t.Fatalf("Failed to connect to database: %v", err)
+	}
+
+	err = db.AutoMigrate(&database.User{}, &database.Post{}, &database.Vote{})
+	if err != nil {
+		t.Fatalf("Failed to migrate database: %v", err)
+	}
+
+	userRepo := repositories.NewUserRepository(db)
+	postRepo := repositories.NewPostRepository(db)
+	voteRepo := repositories.NewVoteRepository(db)
+
+	t.Run("first run creates seed user", func(t *testing.T) {
+		err := seedDatabase(userRepo, postRepo, voteRepo, []string{"--users", "1", "--posts", "2"})
+		if err != nil {
+			t.Fatalf("First seed run failed: %v", err)
+		}
+
+		users, err := userRepo.GetAll(100, 0)
+		if err != nil {
+			t.Fatalf("Failed to get users: %v", err)
+		}
+
+		seedUserCount := 0
+		for _, user := range users {
+			if strings.HasPrefix(user.Username, "seed_admin_") {
+				seedUserCount++
+			}
+		}
+
+		if seedUserCount < 1 {
+			t.Errorf("Expected at least 1 seed user, got %d", seedUserCount)
+		}
+	})
+
+	t.Run("second run reuses seed user", func(t *testing.T) {
+		usersBefore, _ := userRepo.GetAll(100, 0)
+		seedUserBefore := findSeedUser(usersBefore)
+
+		if seedUserBefore == nil {
+			t.Fatal("No seed user found before second run")
+		}
+
+		err := seedDatabase(userRepo, postRepo, voteRepo, []string{"--users", "1", "--posts", "2"})
+		if err != nil {
+			t.Fatalf("Second seed run failed: %v", err)
+		}
+
+		usersAfter, _ := userRepo.GetAll(100, 0)
+		seedUserAfter := findSeedUser(usersAfter)
+
+		if seedUserAfter == nil {
+			t.Fatal("Seed user not found after second run")
+		}
+
+		if seedUserBefore.ID != seedUserAfter.ID {
+			t.Errorf("Expected seed user to be reused (ID %d), but got different user (ID %d)", seedUserBefore.ID, seedUserAfter.ID)
+		}
+	})
+
+	t.Run("database remains consistent after multiple runs", func(t *testing.T) {
+		for i := 0; i < 2; i++ {
+			err := seedDatabase(userRepo, postRepo, voteRepo, []string{"--users", "0", "--posts", "1"})
+			if err != nil {
+				t.Fatalf("Seed run %d failed: %v", i+1, err)
+			}
+		}
+
+		users, _ := userRepo.GetAll(100, 0)
+		posts, _ := postRepo.GetAll(100, 0)
+
+		for _, post := range posts {
+			if post.AuthorID == nil {
+				t.Errorf("Post %d has no author", post.ID)
+				continue
+			}
+
+			authorExists := false
+			for _, user := range users {
+				if user.ID == *post.AuthorID {
+					authorExists = true
+					break
+				}
+			}
+
+			if !authorExists {
+				t.Errorf("Post %d has invalid author ID %d", post.ID, *post.AuthorID)
+			}
+
+			votes, _ := voteRepo.GetByPostID(post.ID)
+			for _, vote := range votes {
+				if vote.UserID != nil {
+					userExists := false
+					for _, user := range users {
+						if user.ID == *vote.UserID {
+							userExists = true
+							break
+						}
+					}
+					if !userExists {
+						t.Errorf("Vote %d has invalid user ID %d", vote.ID, *vote.UserID)
+					}
+				}
+			}
+		}
+	})
+}
+
+func findSeedUser(users []database.User) *database.User {
+	for i := range users {
+		if strings.HasPrefix(users[i].Username, "seed_admin_") {
+			return &users[i]
+		}
+	}
+	return nil
 }
