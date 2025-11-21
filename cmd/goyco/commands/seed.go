@@ -69,6 +69,16 @@ func seedDatabase(userRepo repositories.UserRepository, postRepo repositories.Po
 		return err
 	}
 
+	if *numUsers < 0 {
+		return fmt.Errorf("invalid value for --users: %d (must be >= 0)", *numUsers)
+	}
+	if *numPosts <= 0 {
+		return fmt.Errorf("invalid value for --posts: %d (must be > 0)", *numPosts)
+	}
+	if *votesPerPost < 0 {
+		return fmt.Errorf("invalid value for --votes-per-post: %d (must be >= 0)", *votesPerPost)
+	}
+
 	if !IsJSONOutput() {
 		fmt.Println("Starting database seeding...")
 	}
@@ -93,7 +103,7 @@ func seedDatabase(userRepo repositories.UserRepository, postRepo repositories.Po
 	processor := NewParallelProcessor()
 
 	var progress *ProgressIndicator
-	if !IsJSONOutput() {
+	if !IsJSONOutput() && *numUsers > 0 {
 		progress = NewProgressIndicator(*numUsers, "Creating users (parallel)")
 	}
 	users, err := processor.CreateUsersInParallel(userRepo, *numUsers, progress)
@@ -106,7 +116,7 @@ func seedDatabase(userRepo repositories.UserRepository, postRepo repositories.Po
 
 	allUsers := append([]database.User{*seedUser}, users...)
 
-	if !IsJSONOutput() {
+	if !IsJSONOutput() && *numPosts > 0 {
 		progress = NewProgressIndicator(*numPosts, "Creating posts (parallel)")
 	}
 	posts, err := processor.CreatePostsInParallel(postRepo, seedUser.ID, *numPosts, progress)
@@ -117,7 +127,7 @@ func seedDatabase(userRepo repositories.UserRepository, postRepo repositories.Po
 		progress.Complete()
 	}
 
-	if !IsJSONOutput() {
+	if !IsJSONOutput() && len(posts) > 0 {
 		progress = NewProgressIndicator(len(posts), "Creating votes (parallel)")
 	}
 	votes, err := processor.CreateVotesInParallel(voteRepo, allUsers, posts, *votesPerPost, progress)
@@ -128,7 +138,7 @@ func seedDatabase(userRepo repositories.UserRepository, postRepo repositories.Po
 		progress.Complete()
 	}
 
-	if !IsJSONOutput() {
+	if !IsJSONOutput() && len(posts) > 0 {
 		progress = NewProgressIndicator(len(posts), "Updating scores (parallel)")
 	}
 	err = processor.UpdatePostScoresInParallel(postRepo, voteRepo, posts, progress)
