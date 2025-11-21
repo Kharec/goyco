@@ -291,24 +291,7 @@ func ensureSeedUser(userRepo repositories.UserRepository, passwordHash string) (
 
 
 func getVoteCounts(voteRepo repositories.VoteRepository, postID uint) (int, int, error) {
-	votes, err := voteRepo.GetByPostID(postID)
-	if err != nil {
-		return 0, 0, err
-	}
-
-	upVotes := 0
-	downVotes := 0
-
-	for _, vote := range votes {
-		switch vote.Type {
-		case database.VoteUp:
-			upVotes++
-		case database.VoteDown:
-			downVotes++
-		}
-	}
-
-	return upVotes, downVotes, nil
+	return voteRepo.GetVoteCountsByPostID(postID)
 }
 
 func validateSeedConsistency(postRepo repositories.PostRepository, voteRepo repositories.VoteRepository, users []database.User, posts []database.Post) error {
