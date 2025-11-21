@@ -40,11 +40,11 @@ var (
 )
 
 func defaultDBConnector(cfg *config.Config) (*gorm.DB, func() error, error) {
-	db, err := database.Connect(cfg)
+	poolManager, err := database.ConnectWithPool(cfg)
 	if err != nil {
 		return nil, nil, err
 	}
-	return db, func() error { return database.Close(db) }, nil
+	return poolManager.GetDB(), func() error { return poolManager.Close() }, nil
 }
 
 func SetDBConnector(connector DBConnector) {
