@@ -669,6 +669,7 @@ func (e *errorVoteRepository) Delete(uint) error                           { ret
 func (e *errorVoteRepository) Count() (int64, error)                       { return 0, nil }
 func (e *errorVoteRepository) CountByPostID(uint) (int64, error)           { return 0, nil }
 func (e *errorVoteRepository) CountByUserID(uint) (int64, error)           { return 0, nil }
+func (e *errorVoteRepository) GetVoteCountsByPostID(uint) (int, int, error) { return 0, 0, errors.New("database error") }
 func (e *errorVoteRepository) WithTx(*gorm.DB) repositories.VoteRepository { return e }
 
 func TestPostHandler_EdgeCases(t *testing.T) {
