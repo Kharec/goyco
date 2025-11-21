@@ -104,12 +104,25 @@ func seedDatabase(userRepo repositories.UserRepository, postRepo repositories.Po
 		fmt.Println("Starting database seeding...")
 	}
 
+	seedPassword := "seed-password"
+	userPassword := "password123"
+
+	seedPasswordHash, err := bcrypt.GenerateFromPassword([]byte(seedPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("precompute seed password hash: %w", err)
+	}
+
+	userPasswordHash, err := bcrypt.GenerateFromPassword([]byte(userPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("precompute user password hash: %w", err)
+	}
+
 	spinner := NewSpinner("Creating seed user")
 	if !IsJSONOutput() {
 		spinner.Spin()
 	}
 
-	seedUser, err := ensureSeedUser(userRepo)
+	seedUser, err := ensureSeedUser(userRepo, string(seedPasswordHash))
 	if err != nil {
 		if !IsJSONOutput() {
 			spinner.Complete()
@@ -122,6 +135,7 @@ func seedDatabase(userRepo repositories.UserRepository, postRepo repositories.Po
 	}
 
 	processor := NewParallelProcessor()
+	processor.SetPasswordHash(string(userPasswordHash))
 
 	var progress *ProgressIndicator
 	if !IsJSONOutput() && *numUsers > 0 {
@@ -213,21 +227,15 @@ func findExistingSeedUser(userRepo repositories.UserRepository) (*database.User,
 	return nil, fmt.Errorf("no existing seed user found")
 }
 
-func ensureSeedUser(userRepo repositories.UserRepository) (*database.User, error) {
+func ensureSeedUser(userRepo repositories.UserRepository, passwordHash string) (*database.User, error) {
 	existingUser, err := findExistingSeedUser(userRepo)
 	if err == nil && existingUser != nil {
 		return existingUser, nil
 	}
 
-	seedPassword := "seed-password"
 	randomID := generateRandomIdentifier()
 	seedUsername := fmt.Sprintf("seed_admin_%s", randomID)
 	seedEmail := fmt.Sprintf("seed_admin_%s@goyco.local", randomID)
-
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(seedPassword), bcrypt.DefaultCost)
-	if err != nil {
-		return nil, fmt.Errorf("hash password: %w", err)
-	}
 
 	const maxRetries = 10
 	for range maxRetries {
@@ -239,7 +247,7 @@ func ensureSeedUser(userRepo repositories.UserRepository) (*database.User, error
 		user = &database.User{
 			Username:      seedUsername,
 			Email:         seedEmail,
-			Password:      string(hashedPassword),
+			Password:      passwordHash,
 			EmailVerified: true,
 		}
 
@@ -256,23 +264,17 @@ func ensureSeedUser(userRepo repositories.UserRepository) (*database.User, error
 	return nil, fmt.Errorf("failed to create seed user after %d attempts", maxRetries)
 }
 
-func createRandomUsers(userRepo repositories.UserRepository, count int) ([]database.User, error) {
+func createRandomUsers(userRepo repositories.UserRepository, count int, passwordHash string) ([]database.User, error) {
 	var users []database.User
 
 	for i := range count {
 		username := fmt.Sprintf("user_%d", i+1)
 		email := fmt.Sprintf("user_%d@goyco.local", i+1)
-		password := "password123"
-
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-		if err != nil {
-			return nil, fmt.Errorf("hash password for user %d: %w", i+1, err)
-		}
 
 		user := &database.User{
 			Username:      username,
 			Email:         email,
-			Password:      string(hashedPassword),
+			Password:      passwordHash,
 			EmailVerified: true,
 		}
 
