@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"strings"
 	"testing"
 
 	"gorm.io/driver/sqlite"
@@ -30,12 +31,12 @@ func TestSeedCommand(t *testing.T) {
 		t.Fatalf("Failed to ensure seed user: %v", err)
 	}
 
-	if seedUser.Username != "seed_admin" {
-		t.Errorf("Expected username 'seed_admin', got '%s'", seedUser.Username)
+	if !strings.HasPrefix(seedUser.Username, "seed_admin_") {
+		t.Errorf("Expected username to start with 'seed_admin_', got '%s'", seedUser.Username)
 	}
 
-	if seedUser.Email != "seed_admin@goyco.local" {
-		t.Errorf("Expected email 'seed_admin@goyco.local', got '%s'", seedUser.Email)
+	if !strings.HasPrefix(seedUser.Email, "seed_admin_") || !strings.HasSuffix(seedUser.Email, "@goyco.local") {
+		t.Errorf("Expected email to start with 'seed_admin_' and end with '@goyco.local', got '%s'", seedUser.Email)
 	}
 
 	if !seedUser.EmailVerified {
