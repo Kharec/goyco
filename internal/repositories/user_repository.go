@@ -28,6 +28,7 @@ type UserRepository interface {
 	Unlock(id uint) error
 	GetPosts(userID uint, limit, offset int) ([]database.Post, error)
 	GetDeletedUsers() ([]database.User, error)
+	GetByUsernamePrefix(prefix string) (*database.User, error)
 	HardDeleteAll() (int64, error)
 	Count() (int64, error)
 	WithTx(tx *gorm.DB) UserRepository
@@ -238,6 +239,17 @@ func (r *userRepository) GetDeletedUsers() ([]database.User, error) {
 		Where("deleted_at IS NOT NULL").
 		Find(&users).Error
 	return users, err
+}
+
+func (r *userRepository) GetByUsernamePrefix(prefix string) (*database.User, error) {
+	var user database.User
+	err := r.db.
+		Where("username LIKE ? AND email LIKE ?", prefix+"%", prefix+"%@goyco.local").
+		First(&user).Error
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
 }
 
 func (r *userRepository) HardDeleteAll() (int64, error) {
