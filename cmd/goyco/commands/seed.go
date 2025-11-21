@@ -57,15 +57,10 @@ func HandleSeedCommand(cfg *config.Config, name string, args []string) error {
 	}
 
 	return withDatabase(cfg, func(db *gorm.DB) error {
-		return db.Transaction(func(tx *gorm.DB) error {
-			userRepo := repositories.NewUserRepository(db).WithTx(tx)
-			postRepo := repositories.NewPostRepository(db).WithTx(tx)
-			voteRepo := repositories.NewVoteRepository(db).WithTx(tx)
-			if err := runSeedCommand(userRepo, postRepo, voteRepo, fs.Args()); err != nil {
-				return err
-			}
-			return nil
-		})
+		userRepo := repositories.NewUserRepository(db)
+		postRepo := repositories.NewPostRepository(db)
+		voteRepo := repositories.NewVoteRepository(db)
+		return runSeedCommand(userRepo, postRepo, voteRepo, fs.Args())
 	})
 }
 
