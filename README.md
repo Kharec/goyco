@@ -272,7 +272,7 @@ You can also set JSON output as the default by setting the `CLI_JSON_OUTPUT` env
 CLI_JSON_OUTPUT=true
 ```
 
-When set, all CLI commands will output JSON by default. You can still override this by using the `--json` flag explicitly or by setting it to `false` in the environment variable.
+When set, all CLI commands will output JSON by default.
 
 **Note for destructive operations**: When using `--json` with `prune` commands, you must also use the `--yes` flag to skip interactive confirmation prompts:
 
