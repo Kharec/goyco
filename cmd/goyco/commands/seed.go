@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
-	"strings"
 	"sync"
 	"time"
 
@@ -238,23 +237,11 @@ func seedDatabase(userRepo repositories.UserRepository, postRepo repositories.Po
 }
 
 func findExistingSeedUser(userRepo repositories.UserRepository) (*database.User, error) {
-	users, err := userRepo.GetAll(100, 0)
+	user, err := userRepo.GetByUsernamePrefix("seed_admin_")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("no existing seed user found")
 	}
-
-	for _, user := range users {
-		if len(user.Username) >= 11 && user.Username[:11] == "seed_admin_" {
-			if len(user.Email) >= 13 && strings.HasSuffix(user.Email, "@goyco.local") {
-				emailPrefix := user.Email[:len(user.Email)-13]
-				if len(emailPrefix) >= 11 && emailPrefix[:11] == "seed_admin_" {
-					return &user, nil
-				}
-			}
-		}
-	}
-
-	return nil, fmt.Errorf("no existing seed user found")
+	return user, nil
 }
 
 func ensureSeedUser(userRepo repositories.UserRepository, passwordHash string) (*database.User, error) {
@@ -288,7 +275,6 @@ func ensureSeedUser(userRepo repositories.UserRepository, passwordHash string) (
 
 	return nil, fmt.Errorf("failed to create seed user after %d attempts", maxRetries)
 }
-
 
 func getVoteCounts(voteRepo repositories.VoteRepository, postID uint) (int, int, error) {
 	return voteRepo.GetVoteCountsByPostID(postID)
