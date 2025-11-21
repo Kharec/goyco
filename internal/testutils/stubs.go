@@ -153,6 +153,7 @@ type UserRepositoryStub struct {
 	UnlockFn                  func(uint) error
 	GetPostsFn                func(uint, int, int) ([]database.Post, error)
 	GetDeletedUsersFn         func() ([]database.User, error)
+	GetByUsernamePrefixFn     func(string) (*database.User, error)
 	HardDeleteAllFn           func() (int64, error)
 	CountFn                   func() (int64, error)
 	WithTxFn                  func(*gorm.DB) repositories.UserRepository
@@ -279,6 +280,13 @@ func (s *UserRepositoryStub) GetDeletedUsers() ([]database.User, error) {
 		return s.GetDeletedUsersFn()
 	}
 	return nil, nil
+}
+
+func (s *UserRepositoryStub) GetByUsernamePrefix(prefix string) (*database.User, error) {
+	if s != nil && s.GetByUsernamePrefixFn != nil {
+		return s.GetByUsernamePrefixFn(prefix)
+	}
+	return nil, gorm.ErrRecordNotFound
 }
 
 func (s *UserRepositoryStub) HardDeleteAll() (int64, error) {
