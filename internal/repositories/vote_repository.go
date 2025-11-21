@@ -20,6 +20,7 @@ type VoteRepository interface {
 	Count() (int64, error)
 	CountByPostID(postID uint) (int64, error)
 	CountByUserID(userID uint) (int64, error)
+	GetVoteCountsByPostID(postID uint) (upVotes int, downVotes int, err error)
 	WithTx(tx *gorm.DB) VoteRepository
 }
 
@@ -143,4 +144,21 @@ func (r *voteRepository) Count() (int64, error) {
 	var count int64
 	err := r.db.Model(&database.Vote{}).Count(&count).Error
 	return count, err
+}
+
+func (r *voteRepository) GetVoteCountsByPostID(postID uint) (int, int, error) {
+	var result struct {
+		UpVotes   int64
+		DownVotes int64
+	}
+
+	err := r.db.Model(&database.Vote{}).
+		Select("COUNT(CASE WHEN type = ? THEN 1 END) as up_votes, COUNT(CASE WHEN type = ? THEN 1 END) as down_votes", database.VoteUp, database.VoteDown).
+		Where("post_id = ?", postID).
+		Scan(&result).Error
+	if err != nil {
+		return 0, 0, err
+	}
+
+	return int(result.UpVotes), int(result.DownVotes), nil
 }
