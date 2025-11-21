@@ -15,6 +15,7 @@ type Config struct {
 	SMTP      SMTPConfig
 	App       AppConfig
 	RateLimit RateLimitConfig
+	CLI       CLIConfig
 	LogDir    string
 	PIDDir    string
 }
@@ -81,6 +82,10 @@ type RateLimitConfig struct {
 	TrustProxyHeaders bool
 }
 
+type CLIConfig struct {
+	JSONOutputDefault bool
+}
+
 func Load() (*Config, error) {
 	config := &Config{
 		Database: DatabaseConfig{
@@ -136,6 +141,9 @@ func Load() (*Config, error) {
 			HealthLimit:       getEnvAsInt("RATE_LIMIT_HEALTH", 120),
 			MetricsLimit:      getEnvAsInt("RATE_LIMIT_METRICS", 20),
 			TrustProxyHeaders: getEnvAsBool("RATE_LIMIT_TRUST_PROXY", false),
+		},
+		CLI: CLIConfig{
+			JSONOutputDefault: getEnvAsBool("CLI_JSON_OUTPUT", false),
 		},
 		LogDir: getEnv("LOG_DIR", "/var/log/"),
 		PIDDir: getEnv("PID_DIR", "/run"),
