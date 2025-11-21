@@ -98,7 +98,7 @@ func userCreate(cfg *config.Config, repo repositories.UserRepository, args []str
 
 	auditLogger, err := NewAuditLogger(cfg.LogDir)
 	if err != nil {
-		fmt.Printf("Warning: Could not initialize audit logging: %v\n", err)
+		outputWarning("Could not initialize audit logging: %v", err)
 		auditLogger = nil
 	}
 
@@ -168,7 +168,16 @@ func userCreate(cfg *config.Config, repo repositories.UserRepository, args []str
 		auditLogger.LogUserCreation(user.ID, user.Username, user.Email, true, nil)
 	}
 
-	fmt.Printf("User created: %s (%s)\n", user.Username, user.Email)
+	if IsJSONOutput() {
+		outputJSON(map[string]interface{}{
+			"action":   "user_created",
+			"id":       user.ID,
+			"username": user.Username,
+			"email":    user.Email,
+		})
+	} else {
+		fmt.Printf("User created: %s (%s)\n", user.Username, user.Email)
+	}
 	return nil
 }
 
@@ -286,7 +295,16 @@ func userUpdate(cfg *config.Config, repo repositories.UserRepository, refreshTok
 		return handleDatabaseConstraintError(err)
 	}
 
-	fmt.Printf("User updated: %s (%s)\n", user.Username, user.Email)
+	if IsJSONOutput() {
+		outputJSON(map[string]interface{}{
+			"action":   "user_updated",
+			"id":       user.ID,
+			"username": user.Username,
+			"email":    user.Email,
+		})
+	} else {
+		fmt.Printf("User updated: %s (%s)\n", user.Username, user.Email)
+	}
 	return nil
 }
 
@@ -383,16 +401,13 @@ func userDelete(cfg *config.Config, repo repositories.UserRepository, args []str
 	}
 
 	var deleteErr error
+	var postsDeleted bool
 	if *deletePosts {
 		deleteErr = repo.HardDelete(uint(id))
-		if deleteErr == nil {
-			fmt.Printf("User deleted: ID=%d (posts also deleted)\n", id)
-		}
+		postsDeleted = true
 	} else {
 		deleteErr = repo.SoftDeleteWithPosts(uint(id))
-		if deleteErr == nil {
-			fmt.Printf("User deleted: ID=%d (posts kept)\n", id)
-		}
+		postsDeleted = false
 	}
 
 	if deleteErr != nil {
@@ -402,10 +417,30 @@ func userDelete(cfg *config.Config, repo repositories.UserRepository, args []str
 	emailSender := services.NewSMTPSenderWithTimeout(cfg.SMTP.Host, cfg.SMTP.Port, cfg.SMTP.Username, cfg.SMTP.Password, cfg.SMTP.From, cfg.SMTP.Timeout)
 	subject, body := services.GenerateAdminAccountDeletionNotificationEmail(user.Username, cfg.App.AdminEmail, cfg.App.BaseURL, cfg.App.Title, *deletePosts)
 
+	emailSent := true
 	if err := emailSender.Send(user.Email, subject, body); err != nil {
-		fmt.Printf("Warning: Could not send notification email to %s: %v\n", user.Email, err)
+		outputWarning("Could not send notification email to %s: %v", user.Email, err)
+		emailSent = false
+	}
+
+	if IsJSONOutput() {
+		outputJSON(map[string]interface{}{
+			"action":        "user_deleted",
+			"id":            id,
+			"username":      user.Username,
+			"email":         user.Email,
+			"posts_deleted": postsDeleted,
+			"email_sent":    emailSent,
+		})
 	} else {
-		fmt.Printf("Notification email sent to %s\n", user.Email)
+		if postsDeleted {
+			fmt.Printf("User deleted: ID=%d (posts also deleted)\n", id)
+		} else {
+			fmt.Printf("User deleted: ID=%d (posts kept)\n", id)
+		}
+		if emailSent {
+			fmt.Printf("Notification email sent to %s\n", user.Email)
+		}
 	}
 
 	return nil
@@ -424,6 +459,31 @@ func userList(repo repositories.UserRepository, args []string) error {
 	users, err := repo.GetAll(*limit, *offset)
 	if err != nil {
 		return fmt.Errorf("list users: %w", err)
+	}
+
+	if IsJSONOutput() {
+		type userJSON struct {
+			ID        uint   `json:"id"`
+			Username  string `json:"username"`
+			Email     string `json:"email"`
+			Locked    bool   `json:"locked"`
+			CreatedAt string `json:"created_at"`
+		}
+		usersJSON := make([]userJSON, len(users))
+		for i, u := range users {
+			usersJSON[i] = userJSON{
+				ID:        u.ID,
+				Username:  u.Username,
+				Email:     u.Email,
+				Locked:    u.Locked,
+				CreatedAt: u.CreatedAt.Format("2006-01-02 15:04:05"),
+			}
+		}
+		outputJSON(map[string]interface{}{
+			"users": usersJSON,
+			"count": len(usersJSON),
+		})
+		return nil
 	}
 
 	if len(users) == 0 {
@@ -517,7 +577,16 @@ func userLock(cfg *config.Config, repo repositories.UserRepository, args []strin
 	}
 
 	if user.Locked {
-		fmt.Printf("User is already locked: %s\n", user.Username)
+		if IsJSONOutput() {
+			outputJSON(map[string]interface{}{
+				"action":   "user_lock",
+				"id":       id,
+				"username": user.Username,
+				"status":   "already_locked",
+			})
+		} else {
+			fmt.Printf("User is already locked: %s\n", user.Username)
+		}
 		return nil
 	}
 
@@ -525,15 +594,27 @@ func userLock(cfg *config.Config, repo repositories.UserRepository, args []strin
 		return fmt.Errorf("lock user: %w", err)
 	}
 
-	fmt.Printf("User locked: %s\n", user.Username)
-
 	emailSender := services.NewSMTPSenderWithTimeout(cfg.SMTP.Host, cfg.SMTP.Port, cfg.SMTP.Username, cfg.SMTP.Password, cfg.SMTP.From, cfg.SMTP.Timeout)
 	subject, body := services.GenerateAccountLockNotificationEmail(user.Username, cfg.App.AdminEmail, cfg.App.Title)
 
+	emailSent := true
 	if err := emailSender.Send(user.Email, subject, body); err != nil {
-		fmt.Printf("Warning: Could not send notification email to %s: %v\n", user.Email, err)
+		outputWarning("Could not send notification email to %s: %v", user.Email, err)
+		emailSent = false
+	}
+
+	if IsJSONOutput() {
+		outputJSON(map[string]interface{}{
+			"action":     "user_locked",
+			"id":         id,
+			"username":   user.Username,
+			"email_sent": emailSent,
+		})
 	} else {
-		fmt.Printf("Notification email sent to %s\n", user.Email)
+		fmt.Printf("User locked: %s\n", user.Username)
+		if emailSent {
+			fmt.Printf("Notification email sent to %s\n", user.Email)
+		}
 	}
 
 	return nil
@@ -571,7 +652,16 @@ func userUnlock(cfg *config.Config, repo repositories.UserRepository, args []str
 	}
 
 	if !user.Locked {
-		fmt.Printf("User is already unlocked: %s\n", user.Username)
+		if IsJSONOutput() {
+			outputJSON(map[string]interface{}{
+				"action":   "user_unlock",
+				"id":       id,
+				"username": user.Username,
+				"status":   "already_unlocked",
+			})
+		} else {
+			fmt.Printf("User is already unlocked: %s\n", user.Username)
+		}
 		return nil
 	}
 
@@ -579,15 +669,27 @@ func userUnlock(cfg *config.Config, repo repositories.UserRepository, args []str
 		return fmt.Errorf("unlock user: %w", err)
 	}
 
-	fmt.Printf("User unlocked: %s\n", user.Username)
-
 	emailSender := services.NewSMTPSenderWithTimeout(cfg.SMTP.Host, cfg.SMTP.Port, cfg.SMTP.Username, cfg.SMTP.Password, cfg.SMTP.From, cfg.SMTP.Timeout)
 	subject, body := services.GenerateAccountUnlockNotificationEmail(user.Username, cfg.App.AdminEmail, cfg.App.BaseURL, cfg.App.Title)
 
+	emailSent := true
 	if err := emailSender.Send(user.Email, subject, body); err != nil {
-		fmt.Printf("Warning: Could not send notification email to %s: %v\n", user.Email, err)
+		outputWarning("Could not send notification email to %s: %v", user.Email, err)
+		emailSent = false
+	}
+
+	if IsJSONOutput() {
+		outputJSON(map[string]interface{}{
+			"action":     "user_unlocked",
+			"id":         id,
+			"username":   user.Username,
+			"email_sent": emailSent,
+		})
 	} else {
-		fmt.Printf("Notification email sent to %s\n", user.Email)
+		fmt.Printf("User unlocked: %s\n", user.Username)
+		if emailSent {
+			fmt.Printf("Notification email sent to %s\n", user.Email)
+		}
 	}
 
 	return nil
@@ -629,8 +731,18 @@ func resetUserPassword(cfg *config.Config, repo repositories.UserRepository, ses
 		return fmt.Errorf("send password reset email: %w", err)
 	}
 
-	fmt.Printf("Password reset for user %s: Temporary password sent to %s\n", user.Username, user.Email)
-	fmt.Printf("⚠️ User must change this password on next login!\n")
+	if IsJSONOutput() {
+		outputJSON(map[string]interface{}{
+			"action":   "password_reset",
+			"id":       userID,
+			"username": user.Username,
+			"email":    user.Email,
+			"message":  "Temporary password sent. User must change password on next login.",
+		})
+	} else {
+		fmt.Printf("Password reset for user %s: Temporary password sent to %s\n", user.Username, user.Email)
+		fmt.Printf("⚠️ User must change this password on next login!\n")
+	}
 
 	return nil
 }

@@ -172,11 +172,12 @@ func FuzzRunCommandHandler(f *testing.F) {
 
 		err := handleRunCommand(cfg, args)
 
-		if len(args) > 0 && args[0] == "--help" {
+		switch {
+		case len(args) > 0 && args[0] == "--help":
 			if err != nil {
 				t.Logf("Help flag should not error, got: %v", err)
 			}
-		} else if len(args) > 0 {
+		case len(args) > 0:
 			if err == nil {
 				return
 			}
@@ -190,7 +191,7 @@ func FuzzRunCommandHandler(f *testing.F) {
 			if !strings.Contains(errMsg, "unexpected arguments") {
 				t.Logf("Got error (may be acceptable for server setup): %v", err)
 			}
-		} else {
+		default:
 			if err != nil && strings.Contains(err.Error(), "unexpected arguments") {
 				t.Fatalf("Empty args should not trigger 'unexpected arguments' error: %v", err)
 			}

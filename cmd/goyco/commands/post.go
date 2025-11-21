@@ -90,7 +90,14 @@ func postDelete(repo repositories.PostRepository, args []string) error {
 		return fmt.Errorf("delete post: %w", err)
 	}
 
-	fmt.Printf("Post deleted: ID=%d\n", id)
+	if IsJSONOutput() {
+		outputJSON(map[string]interface{}{
+			"action": "post_deleted",
+			"id":     id,
+		})
+	} else {
+		fmt.Printf("Post deleted: ID=%d\n", id)
+	}
 	return nil
 }
 
@@ -124,6 +131,38 @@ func postList(postQueries *services.PostQueries, args []string) error {
 	}
 	if err != nil {
 		return fmt.Errorf("list posts: %w", err)
+	}
+
+	if IsJSONOutput() {
+		type postJSON struct {
+			ID        uint   `json:"id"`
+			Title     string `json:"title"`
+			AuthorID  uint   `json:"author_id"`
+			Score     int    `json:"score"`
+			CreatedAt string `json:"created_at"`
+		}
+		postsJSON := make([]postJSON, len(posts))
+		for i, p := range posts {
+			authorID := uint(0)
+			if p.AuthorID != nil {
+				authorID = *p.AuthorID
+			}
+			if p.Author.ID != 0 {
+				authorID = p.Author.ID
+			}
+			postsJSON[i] = postJSON{
+				ID:        p.ID,
+				Title:     p.Title,
+				AuthorID:  authorID,
+				Score:     p.Score,
+				CreatedAt: p.CreatedAt.Format("2006-01-02 15:04:05"),
+			}
+		}
+		outputJSON(map[string]interface{}{
+			"posts": postsJSON,
+			"count": len(postsJSON),
+		})
+		return nil
 	}
 
 	if len(posts) == 0 {
@@ -232,6 +271,39 @@ func postSearch(postQueries *services.PostQueries, args []string) error {
 	posts, err := postQueries.GetSearch(sanitizedTerm, opts, ctx)
 	if err != nil {
 		return fmt.Errorf("search posts: %w", err)
+	}
+
+	if IsJSONOutput() {
+		type postJSON struct {
+			ID        uint   `json:"id"`
+			Title     string `json:"title"`
+			AuthorID  uint   `json:"author_id"`
+			Score     int    `json:"score"`
+			CreatedAt string `json:"created_at"`
+		}
+		postsJSON := make([]postJSON, len(posts))
+		for i, p := range posts {
+			authorID := uint(0)
+			if p.AuthorID != nil {
+				authorID = *p.AuthorID
+			}
+			if p.Author.ID != 0 {
+				authorID = p.Author.ID
+			}
+			postsJSON[i] = postJSON{
+				ID:        p.ID,
+				Title:     p.Title,
+				AuthorID:  authorID,
+				Score:     p.Score,
+				CreatedAt: p.CreatedAt.Format("2006-01-02 15:04:05"),
+			}
+		}
+		outputJSON(map[string]interface{}{
+			"search_term": sanitizedTerm,
+			"posts":       postsJSON,
+			"count":       len(postsJSON),
+		})
+		return nil
 	}
 
 	if len(posts) == 0 {

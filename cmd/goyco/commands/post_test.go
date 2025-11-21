@@ -89,6 +89,26 @@ func TestPostDelete(t *testing.T) {
 		}
 	})
 
+	t.Run("successful delete with JSON output", func(t *testing.T) {
+		SetJSONOutput(true)
+		defer SetJSONOutput(false)
+
+		freshMockRepo := testutils.NewMockPostRepository()
+		testPost := &database.Post{
+			Title:    "Test Post",
+			Content:  "Test Content",
+			AuthorID: &[]uint{1}[0],
+			Score:    0,
+		}
+		_ = freshMockRepo.Create(testPost)
+
+		err := postDelete(freshMockRepo, []string{"1"})
+
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+	})
+
 	t.Run("missing id", func(t *testing.T) {
 		err := postDelete(mockRepo, []string{})
 
@@ -167,6 +187,17 @@ func TestPostList(t *testing.T) {
 	postQueries := createPostQueries(mockRepo)
 
 	t.Run("list all posts", func(t *testing.T) {
+		err := postList(postQueries, []string{})
+
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("list all posts with JSON output", func(t *testing.T) {
+		SetJSONOutput(true)
+		defer SetJSONOutput(false)
+
 		err := postList(postQueries, []string{})
 
 		if err != nil {
@@ -264,6 +295,17 @@ func TestPostSearch(t *testing.T) {
 	}
 
 	t.Run("search with results", func(t *testing.T) {
+		err := postSearch(postQueries, []string{"Go"})
+
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("search with results and JSON output", func(t *testing.T) {
+		SetJSONOutput(true)
+		defer SetJSONOutput(false)
+
 		err := postSearch(postQueries, []string{"Go"})
 
 		if err != nil {

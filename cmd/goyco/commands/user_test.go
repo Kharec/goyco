@@ -81,6 +81,22 @@ func TestUserCreate(t *testing.T) {
 		}
 	})
 
+	t.Run("successful creation with JSON output", func(t *testing.T) {
+		SetJSONOutput(true)
+		defer SetJSONOutput(false)
+
+		mockRepo := testutils.NewMockUserRepository()
+		err := userCreate(cfg, mockRepo, []string{
+			"--username", "testuser",
+			"--email", "test@example.com",
+			"--password", "StrongPass123!",
+		})
+
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+	})
+
 	t.Run("missing username", func(t *testing.T) {
 		mockRepo := testutils.NewMockUserRepository()
 		err := userCreate(cfg, mockRepo, []string{
@@ -239,6 +255,22 @@ func TestUserUpdate(t *testing.T) {
 		}
 	})
 
+	t.Run("successful update username with JSON output", func(t *testing.T) {
+		SetJSONOutput(true)
+		defer SetJSONOutput(false)
+
+		cfg := &config.Config{}
+		mockRefreshRepo := &mockRefreshTokenRepo{}
+		err := userUpdate(cfg, mockRepo, mockRefreshRepo, []string{
+			"1",
+			"--username", "newusername",
+		})
+
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+	})
+
 	t.Run("successful update email", func(t *testing.T) {
 		cfg := &config.Config{}
 		mockRefreshRepo := &mockRefreshTokenRepo{}
@@ -351,6 +383,25 @@ func TestUserDelete(t *testing.T) {
 		}
 	})
 
+	t.Run("successful delete with JSON output", func(t *testing.T) {
+		SetJSONOutput(true)
+		defer SetJSONOutput(false)
+
+		testUser := &database.User{
+			Username: "testuser",
+			Email:    "test@example.com",
+			Password: "hashedpassword",
+		}
+		freshMockRepo := testutils.NewMockUserRepository()
+		_ = freshMockRepo.Create(testUser)
+
+		err := userDelete(cfg, freshMockRepo, []string{"1"})
+
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+	})
+
 	t.Run("successful delete with posts", func(t *testing.T) {
 		testUser2 := &database.User{
 			Username: "testuser2",
@@ -452,6 +503,17 @@ func TestUserList(t *testing.T) {
 	}
 
 	t.Run("list all users", func(t *testing.T) {
+		err := userList(mockRepo, []string{})
+
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("list all users with JSON output", func(t *testing.T) {
+		SetJSONOutput(true)
+		defer SetJSONOutput(false)
+
 		err := userList(mockRepo, []string{})
 
 		if err != nil {

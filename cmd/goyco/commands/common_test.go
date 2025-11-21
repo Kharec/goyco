@@ -217,3 +217,41 @@ func setInMemoryDBConnector(t *testing.T) {
 		SetDBConnector(nil)
 	})
 }
+
+func TestSetJSONOutput(t *testing.T) {
+	t.Run("set and get JSON output", func(t *testing.T) {
+		SetJSONOutput(true)
+		if !IsJSONOutput() {
+			t.Error("expected JSON output to be enabled")
+		}
+
+		SetJSONOutput(false)
+		if IsJSONOutput() {
+			t.Error("expected JSON output to be disabled")
+		}
+	})
+
+	t.Run("concurrent access", func(t *testing.T) {
+		SetJSONOutput(false)
+		done := make(chan bool)
+
+		go func() {
+			for i := 0; i < 100; i++ {
+				SetJSONOutput(true)
+				_ = IsJSONOutput()
+				SetJSONOutput(false)
+			}
+			done <- true
+		}()
+
+		go func() {
+			for i := 0; i < 100; i++ {
+				_ = IsJSONOutput()
+			}
+			done <- true
+		}()
+
+		<-done
+		<-done
+	})
+}

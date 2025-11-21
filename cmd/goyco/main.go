@@ -67,6 +67,7 @@ func run(args []string) error {
 	rootFS.SetOutput(os.Stderr)
 	rootFS.Usage = printRootUsage
 	showHelp := rootFS.Bool("help", false, "show this help message")
+	jsonOutput := rootFS.Bool("json", false, "output results in JSON format")
 
 	if err := rootFS.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
@@ -79,6 +80,8 @@ func run(args []string) error {
 		printRootUsage()
 		return nil
 	}
+
+	commands.SetJSONOutput(*jsonOutput)
 
 	remaining := rootFS.Args()
 	if len(remaining) == 0 {

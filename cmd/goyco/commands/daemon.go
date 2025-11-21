@@ -86,23 +86,50 @@ func runStatusCommand(cfg *config.Config) error {
 	pidFile := filepath.Join(pidDir, "goyco.pid")
 
 	if !isDaemonRunning(pidFile) {
-		fmt.Println("Goyco is not running")
+		if IsJSONOutput() {
+			outputJSON(map[string]interface{}{
+				"status": "not_running",
+			})
+		} else {
+			fmt.Println("Goyco is not running")
+		}
 		return nil
 	}
 
 	data, err := os.ReadFile(pidFile)
 	if err != nil {
-		fmt.Printf("Goyco is running (PID file exists but cannot be read: %v)\n", err)
+		if IsJSONOutput() {
+			outputJSON(map[string]interface{}{
+				"status": "running",
+				"error":  fmt.Sprintf("PID file exists but cannot be read: %v", err),
+			})
+		} else {
+			fmt.Printf("Goyco is running (PID file exists but cannot be read: %v)\n", err)
+		}
 		return nil
 	}
 
 	pid, err := strconv.Atoi(string(data))
 	if err != nil {
-		fmt.Printf("Goyco is running (PID file exists but contains invalid PID: %v)\n", err)
+		if IsJSONOutput() {
+			outputJSON(map[string]interface{}{
+				"status": "running",
+				"error":  fmt.Sprintf("PID file exists but contains invalid PID: %v", err),
+			})
+		} else {
+			fmt.Printf("Goyco is running (PID file exists but contains invalid PID: %v)\n", err)
+		}
 		return nil
 	}
 
-	fmt.Printf("Goyco is running (PID %d)\n", pid)
+	if IsJSONOutput() {
+		outputJSON(map[string]interface{}{
+			"status": "running",
+			"pid":    pid,
+		})
+	} else {
+		fmt.Printf("Goyco is running (PID %d)\n", pid)
+	}
 	return nil
 }
 
@@ -143,7 +170,14 @@ func stopDaemon(cfg *config.Config) error {
 
 	_ = os.Remove(pidFile)
 
-	fmt.Printf("Goyco stopped (PID %d)\n", pid)
+	if IsJSONOutput() {
+		outputJSON(map[string]interface{}{
+			"action": "stopped",
+			"pid":    pid,
+		})
+	} else {
+		fmt.Printf("Goyco stopped (PID %d)\n", pid)
+	}
 	return nil
 }
 
@@ -184,9 +218,18 @@ func runDaemon(cfg *config.Config) error {
 		if err := writePIDFile(pidFile, pid); err != nil {
 			return fmt.Errorf("cannot write PID file: %w", err)
 		}
-		fmt.Printf("Goyco started with PID %d\n", pid)
-		fmt.Printf("PID file: %s\n", pidFile)
-		fmt.Printf("Log file: %s\n", logFile)
+		if IsJSONOutput() {
+			outputJSON(map[string]interface{}{
+				"action":   "started",
+				"pid":      pid,
+				"pid_file": pidFile,
+				"log_file": logFile,
+			})
+		} else {
+			fmt.Printf("Goyco started with PID %d\n", pid)
+			fmt.Printf("PID file: %s\n", pidFile)
+			fmt.Printf("Log file: %s\n", logFile)
+		}
 		return nil
 	}
 

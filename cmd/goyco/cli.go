@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/joho/godotenv"
 	"goyco/cmd/goyco/commands"
+
+	"github.com/joho/godotenv"
 )
 
 func loadDotEnv() {

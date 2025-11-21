@@ -62,6 +62,7 @@ func printPruneUsage() {
 func prunePosts(postRepo repositories.PostRepository, args []string) error {
 	fs := flag.NewFlagSet("prune posts", flag.ContinueOnError)
 	dryRun := fs.Bool("dry-run", false, "preview what would be deleted without actually deleting")
+	yes := fs.Bool("yes", false, "skip confirmation prompt")
 	fs.SetOutput(os.Stderr)
 
 	if err := fs.Parse(args); err != nil {
@@ -71,6 +72,49 @@ func prunePosts(postRepo repositories.PostRepository, args []string) error {
 	posts, err := postRepo.GetPostsByDeletedUsers()
 	if err != nil {
 		return fmt.Errorf("get posts by deleted users: %w", err)
+	}
+
+	if IsJSONOutput() {
+		type postJSON struct {
+			ID     uint   `json:"id"`
+			Title  string `json:"title"`
+			Author string `json:"author"`
+			URL    string `json:"url"`
+		}
+		postsJSON := make([]postJSON, len(posts))
+		for i, post := range posts {
+			authorName := "(deleted)"
+			if post.Author.ID != 0 {
+				authorName = post.Author.Username
+			}
+			postsJSON[i] = postJSON{
+				ID:     post.ID,
+				Title:  post.Title,
+				Author: authorName,
+				URL:    post.URL,
+			}
+		}
+		if *dryRun {
+			outputJSON(map[string]interface{}{
+				"action":  "prune_posts",
+				"dry_run": true,
+				"posts":   postsJSON,
+				"count":   len(postsJSON),
+			})
+			return nil
+		}
+		if !*yes {
+			return fmt.Errorf("confirmation required. Use --yes to skip prompt in JSON mode")
+		}
+		deletedCount, err := postRepo.HardDeletePostsByDeletedUsers()
+		if err != nil {
+			return fmt.Errorf("hard delete posts: %w", err)
+		}
+		outputJSON(map[string]interface{}{
+			"action":        "prune_posts",
+			"deleted_count": deletedCount,
+		})
+		return nil
 	}
 
 	if len(posts) == 0 {
@@ -93,15 +137,17 @@ func prunePosts(postRepo repositories.PostRepository, args []string) error {
 		return nil
 	}
 
-	fmt.Printf("\nAre you sure you want to permanently delete %d posts? (yes/no): ", len(posts))
-	var confirmation string
-	if _, err := fmt.Scanln(&confirmation); err != nil {
-		return fmt.Errorf("read confirmation: %w", err)
-	}
+	if !*yes {
+		fmt.Printf("\nAre you sure you want to permanently delete %d posts? (yes/no): ", len(posts))
+		var confirmation string
+		if _, err := fmt.Scanln(&confirmation); err != nil {
+			return fmt.Errorf("read confirmation: %w", err)
+		}
 
-	if confirmation != "yes" {
-		fmt.Println("Operation cancelled")
-		return nil
+		if confirmation != "yes" {
+			fmt.Println("Operation cancelled")
+			return nil
+		}
 	}
 
 	deletedCount, err := postRepo.HardDeletePostsByDeletedUsers()
@@ -117,6 +163,7 @@ func pruneUsers(userRepo repositories.UserRepository, postRepo repositories.Post
 	fs := flag.NewFlagSet("prune users", flag.ContinueOnError)
 	dryRun := fs.Bool("dry-run", false, "preview what would be deleted without actually deleting")
 	deletePosts := fs.Bool("with-posts", false, "also delete all posts when deleting users")
+	yes := fs.Bool("yes", false, "skip confirmation prompt")
 	fs.SetOutput(os.Stderr)
 
 	if err := fs.Parse(args); err != nil {
@@ -130,7 +177,14 @@ func pruneUsers(userRepo repositories.UserRepository, postRepo repositories.Post
 
 	userCount := len(users)
 	if userCount == 0 {
-		fmt.Println("No users found to delete")
+		if IsJSONOutput() {
+			outputJSON(map[string]interface{}{
+				"action": "prune_users",
+				"count":  0,
+			})
+		} else {
+			fmt.Println("No users found to delete")
+		}
 		return nil
 	}
 
@@ -140,6 +194,61 @@ func pruneUsers(userRepo repositories.UserRepository, postRepo repositories.Post
 		if err != nil {
 			return fmt.Errorf("get post count: %w", err)
 		}
+	}
+
+	if IsJSONOutput() {
+		type userJSON struct {
+			ID       uint   `json:"id"`
+			Username string `json:"username"`
+			Email    string `json:"email"`
+		}
+		usersJSON := make([]userJSON, len(users))
+		for i, user := range users {
+			usersJSON[i] = userJSON{
+				ID:       user.ID,
+				Username: user.Username,
+				Email:    user.Email,
+			}
+		}
+		if *dryRun {
+			outputJSON(map[string]interface{}{
+				"action":     "prune_users",
+				"dry_run":    true,
+				"users":      usersJSON,
+				"user_count": userCount,
+				"post_count": postCount,
+				"with_posts": *deletePosts,
+			})
+			return nil
+		}
+		if !*yes {
+			return fmt.Errorf("confirmation required. Use --yes to skip prompt or --json for non-interactive mode")
+		}
+		if *deletePosts {
+			totalDeleted, err := userRepo.HardDeleteAll()
+			if err != nil {
+				return fmt.Errorf("hard delete all users and posts: %w", err)
+			}
+			outputJSON(map[string]interface{}{
+				"action":        "prune_users",
+				"deleted_count": totalDeleted,
+				"with_posts":    true,
+			})
+		} else {
+			deletedCount := 0
+			for _, user := range users {
+				if err := userRepo.SoftDeleteWithPosts(user.ID); err != nil {
+					return fmt.Errorf("soft delete user %d: %w", user.ID, err)
+				}
+				deletedCount++
+			}
+			outputJSON(map[string]interface{}{
+				"action":        "prune_users",
+				"deleted_count": deletedCount,
+				"with_posts":    false,
+			})
+		}
+		return nil
 	}
 
 	fmt.Printf("Found %d users", userCount)
@@ -158,21 +267,23 @@ func pruneUsers(userRepo repositories.UserRepository, postRepo repositories.Post
 		return nil
 	}
 
-	confirmMsg := fmt.Sprintf("\nAre you sure you want to permanently delete %d users", userCount)
-	if *deletePosts {
-		confirmMsg += fmt.Sprintf(" and %d posts", postCount)
-	}
-	confirmMsg += "? (yes/no): "
-	fmt.Print(confirmMsg)
+	if !*yes {
+		confirmMsg := fmt.Sprintf("\nAre you sure you want to permanently delete %d users", userCount)
+		if *deletePosts {
+			confirmMsg += fmt.Sprintf(" and %d posts", postCount)
+		}
+		confirmMsg += "? (yes/no): "
+		fmt.Print(confirmMsg)
 
-	var confirmation string
-	if _, err := fmt.Scanln(&confirmation); err != nil {
-		return fmt.Errorf("read confirmation: %w", err)
-	}
+		var confirmation string
+		if _, err := fmt.Scanln(&confirmation); err != nil {
+			return fmt.Errorf("read confirmation: %w", err)
+		}
 
-	if confirmation != "yes" {
-		fmt.Println("Operation cancelled")
-		return nil
+		if confirmation != "yes" {
+			fmt.Println("Operation cancelled")
+			return nil
+		}
 	}
 
 	if *deletePosts {
@@ -198,6 +309,7 @@ func pruneUsers(userRepo repositories.UserRepository, postRepo repositories.Post
 func pruneAll(userRepo repositories.UserRepository, postRepo repositories.PostRepository, args []string) error {
 	fs := flag.NewFlagSet("prune all", flag.ContinueOnError)
 	dryRun := fs.Bool("dry-run", false, "preview what would be deleted without actually deleting")
+	yes := fs.Bool("yes", false, "skip confirmation prompt")
 	fs.SetOutput(os.Stderr)
 
 	if err := fs.Parse(args); err != nil {
@@ -214,6 +326,30 @@ func pruneAll(userRepo repositories.UserRepository, postRepo repositories.PostRe
 		return fmt.Errorf("get post count: %w", err)
 	}
 
+	if IsJSONOutput() {
+		if *dryRun {
+			outputJSON(map[string]interface{}{
+				"action":     "prune_all",
+				"dry_run":    true,
+				"user_count": len(userCount),
+				"post_count": postCount,
+			})
+			return nil
+		}
+		if !*yes {
+			return fmt.Errorf("confirmation required. Use --yes to skip prompt or --json for non-interactive mode")
+		}
+		totalDeleted, err := userRepo.HardDeleteAll()
+		if err != nil {
+			return fmt.Errorf("hard delete all: %w", err)
+		}
+		outputJSON(map[string]interface{}{
+			"action":        "prune_all",
+			"deleted_count": totalDeleted,
+		})
+		return nil
+	}
+
 	fmt.Printf("Found %d users and %d posts to delete\n", len(userCount), postCount)
 
 	if *dryRun {
@@ -221,15 +357,17 @@ func pruneAll(userRepo repositories.UserRepository, postRepo repositories.PostRe
 		return nil
 	}
 
-	fmt.Printf("\nAre you sure you want to permanently delete ALL %d users and %d posts? (yes/no): ", len(userCount), postCount)
-	var confirmation string
-	if _, err := fmt.Scanln(&confirmation); err != nil {
-		return fmt.Errorf("read confirmation: %w", err)
-	}
+	if !*yes {
+		fmt.Printf("\nAre you sure you want to permanently delete ALL %d users and %d posts? (yes/no): ", len(userCount), postCount)
+		var confirmation string
+		if _, err := fmt.Scanln(&confirmation); err != nil {
+			return fmt.Errorf("read confirmation: %w", err)
+		}
 
-	if confirmation != "yes" {
-		fmt.Println("Operation cancelled")
-		return nil
+		if confirmation != "yes" {
+			fmt.Println("Operation cancelled")
+			return nil
+		}
 	}
 
 	totalDeleted, err := userRepo.HardDeleteAll()

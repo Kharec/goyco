@@ -110,6 +110,16 @@ func TestPrunePosts(t *testing.T) {
 		t.Errorf("prunePosts() with dry-run error = %v", err)
 	}
 
+	t.Run("prunePosts with JSON output", func(t *testing.T) {
+		SetJSONOutput(true)
+		defer SetJSONOutput(false)
+
+		err := prunePosts(postRepo, []string{"--dry-run"})
+		if err != nil {
+			t.Errorf("prunePosts() with dry-run and JSON output error = %v", err)
+		}
+	})
+
 	post1 := database.Post{
 		ID:       1,
 		Title:    "Post by deleted user 1",
@@ -138,6 +148,16 @@ func TestPrunePosts(t *testing.T) {
 	if err != nil {
 		t.Errorf("prunePosts() with dry-run error = %v", err)
 	}
+
+	t.Run("prunePosts with JSON output and mock data", func(t *testing.T) {
+		SetJSONOutput(true)
+		defer SetJSONOutput(false)
+
+		err := prunePosts(postRepo, []string{"--dry-run"})
+		if err != nil {
+			t.Errorf("prunePosts() with dry-run and JSON output error = %v", err)
+		}
+	})
 }
 
 func TestPruneAll(t *testing.T) {
@@ -175,6 +195,16 @@ func TestPruneAll(t *testing.T) {
 	if err != nil {
 		t.Errorf("pruneAll() with dry-run error = %v", err)
 	}
+
+	t.Run("pruneAll with JSON output", func(t *testing.T) {
+		SetJSONOutput(true)
+		defer SetJSONOutput(false)
+
+		err := pruneAll(userRepo, postRepo, []string{"--dry-run"})
+		if err != nil {
+			t.Errorf("pruneAll() with dry-run and JSON output error = %v", err)
+		}
+	})
 }
 
 func TestPrunePostsWithError(t *testing.T) {

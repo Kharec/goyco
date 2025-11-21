@@ -39,4 +39,18 @@ func TestHandleMigrateCommand(t *testing.T) {
 			t.Fatalf("unexpected error running migrations: %v", err)
 		}
 	})
+
+	t.Run("runs migrations with JSON output", func(t *testing.T) {
+		SetJSONOutput(true)
+		defer SetJSONOutput(false)
+
+		cfg := testutils.NewTestConfig()
+		setInMemoryDBConnector(t)
+
+		err := HandleMigrateCommand(cfg, "migrate", []string{})
+
+		if err != nil {
+			t.Fatalf("unexpected error running migrations: %v", err)
+		}
+	})
 }

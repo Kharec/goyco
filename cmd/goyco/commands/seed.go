@@ -69,54 +69,91 @@ func seedDatabase(userRepo repositories.UserRepository, postRepo repositories.Po
 		return err
 	}
 
-	fmt.Println("Starting database seeding...")
+	if !IsJSONOutput() {
+		fmt.Println("Starting database seeding...")
+	}
 
 	spinner := NewSpinner("Creating seed user")
-	spinner.Spin()
+	if !IsJSONOutput() {
+		spinner.Spin()
+	}
 
 	seedUser, err := ensureSeedUser(userRepo)
 	if err != nil {
-		spinner.Complete()
+		if !IsJSONOutput() {
+			spinner.Complete()
+		}
 		return fmt.Errorf("ensure seed user: %w", err)
 	}
-	spinner.Complete()
-
-	fmt.Printf("Seed user ready: ID=%d Username=%s\n", seedUser.ID, seedUser.Username)
+	if !IsJSONOutput() {
+		spinner.Complete()
+		fmt.Printf("Seed user ready: ID=%d Username=%s\n", seedUser.ID, seedUser.Username)
+	}
 
 	processor := NewParallelProcessor()
 
-	progress := NewProgressIndicator(*numUsers, "Creating users (parallel)")
+	var progress *ProgressIndicator
+	if !IsJSONOutput() {
+		progress = NewProgressIndicator(*numUsers, "Creating users (parallel)")
+	}
 	users, err := processor.CreateUsersInParallel(userRepo, *numUsers, progress)
 	if err != nil {
 		return fmt.Errorf("create random users: %w", err)
 	}
-	progress.Complete()
+	if !IsJSONOutput() && progress != nil {
+		progress.Complete()
+	}
 
 	allUsers := append([]database.User{*seedUser}, users...)
 
-	progress = NewProgressIndicator(*numPosts, "Creating posts (parallel)")
+	if !IsJSONOutput() {
+		progress = NewProgressIndicator(*numPosts, "Creating posts (parallel)")
+	}
 	posts, err := processor.CreatePostsInParallel(postRepo, seedUser.ID, *numPosts, progress)
 	if err != nil {
 		return fmt.Errorf("create random posts: %w", err)
 	}
-	progress.Complete()
+	if !IsJSONOutput() && progress != nil {
+		progress.Complete()
+	}
 
-	progress = NewProgressIndicator(len(posts), "Creating votes (parallel)")
+	if !IsJSONOutput() {
+		progress = NewProgressIndicator(len(posts), "Creating votes (parallel)")
+	}
 	votes, err := processor.CreateVotesInParallel(voteRepo, allUsers, posts, *votesPerPost, progress)
 	if err != nil {
 		return fmt.Errorf("create random votes: %w", err)
 	}
-	progress.Complete()
+	if !IsJSONOutput() && progress != nil {
+		progress.Complete()
+	}
 
-	progress = NewProgressIndicator(len(posts), "Updating scores (parallel)")
+	if !IsJSONOutput() {
+		progress = NewProgressIndicator(len(posts), "Updating scores (parallel)")
+	}
 	err = processor.UpdatePostScoresInParallel(postRepo, voteRepo, posts, progress)
 	if err != nil {
 		return fmt.Errorf("update post scores: %w", err)
 	}
-	progress.Complete()
+	if !IsJSONOutput() && progress != nil {
+		progress.Complete()
+	}
 
-	fmt.Println("Database seeding completed successfully!")
-	fmt.Printf("Created %d users, %d posts, and %d votes\n", len(allUsers), len(posts), votes)
+	if IsJSONOutput() {
+		outputJSON(map[string]interface{}{
+			"action": "seed_completed",
+			"users":  len(allUsers),
+			"posts":  len(posts),
+			"votes":  votes,
+			"seed_user": map[string]interface{}{
+				"id":       seedUser.ID,
+				"username": seedUser.Username,
+			},
+		})
+	} else {
+		fmt.Println("Database seeding completed successfully!")
+		fmt.Printf("Created %d users, %d posts, and %d votes\n", len(allUsers), len(posts), votes)
+	}
 
 	return nil
 }

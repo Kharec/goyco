@@ -100,7 +100,42 @@ func TestRunStatusCommand(t *testing.T) {
 		}
 	})
 
+	t.Run("daemon not running with JSON output", func(t *testing.T) {
+		SetJSONOutput(true)
+		defer SetJSONOutput(false)
+
+		tempDir := t.TempDir()
+		cfg.PIDDir = tempDir
+
+		err := runStatusCommand(cfg)
+
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+	})
+
 	t.Run("daemon running with valid PID", func(t *testing.T) {
+		tempDir := t.TempDir()
+		cfg.PIDDir = tempDir
+
+		pidFile := filepath.Join(tempDir, "goyco.pid")
+		currentPID := os.Getpid()
+		err := os.WriteFile(pidFile, []byte(strconv.Itoa(currentPID)), 0644)
+		if err != nil {
+			t.Fatalf("Failed to create PID file: %v", err)
+		}
+
+		err = runStatusCommand(cfg)
+
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("daemon running with valid PID and JSON output", func(t *testing.T) {
+		SetJSONOutput(true)
+		defer SetJSONOutput(false)
+
 		tempDir := t.TempDir()
 		cfg.PIDDir = tempDir
 

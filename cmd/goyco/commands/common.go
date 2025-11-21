@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -15,6 +16,23 @@ import (
 var ErrHelpRequested = errors.New("help requested")
 
 type DBConnector func(cfg *config.Config) (*gorm.DB, func() error, error)
+
+var (
+	jsonOutputMu sync.RWMutex
+	jsonOutput   bool
+)
+
+func SetJSONOutput(enabled bool) {
+	jsonOutputMu.Lock()
+	defer jsonOutputMu.Unlock()
+	jsonOutput = enabled
+}
+
+func IsJSONOutput() bool {
+	jsonOutputMu.RLock()
+	defer jsonOutputMu.RUnlock()
+	return jsonOutput
+}
 
 var (
 	dbConnectorMu      sync.RWMutex
@@ -92,4 +110,40 @@ func truncate(in string, max int) string {
 		return in[:max]
 	}
 	return in[:max-3] + "..."
+}
+
+func outputJSON(v interface{}) error {
+	encoder := json.NewEncoder(os.Stdout)
+	encoder.SetIndent("", "  ")
+	return encoder.Encode(v)
+}
+
+func outputMessage(message string, args ...interface{}) {
+	if IsJSONOutput() {
+		outputJSON(map[string]interface{}{
+			"message": fmt.Sprintf(message, args...),
+		})
+	} else {
+		fmt.Printf(message+"\n", args...)
+	}
+}
+
+func outputError(message string, args ...interface{}) {
+	if IsJSONOutput() {
+		outputJSON(map[string]interface{}{
+			"error": fmt.Sprintf(message, args...),
+		})
+	} else {
+		fmt.Fprintf(os.Stderr, message+"\n", args...)
+	}
+}
+
+func outputWarning(message string, args ...interface{}) {
+	if IsJSONOutput() {
+		outputJSON(map[string]interface{}{
+			"warning": fmt.Sprintf(message, args...),
+		})
+	} else {
+		fmt.Printf("Warning: "+message+"\n", args...)
+	}
 }

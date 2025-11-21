@@ -30,11 +30,20 @@ func HandleMigrateCommand(cfg *config.Config, name string, args []string) error 
 }
 
 func runMigrateCommand(db *gorm.DB) error {
-	fmt.Println("Running database migrations...")
+	if !IsJSONOutput() {
+		fmt.Println("Running database migrations...")
+	}
 	if err := database.Migrate(db); err != nil {
 		return fmt.Errorf("run migrations: %w", err)
 	}
-	fmt.Println("Migrations applied successfully")
+	if IsJSONOutput() {
+		outputJSON(map[string]interface{}{
+			"action": "migrations_applied",
+			"status": "success",
+		})
+	} else {
+		fmt.Println("Migrations applied successfully")
+	}
 	return nil
 }
 

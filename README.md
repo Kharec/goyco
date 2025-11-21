@@ -251,6 +251,29 @@ Goyco includes a comprehensive CLI for administration:
 ./bin/goyco prune all               # Hard delete all users and posts
 ```
 
+### JSON Output
+
+All CLI commands support JSON output for easier parsing and integration with scripts. Use the `--json` flag to enable structured JSON output:
+
+```bash
+# Get JSON output
+./bin/goyco --json user list
+./bin/goyco --json post list
+./bin/goyco --json status
+
+# Example: Parse JSON output with jq
+./bin/goyco --json user list | jq '.users[0].username'
+./bin/goyco --json status | jq '.status'
+```
+
+**Note for destructive operations**: When using `--json` with `prune` commands, you must also use the `--yes` flag to skip interactive confirmation prompts:
+
+```bash
+./bin/goyco --json prune posts --yes
+./bin/goyco --json prune users --yes --with-posts
+./bin/goyco --json prune all --yes
+```
+
 ## Development
 
 ### Get the sources
@@ -382,7 +405,7 @@ make fuzz-tests
 # Format code
 make format
 
-# Run linter 
+# Run linter
 make lint
 ```
 
