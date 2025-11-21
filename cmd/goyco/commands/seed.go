@@ -8,11 +8,12 @@ import (
 	"math/big"
 	"os"
 
-	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 	"goyco/internal/config"
 	"goyco/internal/database"
 	"goyco/internal/repositories"
+
+	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 func HandleSeedCommand(cfg *config.Config, name string, args []string) error {
@@ -169,12 +170,12 @@ func seedDatabase(userRepo repositories.UserRepository, postRepo repositories.Po
 	}
 
 	if IsJSONOutput() {
-		outputJSON(map[string]interface{}{
+		outputJSON(map[string]any{
 			"action": "seed_completed",
 			"users":  len(allUsers),
 			"posts":  len(posts),
 			"votes":  votes,
-			"seed_user": map[string]interface{}{
+			"seed_user": map[string]any{
 				"id":       seedUser.ID,
 				"username": seedUser.Username,
 			},
@@ -188,32 +189,41 @@ func seedDatabase(userRepo repositories.UserRepository, postRepo repositories.Po
 }
 
 func ensureSeedUser(userRepo repositories.UserRepository) (*database.User, error) {
-	seedUsername := "seed_admin"
-	seedEmail := "seed_admin@goyco.local"
 	seedPassword := "seed-password"
-
-	user, err := userRepo.GetByEmail(seedEmail)
-	if err == nil {
-		return user, nil
-	}
+	randomID := generateRandomIdentifier()
+	seedUsername := fmt.Sprintf("seed_admin_%s", randomID)
+	seedEmail := fmt.Sprintf("seed_admin_%s@goyco.local", randomID)
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(seedPassword), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, fmt.Errorf("hash password: %w", err)
 	}
 
-	user = &database.User{
-		Username:      seedUsername,
-		Email:         seedEmail,
-		Password:      string(hashedPassword),
-		EmailVerified: true,
+	const maxRetries = 10
+	for range maxRetries {
+		user, err := userRepo.GetByEmail(seedEmail)
+		if err == nil {
+			return user, nil
+		}
+
+		user = &database.User{
+			Username:      seedUsername,
+			Email:         seedEmail,
+			Password:      string(hashedPassword),
+			EmailVerified: true,
+		}
+
+		if err := userRepo.Create(user); err != nil {
+			randomID = generateRandomIdentifier()
+			seedUsername = fmt.Sprintf("seed_admin_%s", randomID)
+			seedEmail = fmt.Sprintf("seed_admin_%s@goyco.local", randomID)
+			continue
+		}
+
+		return user, nil
 	}
 
-	if err := userRepo.Create(user); err != nil {
-		return nil, fmt.Errorf("create seed user: %w", err)
-	}
-
-	return user, nil
+	return nil, fmt.Errorf("failed to create seed user after %d attempts", maxRetries)
 }
 
 func createRandomUsers(userRepo repositories.UserRepository, count int) ([]database.User, error) {
