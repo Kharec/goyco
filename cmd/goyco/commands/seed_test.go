@@ -9,7 +9,6 @@ import (
 	"goyco/internal/repositories"
 	"goyco/internal/testutils"
 
-	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -25,18 +24,43 @@ func TestSeedCommand(t *testing.T) {
 		t.Fatalf("Failed to migrate database: %v", err)
 	}
 
+	err = db.Transaction(func(tx *gorm.DB) error {
+		userRepo := repositories.NewUserRepository(db).WithTx(tx)
+		postRepo := repositories.NewPostRepository(db).WithTx(tx)
+		voteRepo := repositories.NewVoteRepository(db).WithTx(tx)
+		return seedDatabase(userRepo, postRepo, voteRepo, []string{"--users", "2", "--posts", "5", "--votes-per-post", "3"})
+	})
+	if err != nil {
+		t.Fatalf("Failed to seed database: %v", err)
+	}
+
 	userRepo := repositories.NewUserRepository(db)
 	postRepo := repositories.NewPostRepository(db)
 	voteRepo := repositories.NewVoteRepository(db)
 
-	seedPasswordHash, err := bcrypt.GenerateFromPassword([]byte("seed-password"), bcrypt.DefaultCost)
+	users, err := userRepo.GetAll(100, 0)
 	if err != nil {
-		t.Fatalf("Failed to hash seed password: %v", err)
+		t.Fatalf("Failed to get users: %v", err)
 	}
 
-	seedUser, err := ensureSeedUser(userRepo, string(seedPasswordHash))
-	if err != nil {
-		t.Fatalf("Failed to ensure seed user: %v", err)
+	seedUserCount := 0
+	var seedUser *database.User
+	regularUserCount := 0
+	for i := range users {
+		if strings.HasPrefix(users[i].Username, "seed_admin_") {
+			seedUserCount++
+			seedUser = &users[i]
+		} else if strings.HasPrefix(users[i].Username, "user_") {
+			regularUserCount++
+		}
+	}
+
+	if seedUserCount != 1 {
+		t.Errorf("Expected 1 seed user, got %d", seedUserCount)
+	}
+
+	if seedUser == nil {
+		t.Fatal("Expected seed user to be created")
 	}
 
 	if !strings.HasPrefix(seedUser.Username, "seed_admin_") {
@@ -51,23 +75,13 @@ func TestSeedCommand(t *testing.T) {
 		t.Error("Expected seed user to be email verified")
 	}
 
-	userPasswordHash, err := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
-	if err != nil {
-		t.Fatalf("Failed to hash user password: %v", err)
+	if regularUserCount != 2 {
+		t.Errorf("Expected 2 regular users, got %d", regularUserCount)
 	}
 
-	users, err := createRandomUsers(userRepo, 2, string(userPasswordHash))
+	posts, err := postRepo.GetAll(100, 0)
 	if err != nil {
-		t.Fatalf("Failed to create random users: %v", err)
-	}
-
-	if len(users) != 2 {
-		t.Errorf("Expected 2 users, got %d", len(users))
-	}
-
-	posts, err := createRandomPosts(postRepo, seedUser.ID, 5)
-	if err != nil {
-		t.Fatalf("Failed to create random posts: %v", err)
+		t.Fatalf("Failed to get posts: %v", err)
 	}
 
 	if len(posts) != 5 {
@@ -84,39 +98,49 @@ func TestSeedCommand(t *testing.T) {
 		if post.AuthorID == nil || *post.AuthorID != seedUser.ID {
 			t.Errorf("Post %d has wrong author ID: expected %d, got %v", i, seedUser.ID, post.AuthorID)
 		}
+
+		expectedScore := post.UpVotes - post.DownVotes
+		if post.Score != expectedScore {
+			t.Errorf("Post %d has incorrect score: expected %d, got %d", i, expectedScore, post.Score)
+		}
 	}
 
-	allUsers := append([]database.User{*seedUser}, users...)
-	votes, err := createRandomVotes(voteRepo, allUsers, posts, 3)
+	voteCount, err := voteRepo.Count()
 	if err != nil {
-		t.Fatalf("Failed to create random votes: %v", err)
+		t.Fatalf("Failed to count votes: %v", err)
 	}
 
-	if votes == 0 {
+	if voteCount == 0 {
 		t.Error("Expected some votes to be created")
 	}
 
-	err = updatePostScores(postRepo, voteRepo, posts)
-	if err != nil {
-		t.Fatalf("Failed to update post scores: %v", err)
-	}
-
-	for i, post := range posts {
-		updatedPost, err := postRepo.GetByID(post.ID)
+	for _, post := range posts {
+		postVotes, err := voteRepo.GetByPostID(post.ID)
 		if err != nil {
-			t.Errorf("Failed to get updated post %d: %v", i, err)
+			t.Errorf("Failed to get votes for post %d: %v", post.ID, err)
 			continue
 		}
 
-		expectedScore := updatedPost.UpVotes - updatedPost.DownVotes
-		if updatedPost.Score != expectedScore {
-			t.Errorf("Post %d has incorrect score: expected %d, got %d", i, expectedScore, updatedPost.Score)
+		for _, vote := range postVotes {
+			if vote.PostID != post.ID {
+				t.Errorf("Vote has wrong post ID: expected %d, got %d", post.ID, vote.PostID)
+			}
+			if vote.UserID == nil {
+				t.Error("Vote has nil user ID")
+			}
 		}
 	}
 }
 
 func TestGenerateRandomPath(t *testing.T) {
-	path := generateRandomPath()
+	initSeedRand()
+	pathLength := seedRandSource.Intn(20)
+	path := "/article/"
+
+	for i := 0; i < pathLength+5; i++ {
+		randomChar := seedRandSource.Intn(26)
+		path += string(rune('a' + randomChar))
+	}
 
 	if path == "" {
 		t.Error("Generated path should not be empty")
@@ -126,7 +150,14 @@ func TestGenerateRandomPath(t *testing.T) {
 		t.Errorf("Generated path too short: %s", path)
 	}
 
-	secondPath := generateRandomPath()
+	initSeedRand()
+	secondPathLength := seedRandSource.Intn(20)
+	secondPath := "/article/"
+	for i := 0; i < secondPathLength+5; i++ {
+		randomChar := seedRandSource.Intn(26)
+		secondPath += string(rune('a' + randomChar))
+	}
+
 	if path == secondPath {
 		t.Error("Generated paths should be different")
 	}
