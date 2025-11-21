@@ -663,13 +663,15 @@ func (e *errorVoteRepository) GetByVoteHash(string) (*database.Vote, error) {
 func (e *errorVoteRepository) GetByPostID(uint) ([]database.Vote, error) {
 	return nil, errors.New("database error")
 }
-func (e *errorVoteRepository) GetByUserID(uint) ([]database.Vote, error)   { return nil, nil }
-func (e *errorVoteRepository) Update(*database.Vote) error                 { return nil }
-func (e *errorVoteRepository) Delete(uint) error                           { return nil }
-func (e *errorVoteRepository) Count() (int64, error)                       { return 0, nil }
-func (e *errorVoteRepository) CountByPostID(uint) (int64, error)           { return 0, nil }
-func (e *errorVoteRepository) CountByUserID(uint) (int64, error)           { return 0, nil }
-func (e *errorVoteRepository) GetVoteCountsByPostID(uint) (int, int, error) { return 0, 0, errors.New("database error") }
+func (e *errorVoteRepository) GetByUserID(uint) ([]database.Vote, error) { return nil, nil }
+func (e *errorVoteRepository) Update(*database.Vote) error               { return nil }
+func (e *errorVoteRepository) Delete(uint) error                         { return nil }
+func (e *errorVoteRepository) Count() (int64, error)                     { return 0, nil }
+func (e *errorVoteRepository) CountByPostID(uint) (int64, error)         { return 0, nil }
+func (e *errorVoteRepository) CountByUserID(uint) (int64, error)         { return 0, nil }
+func (e *errorVoteRepository) GetVoteCountsByPostID(uint) (int, int, error) {
+	return 0, 0, errors.New("database error")
+}
 func (e *errorVoteRepository) WithTx(*gorm.DB) repositories.VoteRepository { return e }
 
 func TestPostHandler_EdgeCases(t *testing.T) {
