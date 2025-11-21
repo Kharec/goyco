@@ -1,13 +1,15 @@
 package commands
 
 import (
-	"crypto/rand"
+	cryptoRand "crypto/rand"
 	"errors"
 	"flag"
 	"fmt"
-	"math/big"
+	"math/rand"
 	"os"
 	"strings"
+	"sync"
+	"time"
 
 	"goyco/internal/config"
 	"goyco/internal/database"
@@ -16,6 +18,34 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
+
+var (
+	seedRandSource *rand.Rand
+	seedRandOnce   sync.Once
+)
+
+func initSeedRand() {
+	seedRandOnce.Do(func() {
+		seed := time.Now().UnixNano()
+		seedBytes := make([]byte, 8)
+		if _, err := cryptoRand.Read(seedBytes); err == nil {
+			seed = int64(seedBytes[0])<<56 | int64(seedBytes[1])<<48 | int64(seedBytes[2])<<40 | int64(seedBytes[3])<<32 |
+				int64(seedBytes[4])<<24 | int64(seedBytes[5])<<16 | int64(seedBytes[6])<<8 | int64(seedBytes[7])
+		}
+		seedRandSource = rand.New(rand.NewSource(seed))
+	})
+}
+
+func generateRandomIdentifier() string {
+	initSeedRand()
+	const length = 12
+	const chars = "abcdefghijklmnopqrstuvwxyz0123456789"
+	identifier := make([]byte, length)
+	for i := range identifier {
+		identifier[i] = chars[seedRandSource.Intn(len(chars))]
+	}
+	return string(identifier)
+}
 
 func HandleSeedCommand(cfg *config.Config, name string, args []string) error {
 	fs := newFlagSet(name, printSeedUsage)
@@ -360,44 +390,44 @@ func createRandomPosts(postRepo repositories.PostRepository, authorID uint, coun
 }
 
 func generateRandomPath() string {
-	pathLength, _ := rand.Int(rand.Reader, big.NewInt(20))
+	initSeedRand()
+	pathLength := seedRandSource.Intn(20)
 	path := "/article/"
 
-	for i := int64(0); i < pathLength.Int64()+5; i++ {
-		randomChar, _ := rand.Int(rand.Reader, big.NewInt(26))
-		path += string(rune('a' + randomChar.Int64()))
+	for i := 0; i < pathLength+5; i++ {
+		randomChar := seedRandSource.Intn(26)
+		path += string(rune('a' + randomChar))
 	}
 
 	return path
 }
 
 func createRandomVotes(voteRepo repositories.VoteRepository, users []database.User, posts []database.Post, avgVotesPerPost int) (int, error) {
+	initSeedRand()
 	totalVotes := 0
 
 	for _, post := range posts {
-		voteCount, _ := rand.Int(rand.Reader, big.NewInt(int64(avgVotesPerPost*2)+1))
-		numVotes := int(voteCount.Int64())
+		numVotes := seedRandSource.Intn(avgVotesPerPost*2 + 1)
 
 		if numVotes == 0 && avgVotesPerPost > 0 {
-			chance, _ := rand.Int(rand.Reader, big.NewInt(5))
-			if chance.Int64() > 0 {
+			if seedRandSource.Intn(5) > 0 {
 				numVotes = 1
 			}
 		}
 
 		usedUsers := make(map[uint]bool)
 		for i := 0; i < numVotes && len(usedUsers) < len(users); i++ {
-			userIdx, _ := rand.Int(rand.Reader, big.NewInt(int64(len(users))))
-			user := users[userIdx.Int64()]
+			userIdx := seedRandSource.Intn(len(users))
+			user := users[userIdx]
 
 			if usedUsers[user.ID] {
 				continue
 			}
 			usedUsers[user.ID] = true
 
-			voteTypeInt, _ := rand.Int(rand.Reader, big.NewInt(10))
+			voteTypeInt := seedRandSource.Intn(10)
 			var voteType database.VoteType
-			if voteTypeInt.Int64() < 7 {
+			if voteTypeInt < 7 {
 				voteType = database.VoteUp
 			} else {
 				voteType = database.VoteDown

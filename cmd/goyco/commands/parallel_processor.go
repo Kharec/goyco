@@ -2,9 +2,9 @@ package commands
 
 import (
 	"context"
-	"crypto/rand"
+	cryptoRand "crypto/rand"
 	"fmt"
-	"math/big"
+	"math/rand"
 	"runtime"
 	"sync"
 	"time"
@@ -17,14 +17,24 @@ type ParallelProcessor struct {
 	maxWorkers   int
 	timeout      time.Duration
 	passwordHash string
+	randSource   *rand.Rand
+	randMu       sync.Mutex
 }
 
 func NewParallelProcessor() *ParallelProcessor {
 	maxWorkers := max(min(runtime.NumCPU(), 8), 2)
 
+	seed := time.Now().UnixNano()
+	seedBytes := make([]byte, 8)
+	if _, err := cryptoRand.Read(seedBytes); err == nil {
+		seed = int64(seedBytes[0])<<56 | int64(seedBytes[1])<<48 | int64(seedBytes[2])<<40 | int64(seedBytes[3])<<32 |
+			int64(seedBytes[4])<<24 | int64(seedBytes[5])<<16 | int64(seedBytes[6])<<8 | int64(seedBytes[7])
+	}
+
 	return &ParallelProcessor{
 		maxWorkers: maxWorkers,
-		timeout:    30 * time.Second,
+		timeout:    60 * time.Second,
+		randSource: rand.New(rand.NewSource(seed)),
 	}
 }
 
@@ -73,8 +83,21 @@ func (p *ParallelProcessor) CreateUsersInParallel(userRepo repositories.UserRepo
 
 	users := make([]database.User, count)
 	completed := 0
+	firstError := make(chan error, 1)
 
-	for {
+	go func() {
+		for err := range errors {
+			if err != nil {
+				select {
+				case firstError <- err:
+				default:
+				}
+				return
+			}
+		}
+	}()
+
+	for completed < count {
 		select {
 		case result, ok := <-results:
 			if !ok {
@@ -85,14 +108,14 @@ func (p *ParallelProcessor) CreateUsersInParallel(userRepo repositories.UserRepo
 			if progress != nil {
 				progress.Update(completed)
 			}
-		case err := <-errors:
-			if err != nil {
-				return nil, err
-			}
+		case err := <-firstError:
+			return nil, err
 		case <-ctx.Done():
 			return nil, fmt.Errorf("timeout creating users: %w", ctx.Err())
 		}
 	}
+
+	return users, nil
 }
 
 func (p *ParallelProcessor) CreatePostsInParallel(postRepo repositories.PostRepository, authorID uint, count int, progress *ProgressIndicator) ([]database.Post, error) {
@@ -136,8 +159,21 @@ func (p *ParallelProcessor) CreatePostsInParallel(postRepo repositories.PostRepo
 
 	posts := make([]database.Post, count)
 	completed := 0
+	firstError := make(chan error, 1)
 
-	for {
+	go func() {
+		for err := range errors {
+			if err != nil {
+				select {
+				case firstError <- err:
+				default:
+				}
+				return
+			}
+		}
+	}()
+
+	for completed < count {
 		select {
 		case result, ok := <-results:
 			if !ok {
@@ -148,14 +184,14 @@ func (p *ParallelProcessor) CreatePostsInParallel(postRepo repositories.PostRepo
 			if progress != nil {
 				progress.Update(completed)
 			}
-		case err := <-errors:
-			if err != nil {
-				return nil, err
-			}
+		case err := <-firstError:
+			return nil, err
 		case <-ctx.Done():
 			return nil, fmt.Errorf("timeout creating posts: %w", ctx.Err())
 		}
 	}
+
+	return posts, nil
 }
 
 func (p *ParallelProcessor) CreateVotesInParallel(voteRepo repositories.VoteRepository, users []database.User, posts []database.Post, avgVotesPerPost int, progress *ProgressIndicator) (int, error) {
@@ -199,8 +235,21 @@ func (p *ParallelProcessor) CreateVotesInParallel(voteRepo repositories.VoteRepo
 
 	totalVotes := 0
 	completed := 0
+	firstError := make(chan error, 1)
 
-	for {
+	go func() {
+		for err := range errors {
+			if err != nil {
+				select {
+				case firstError <- err:
+				default:
+				}
+				return
+			}
+		}
+	}()
+
+	for completed < len(posts) {
 		select {
 		case result, ok := <-results:
 			if !ok {
@@ -211,14 +260,14 @@ func (p *ParallelProcessor) CreateVotesInParallel(voteRepo repositories.VoteRepo
 			if progress != nil {
 				progress.Update(completed)
 			}
-		case err := <-errors:
-			if err != nil {
-				return 0, err
-			}
+		case err := <-firstError:
+			return 0, err
 		case <-ctx.Done():
 			return 0, fmt.Errorf("timeout creating votes: %w", ctx.Err())
 		}
 	}
+
+	return totalVotes, nil
 }
 
 func (p *ParallelProcessor) UpdatePostScoresInParallel(postRepo repositories.PostRepository, voteRepo repositories.VoteRepository, posts []database.Post, progress *ProgressIndicator) error {
@@ -284,19 +333,20 @@ type voteResult struct {
 	index int
 }
 
-func generateRandomIdentifier() string {
+func (p *ParallelProcessor) generateRandomIdentifier() string {
 	const length = 12
 	const chars = "abcdefghijklmnopqrstuvwxyz0123456789"
 	identifier := make([]byte, length)
+	p.randMu.Lock()
 	for i := range identifier {
-		num, _ := rand.Int(rand.Reader, big.NewInt(int64(len(chars))))
-		identifier[i] = chars[num.Int64()]
+		identifier[i] = chars[p.randSource.Intn(len(chars))]
 	}
+	p.randMu.Unlock()
 	return string(identifier)
 }
 
 func (p *ParallelProcessor) createSingleUser(userRepo repositories.UserRepository, index int) (database.User, error) {
-	randomID := generateRandomIdentifier()
+	randomID := p.generateRandomIdentifier()
 	username := fmt.Sprintf("user_%s", randomID)
 	email := fmt.Sprintf("user_%s@goyco.local", randomID)
 
@@ -315,7 +365,7 @@ func (p *ParallelProcessor) createSingleUser(userRepo repositories.UserRepositor
 		}
 
 		if err := userRepo.Create(user); err != nil {
-			randomID = generateRandomIdentifier()
+			randomID = p.generateRandomIdentifier()
 			username = fmt.Sprintf("user_%s", randomID)
 			email = fmt.Sprintf("user_%s@goyco.local", randomID)
 			continue
@@ -370,7 +420,7 @@ func (p *ParallelProcessor) createSinglePost(postRepo repositories.PostRepositor
 	}
 
 	domain := sampleDomains[index%len(sampleDomains)]
-	randomID := generateRandomIdentifier()
+	randomID := p.generateRandomIdentifier()
 	path := fmt.Sprintf("/article/%s", randomID)
 	url := fmt.Sprintf("https://%s%s", domain, path)
 
@@ -389,7 +439,7 @@ func (p *ParallelProcessor) createSinglePost(postRepo repositories.PostRepositor
 		}
 
 		if err := postRepo.Create(post); err != nil {
-			randomID = generateRandomIdentifier()
+			randomID = p.generateRandomIdentifier()
 			path = fmt.Sprintf("/article/%s", randomID)
 			url = fmt.Sprintf("https://%s%s", domain, path)
 			continue
@@ -402,31 +452,37 @@ func (p *ParallelProcessor) createSinglePost(postRepo repositories.PostRepositor
 }
 
 func (p *ParallelProcessor) createVotesForPost(voteRepo repositories.VoteRepository, users []database.User, post database.Post, avgVotesPerPost int) (int, error) {
-	voteCount, _ := rand.Int(rand.Reader, big.NewInt(int64(avgVotesPerPost*2)+1))
-	numVotes := int(voteCount.Int64())
+	p.randMu.Lock()
+	numVotes := p.randSource.Intn(avgVotesPerPost*2 + 1)
+	p.randMu.Unlock()
 
 	if numVotes == 0 && avgVotesPerPost > 0 {
-		chance, _ := rand.Int(rand.Reader, big.NewInt(5))
-		if chance.Int64() > 0 {
+		p.randMu.Lock()
+		if p.randSource.Intn(5) > 0 {
 			numVotes = 1
 		}
+		p.randMu.Unlock()
 	}
 
 	totalVotes := 0
 	usedUsers := make(map[uint]bool)
 
 	for i := 0; i < numVotes && len(usedUsers) < len(users); i++ {
-		userIdx, _ := rand.Int(rand.Reader, big.NewInt(int64(len(users))))
-		user := users[userIdx.Int64()]
+		p.randMu.Lock()
+		userIdx := p.randSource.Intn(len(users))
+		p.randMu.Unlock()
+		user := users[userIdx]
 
 		if usedUsers[user.ID] {
 			continue
 		}
 		usedUsers[user.ID] = true
 
-		voteTypeInt, _ := rand.Int(rand.Reader, big.NewInt(10))
+		p.randMu.Lock()
+		voteTypeInt := p.randSource.Intn(10)
+		p.randMu.Unlock()
 		var voteType database.VoteType
-		if voteTypeInt.Int64() < 7 {
+		if voteTypeInt < 7 {
 			voteType = database.VoteUp
 		} else {
 			voteType = database.VoteDown
