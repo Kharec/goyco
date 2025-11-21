@@ -178,4 +178,64 @@ func TestSeedDatabaseFlagParsing(t *testing.T) {
 			t.Error("expected error for missing votes-per-post value")
 		}
 	})
+
+	t.Run("negative users value", func(t *testing.T) {
+		err := seedDatabase(userRepo, postRepo, voteRepo, []string{"--users", "-1"})
+
+		if err == nil {
+			t.Error("expected error for negative users value")
+		}
+		if err != nil && err.Error() != "invalid value for --users: -1 (must be >= 0)" {
+			t.Errorf("expected specific error message, got: %v", err)
+		}
+	})
+
+	t.Run("negative posts value", func(t *testing.T) {
+		err := seedDatabase(userRepo, postRepo, voteRepo, []string{"--posts", "-5"})
+
+		if err == nil {
+			t.Error("expected error for negative posts value")
+		}
+		if err != nil && err.Error() != "invalid value for --posts: -5 (must be > 0)" {
+			t.Errorf("expected specific error message, got: %v", err)
+		}
+	})
+
+	t.Run("zero posts value", func(t *testing.T) {
+		err := seedDatabase(userRepo, postRepo, voteRepo, []string{"--posts", "0"})
+
+		if err == nil {
+			t.Error("expected error for zero posts value")
+		}
+		if err != nil && err.Error() != "invalid value for --posts: 0 (must be > 0)" {
+			t.Errorf("expected specific error message, got: %v", err)
+		}
+	})
+
+	t.Run("negative votes-per-post value", func(t *testing.T) {
+		err := seedDatabase(userRepo, postRepo, voteRepo, []string{"--votes-per-post", "-10"})
+
+		if err == nil {
+			t.Error("expected error for negative votes-per-post value")
+		}
+		if err != nil && err.Error() != "invalid value for --votes-per-post: -10 (must be >= 0)" {
+			t.Errorf("expected specific error message, got: %v", err)
+		}
+	})
+
+	t.Run("zero users value is valid", func(t *testing.T) {
+		err := seedDatabase(userRepo, postRepo, voteRepo, []string{"--users", "0", "--posts", "1"})
+
+		if err != nil {
+			t.Errorf("zero users should be valid, got error: %v", err)
+		}
+	})
+
+	t.Run("zero votes-per-post value is valid", func(t *testing.T) {
+		err := seedDatabase(userRepo, postRepo, voteRepo, []string{"--votes-per-post", "0", "--posts", "1"})
+
+		if err != nil {
+			t.Errorf("zero votes-per-post should be valid, got error: %v", err)
+		}
+	})
 }
