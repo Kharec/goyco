@@ -9,6 +9,7 @@ import (
 	"goyco/internal/repositories"
 	"goyco/internal/testutils"
 
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -28,7 +29,12 @@ func TestSeedCommand(t *testing.T) {
 	postRepo := repositories.NewPostRepository(db)
 	voteRepo := repositories.NewVoteRepository(db)
 
-	seedUser, err := ensureSeedUser(userRepo)
+	seedPasswordHash, err := bcrypt.GenerateFromPassword([]byte("seed-password"), bcrypt.DefaultCost)
+	if err != nil {
+		t.Fatalf("Failed to hash seed password: %v", err)
+	}
+
+	seedUser, err := ensureSeedUser(userRepo, string(seedPasswordHash))
 	if err != nil {
 		t.Fatalf("Failed to ensure seed user: %v", err)
 	}
@@ -45,7 +51,12 @@ func TestSeedCommand(t *testing.T) {
 		t.Error("Expected seed user to be email verified")
 	}
 
-	users, err := createRandomUsers(userRepo, 2)
+	userPasswordHash, err := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
+	if err != nil {
+		t.Fatalf("Failed to hash user password: %v", err)
+	}
+
+	users, err := createRandomUsers(userRepo, 2, string(userPasswordHash))
 	if err != nil {
 		t.Fatalf("Failed to create random users: %v", err)
 	}
