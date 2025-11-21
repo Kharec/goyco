@@ -995,3 +995,63 @@ func TestLoadWithInvalidBcryptCost(t *testing.T) {
 		})
 	}
 }
+
+func TestCLIConfigJSONOutput(t *testing.T) {
+	tests := []struct {
+		name           string
+		envValue       string
+		expectedOutput bool
+	}{
+		{
+			name:           "default false when not set",
+			envValue:       "",
+			expectedOutput: false,
+		},
+		{
+			name:           "true when set to true",
+			envValue:       "true",
+			expectedOutput: true,
+		},
+		{
+			name:           "false when set to false",
+			envValue:       "false",
+			expectedOutput: false,
+		},
+		{
+			name:           "true when set to 1",
+			envValue:       "1",
+			expectedOutput: true,
+		},
+		{
+			name:           "false when set to 0",
+			envValue:       "0",
+			expectedOutput: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("DB_PASSWORD", "password")
+			t.Setenv("SMTP_HOST", "smtp.example.com")
+			t.Setenv("SMTP_PORT", "2525")
+			t.Setenv("SMTP_FROM", "no-reply@example.com")
+			t.Setenv("ADMIN_EMAIL", "admin@example.com")
+			t.Setenv("JWT_SECRET", "this-is-a-very-secure-jwt-secret-key-that-is-long-enough")
+
+			if tt.envValue != "" {
+				t.Setenv("CLI_JSON_OUTPUT", tt.envValue)
+			} else {
+				os.Unsetenv("CLI_JSON_OUTPUT")
+			}
+
+			cfg, err := Load()
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if cfg.CLI.JSONOutputDefault != tt.expectedOutput {
+				t.Fatalf("expected CLI.JSONOutputDefault to be %v, got %v", tt.expectedOutput, cfg.CLI.JSONOutputDefault)
+			}
+		})
+	}
+}
