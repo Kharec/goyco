@@ -77,7 +77,15 @@ fuzz-tests:
 	@set -e; \
 	for pkg in $(FUZZ_PACKAGES); do \
 		echo "==> Fuzzing $$pkg"; \
-		$(GO) test -fuzz=. -fuzztime=$(FUZZ_TIME) $$pkg; \
+		fuzz_targets="$$( $(GO) test -run ^$$ -list ^Fuzz $$pkg | grep '^Fuzz' || true )"; \
+		if [ -z "$$fuzz_targets" ]; then \
+			echo "No fuzz tests found in $$pkg"; \
+			continue; \
+		fi; \
+		for fuzz in $$fuzz_targets; do \
+			echo "   -> $$fuzz"; \
+			$(GO) test -run ^$$ -fuzz="^$$fuzz$$" -fuzztime=$(FUZZ_TIME) $$pkg; \
+		done; \
 	done
 
 install:
