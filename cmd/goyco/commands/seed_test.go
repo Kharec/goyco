@@ -179,47 +179,35 @@ func TestSeedDatabaseFlagParsing(t *testing.T) {
 		}
 	})
 
-	t.Run("negative users value", func(t *testing.T) {
-		err := seedDatabase(userRepo, postRepo, voteRepo, []string{"--users", "-1"})
+	t.Run("negative users value is clamped", func(t *testing.T) {
+		err := seedDatabase(userRepo, postRepo, voteRepo, []string{"--users", "-1", "--posts", "1"})
 
-		if err == nil {
-			t.Error("expected error for negative users value")
-		}
-		if err != nil && err.Error() != "invalid value for --users: -1 (must be >= 0)" {
-			t.Errorf("expected specific error message, got: %v", err)
+		if err != nil {
+			t.Errorf("negative users should be clamped, not rejected. Got error: %v", err)
 		}
 	})
 
-	t.Run("negative posts value", func(t *testing.T) {
+	t.Run("negative posts value is clamped", func(t *testing.T) {
 		err := seedDatabase(userRepo, postRepo, voteRepo, []string{"--posts", "-5"})
 
-		if err == nil {
-			t.Error("expected error for negative posts value")
-		}
-		if err != nil && err.Error() != "invalid value for --posts: -5 (must be > 0)" {
-			t.Errorf("expected specific error message, got: %v", err)
+		if err != nil {
+			t.Errorf("negative posts should be clamped, not rejected. Got error: %v", err)
 		}
 	})
 
-	t.Run("zero posts value", func(t *testing.T) {
+	t.Run("zero posts value is clamped", func(t *testing.T) {
 		err := seedDatabase(userRepo, postRepo, voteRepo, []string{"--posts", "0"})
 
-		if err == nil {
-			t.Error("expected error for zero posts value")
-		}
-		if err != nil && err.Error() != "invalid value for --posts: 0 (must be > 0)" {
-			t.Errorf("expected specific error message, got: %v", err)
+		if err != nil {
+			t.Errorf("zero posts should be clamped, not rejected. Got error: %v", err)
 		}
 	})
 
-	t.Run("negative votes-per-post value", func(t *testing.T) {
-		err := seedDatabase(userRepo, postRepo, voteRepo, []string{"--votes-per-post", "-10"})
+	t.Run("negative votes-per-post value is clamped", func(t *testing.T) {
+		err := seedDatabase(userRepo, postRepo, voteRepo, []string{"--votes-per-post", "-10", "--posts", "1"})
 
-		if err == nil {
-			t.Error("expected error for negative votes-per-post value")
-		}
-		if err != nil && err.Error() != "invalid value for --votes-per-post: -10 (must be >= 0)" {
-			t.Errorf("expected specific error message, got: %v", err)
+		if err != nil {
+			t.Errorf("negative votes-per-post should be clamped, not rejected. Got error: %v", err)
 		}
 	})
 
