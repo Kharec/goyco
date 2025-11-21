@@ -5,11 +5,12 @@ import (
 	"strings"
 	"testing"
 
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
 	"goyco/internal/database"
 	"goyco/internal/repositories"
 	"goyco/internal/testutils"
+
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
 func TestSeedCommand(t *testing.T) {
@@ -295,7 +296,7 @@ func TestSeedCommandIdempotency(t *testing.T) {
 	})
 
 	t.Run("database remains consistent after multiple runs", func(t *testing.T) {
-		for i := 0; i < 2; i++ {
+		for i := range 2 {
 			err := seedDatabase(userRepo, postRepo, voteRepo, []string{"--users", "0", "--posts", "1"})
 			if err != nil {
 				t.Fatalf("Seed run %d failed: %v", i+1, err)
