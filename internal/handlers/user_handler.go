@@ -91,7 +91,7 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param request body RegisterRequest true "User data"
+// @Param request body dto.RegisterRequest true "User data"
 // @Success 201 {object} UserResponse "User created successfully"
 // @Failure 400 {object} UserResponse "Invalid request data or validation failed"
 // @Failure 401 {object} UserResponse "Authentication required"
