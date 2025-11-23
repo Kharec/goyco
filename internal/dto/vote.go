@@ -6,7 +6,7 @@ import (
 	"goyco/internal/database"
 )
 
-type VoteRequest struct {
+type CastVoteRequest struct {
 	Type string `json:"type" validate:"required,oneof=up down none"`
 }
 
