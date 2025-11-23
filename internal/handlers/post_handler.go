@@ -36,11 +36,6 @@ func NewPostHandler(postRepo repositories.PostRepository, titleFetcher services.
 
 type PostResponse = CommonResponse
 
-type UpdatePostRequest struct {
-	Title   string `json:"title"`
-	Content string `json:"content"`
-}
-
 // @Summary Get posts
 // @Description Get a list of posts with pagination. Posts include vote statistics (up_votes, down_votes, score) and current user's vote status.
 // @Tags posts
@@ -111,7 +106,7 @@ func (h *PostHandler) GetPost(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param request body CreatePostRequest true "Post data"
+// @Param request body dto.CreatePostRequest true "Post data"
 // @Success 201 {object} PostResponse
 // @Failure 400 {object} PostResponse "Invalid request data or validation failed"
 // @Failure 401 {object} PostResponse "Authentication required"
@@ -257,7 +252,7 @@ func (h *PostHandler) SearchPosts(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Security BearerAuth
 // @Param id path int true "Post ID"
-// @Param request body UpdatePostRequest true "Post update data"
+// @Param request body dto.UpdatePostRequest true "Post update data"
 // @Success 200 {object} PostResponse "Post updated successfully"
 // @Failure 400 {object} PostResponse "Invalid request data or validation failed"
 // @Failure 401 {object} PostResponse "Authentication required"
