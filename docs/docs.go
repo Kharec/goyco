@@ -1370,7 +1370,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.VoteRequest"
+                            "$ref": "#/definitions/dto.VoteRequest"
                         }
                     }
                 ],
@@ -2018,6 +2018,22 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.VoteRequest": {
+            "type": "object",
+            "required": [
+                "type"
+            ],
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "up",
+                        "down",
+                        "none"
+                    ]
+                }
+            }
+        },
         "handlers.APIInfo": {
             "type": "object",
             "properties": {
@@ -2147,21 +2163,6 @@ const docTemplate = `{
                 },
                 "success": {
                     "type": "boolean"
-                }
-            }
-        },
-        "handlers.VoteRequest": {
-            "description": "Vote request with type field. All votes are handled the same way.",
-            "type": "object",
-            "properties": {
-                "type": {
-                    "type": "string",
-                    "enum": [
-                        "up",
-                        "down",
-                        "none"
-                    ],
-                    "example": "up"
                 }
             }
         },

@@ -140,6 +140,17 @@ definitions:
     required:
     - username
     type: object
+  dto.VoteRequest:
+    properties:
+      type:
+        enum:
+        - up
+        - down
+        - none
+        type: string
+    required:
+    - type
+    type: object
   handlers.APIInfo:
     properties:
       data: {}
@@ -229,17 +240,6 @@ definitions:
         type: string
       success:
         type: boolean
-    type: object
-  handlers.VoteRequest:
-    description: Vote request with type field. All votes are handled the same way.
-    properties:
-      type:
-        enum:
-        - up
-        - down
-        - none
-        example: up
-        type: string
     type: object
   handlers.VoteResponse:
     properties:
@@ -1121,7 +1121,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/handlers.VoteRequest'
+          $ref: '#/definitions/dto.VoteRequest'
       produces:
       - application/json
       responses:
