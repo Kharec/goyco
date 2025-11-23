@@ -1,5 +1,16 @@
 basePath: /api
 definitions:
+  dto.CastVoteRequest:
+    properties:
+      type:
+        enum:
+        - up
+        - down
+        - none
+        type: string
+    required:
+    - type
+    type: object
   dto.ConfirmAccountDeletionRequest:
     properties:
       delete_posts:
@@ -139,17 +150,6 @@ definitions:
         type: string
     required:
     - username
-    type: object
-  dto.VoteRequest:
-    properties:
-      type:
-        enum:
-        - up
-        - down
-        - none
-        type: string
-    required:
-    - type
     type: object
   handlers.APIInfo:
     properties:
@@ -1121,7 +1121,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/dto.VoteRequest'
+          $ref: '#/definitions/dto.CastVoteRequest'
       produces:
       - application/json
       responses:

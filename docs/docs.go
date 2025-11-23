@@ -1370,7 +1370,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.VoteRequest"
+                            "$ref": "#/definitions/dto.CastVoteRequest"
                         }
                     }
                 ],
@@ -1817,6 +1817,22 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "dto.CastVoteRequest": {
+            "type": "object",
+            "required": [
+                "type"
+            ],
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "up",
+                        "down",
+                        "none"
+                    ]
+                }
+            }
+        },
         "dto.ConfirmAccountDeletionRequest": {
             "type": "object",
             "required": [
@@ -2015,22 +2031,6 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 50,
                     "minLength": 3
-                }
-            }
-        },
-        "dto.VoteRequest": {
-            "type": "object",
-            "required": [
-                "type"
-            ],
-            "properties": {
-                "type": {
-                    "type": "string",
-                    "enum": [
-                        "up",
-                        "down",
-                        "none"
-                    ]
                 }
             }
         },
