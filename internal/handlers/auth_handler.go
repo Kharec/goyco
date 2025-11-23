@@ -84,22 +84,14 @@ func NewAuthHandler(authService AuthServiceInterface, userRepo repositories.User
 // @Failure 500 {object} AuthResponse "Internal server error"
 // @Router /api/auth/login [post]
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
-	}
-
-	if !DecodeJSONRequest(w, r, &req) {
+	req, ok := GetValidatedDTO[dto.LoginRequest](r)
+	if !ok {
+		SendErrorResponse(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
 	username := security.SanitizeUsername(req.Username)
 	password := strings.TrimSpace(req.Password)
-
-	if username == "" || password == "" {
-		SendErrorResponse(w, "Username and password are required", http.StatusBadRequest)
-		return
-	}
 
 	if err := validation.ValidatePassword(password); err != nil {
 		SendErrorResponse(w, err.Error(), http.StatusBadRequest)
@@ -126,24 +118,15 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} AuthResponse "Internal server error"
 // @Router /api/auth/register [post]
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		Username string `json:"username"`
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
-
-	if !DecodeJSONRequest(w, r, &req) {
+	req, ok := GetValidatedDTO[dto.RegisterRequest](r)
+	if !ok {
+		SendErrorResponse(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
 	username := strings.TrimSpace(req.Username)
 	email := strings.TrimSpace(req.Email)
 	password := strings.TrimSpace(req.Password)
-
-	if username == "" || email == "" || password == "" {
-		SendErrorResponse(w, "Username, email, and password are required", http.StatusBadRequest)
-		return
-	}
 
 	username = security.SanitizeUsername(username)
 	if err := validation.ValidateUsername(username); err != nil {
@@ -234,19 +217,13 @@ func (h *AuthHandler) ConfirmEmail(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} AuthResponse
 // @Router /api/auth/resend-verification [post]
 func (h *AuthHandler) ResendVerificationEmail(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		Email string `json:"email"`
-	}
-
-	if !DecodeJSONRequest(w, r, &req) {
+	req, ok := GetValidatedDTO[dto.ResendVerificationRequest](r)
+	if !ok {
+		SendErrorResponse(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
 	email := strings.TrimSpace(req.Email)
-	if email == "" {
-		SendErrorResponse(w, "Email address is required", http.StatusBadRequest)
-		return
-	}
 
 	err := h.authService.ResendVerificationEmail(email)
 	if err != nil {
@@ -308,19 +285,13 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} AuthResponse "Invalid request data"
 // @Router /api/auth/forgot-password [post]
 func (h *AuthHandler) RequestPasswordReset(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		UsernameOrEmail string `json:"username_or_email"`
-	}
-
-	if !DecodeJSONRequest(w, r, &req) {
+	req, ok := GetValidatedDTO[dto.ForgotPasswordRequest](r)
+	if !ok {
+		SendErrorResponse(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
 	usernameOrEmail := strings.TrimSpace(req.UsernameOrEmail)
-	if usernameOrEmail == "" {
-		SendErrorResponse(w, "Username or email is required", http.StatusBadRequest)
-		return
-	}
 
 	if err := h.authService.RequestPasswordReset(usernameOrEmail); err != nil {
 	}
@@ -339,30 +310,17 @@ func (h *AuthHandler) RequestPasswordReset(w http.ResponseWriter, r *http.Reques
 // @Failure 500 {object} AuthResponse "Internal server error"
 // @Router /api/auth/reset-password [post]
 func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		Token       string `json:"token"`
-		NewPassword string `json:"new_password"`
-	}
-
-	if !DecodeJSONRequest(w, r, &req) {
+	req, ok := GetValidatedDTO[dto.ResetPasswordRequest](r)
+	if !ok {
+		SendErrorResponse(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
 	token := strings.TrimSpace(req.Token)
 	newPassword := strings.TrimSpace(req.NewPassword)
 
-	if token == "" {
-		SendErrorResponse(w, "Reset token is required", http.StatusBadRequest)
-		return
-	}
-
-	if newPassword == "" {
-		SendErrorResponse(w, "New password is required", http.StatusBadRequest)
-		return
-	}
-
-	if len(newPassword) < 8 {
-		SendErrorResponse(w, "Password must be at least 8 characters long", http.StatusBadRequest)
+	if err := validation.ValidatePassword(newPassword); err != nil {
+		SendErrorResponse(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -401,11 +359,9 @@ func (h *AuthHandler) UpdateEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req struct {
-		Email string `json:"email"`
-	}
-
-	if !DecodeJSONRequest(w, r, &req) {
+	req, ok := GetValidatedDTO[dto.UpdateEmailRequest](r)
+	if !ok {
+		SendErrorResponse(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
@@ -455,11 +411,9 @@ func (h *AuthHandler) UpdateUsername(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req struct {
-		Username string `json:"username"`
-	}
-
-	if !DecodeJSONRequest(w, r, &req) {
+	req, ok := GetValidatedDTO[dto.UpdateUsernameRequest](r)
+	if !ok {
+		SendErrorResponse(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
@@ -504,22 +458,14 @@ func (h *AuthHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req struct {
-		CurrentPassword string `json:"current_password"`
-		NewPassword     string `json:"new_password"`
-	}
-
-	if !DecodeJSONRequest(w, r, &req) {
+	req, ok := GetValidatedDTO[dto.UpdatePasswordRequest](r)
+	if !ok {
+		SendErrorResponse(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
 	currentPassword := strings.TrimSpace(req.CurrentPassword)
 	newPassword := strings.TrimSpace(req.NewPassword)
-
-	if currentPassword == "" {
-		SendErrorResponse(w, "Current password is required", http.StatusBadRequest)
-		return
-	}
 
 	if err := validation.ValidatePassword(newPassword); err != nil {
 		SendErrorResponse(w, err.Error(), http.StatusBadRequest)
@@ -584,20 +530,13 @@ func (h *AuthHandler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} AuthResponse "Internal server error"
 // @Router /api/auth/account/confirm [post]
 func (h *AuthHandler) ConfirmAccountDeletion(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		Token       string `json:"token"`
-		DeletePosts bool   `json:"delete_posts"`
-	}
-
-	if !DecodeJSONRequest(w, r, &req) {
+	req, ok := GetValidatedDTO[dto.ConfirmAccountDeletionRequest](r)
+	if !ok {
+		SendErrorResponse(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
 	token := strings.TrimSpace(req.Token)
-	if token == "" {
-		SendErrorResponse(w, "Deletion token is required", http.StatusBadRequest)
-		return
-	}
 
 	if err := h.authService.ConfirmAccountDeletionWithPosts(token, req.DeletePosts); err != nil {
 		switch {
@@ -646,14 +585,9 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} AuthResponse "Internal server error"
 // @Router /api/auth/refresh [post]
 func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
-	var req dto.RefreshTokenRequest
-
-	if !DecodeJSONRequest(w, r, &req) {
-		return
-	}
-
-	if strings.TrimSpace(req.RefreshToken) == "" {
-		SendErrorResponse(w, "Refresh token is required", http.StatusBadRequest)
+	req, ok := GetValidatedDTO[dto.RefreshTokenRequest](r)
+	if !ok {
+		SendErrorResponse(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
@@ -678,14 +612,9 @@ func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} AuthResponse "Internal server error"
 // @Router /api/auth/revoke [post]
 func (h *AuthHandler) RevokeToken(w http.ResponseWriter, r *http.Request) {
-	var req dto.RevokeTokenRequest
-
-	if !DecodeJSONRequest(w, r, &req) {
-		return
-	}
-
-	if strings.TrimSpace(req.RefreshToken) == "" {
-		SendErrorResponse(w, "Refresh token is required", http.StatusBadRequest)
+	req, ok := GetValidatedDTO[dto.RevokeTokenRequest](r)
+	if !ok {
+		SendErrorResponse(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
@@ -726,28 +655,28 @@ func (h *AuthHandler) RevokeAllTokens(w http.ResponseWriter, r *http.Request) {
 func (h *AuthHandler) MountRoutes(r chi.Router, config RouteModuleConfig) {
 	if config.GeneralRateLimit != nil {
 		rateLimited := config.GeneralRateLimit(r)
-		rateLimited.Post("/auth/refresh", h.RefreshToken)
+		rateLimited.Post("/auth/refresh", WithValidation[dto.RefreshTokenRequest](config.ValidationMiddleware, h.RefreshToken))
 		rateLimited.Get("/auth/confirm", h.ConfirmEmail)
-		rateLimited.Post("/auth/resend-verification", h.ResendVerificationEmail)
+		rateLimited.Post("/auth/resend-verification", WithValidation[dto.ResendVerificationRequest](config.ValidationMiddleware, h.ResendVerificationEmail))
 	} else {
-		r.Post("/auth/refresh", h.RefreshToken)
+		r.Post("/auth/refresh", WithValidation[dto.RefreshTokenRequest](config.ValidationMiddleware, h.RefreshToken))
 		r.Get("/auth/confirm", h.ConfirmEmail)
-		r.Post("/auth/resend-verification", h.ResendVerificationEmail)
+		r.Post("/auth/resend-verification", WithValidation[dto.ResendVerificationRequest](config.ValidationMiddleware, h.ResendVerificationEmail))
 	}
 
 	if config.AuthRateLimit != nil {
 		rateLimited := config.AuthRateLimit(r)
-		rateLimited.Post("/auth/register", h.Register)
-		rateLimited.Post("/auth/login", h.Login)
-		rateLimited.Post("/auth/forgot-password", h.RequestPasswordReset)
-		rateLimited.Post("/auth/reset-password", h.ResetPassword)
-		rateLimited.Post("/auth/account/confirm", h.ConfirmAccountDeletion)
+		rateLimited.Post("/auth/register", WithValidation[dto.RegisterRequest](config.ValidationMiddleware, h.Register))
+		rateLimited.Post("/auth/login", WithValidation[dto.LoginRequest](config.ValidationMiddleware, h.Login))
+		rateLimited.Post("/auth/forgot-password", WithValidation[dto.ForgotPasswordRequest](config.ValidationMiddleware, h.RequestPasswordReset))
+		rateLimited.Post("/auth/reset-password", WithValidation[dto.ResetPasswordRequest](config.ValidationMiddleware, h.ResetPassword))
+		rateLimited.Post("/auth/account/confirm", WithValidation[dto.ConfirmAccountDeletionRequest](config.ValidationMiddleware, h.ConfirmAccountDeletion))
 	} else {
-		r.Post("/auth/register", h.Register)
-		r.Post("/auth/login", h.Login)
-		r.Post("/auth/forgot-password", h.RequestPasswordReset)
-		r.Post("/auth/reset-password", h.ResetPassword)
-		r.Post("/auth/account/confirm", h.ConfirmAccountDeletion)
+		r.Post("/auth/register", WithValidation[dto.RegisterRequest](config.ValidationMiddleware, h.Register))
+		r.Post("/auth/login", WithValidation[dto.LoginRequest](config.ValidationMiddleware, h.Login))
+		r.Post("/auth/forgot-password", WithValidation[dto.ForgotPasswordRequest](config.ValidationMiddleware, h.RequestPasswordReset))
+		r.Post("/auth/reset-password", WithValidation[dto.ResetPasswordRequest](config.ValidationMiddleware, h.ResetPassword))
+		r.Post("/auth/account/confirm", WithValidation[dto.ConfirmAccountDeletionRequest](config.ValidationMiddleware, h.ConfirmAccountDeletion))
 	}
 
 	protected := r
@@ -760,10 +689,10 @@ func (h *AuthHandler) MountRoutes(r chi.Router, config RouteModuleConfig) {
 
 	protected.Get("/auth/me", h.Me)
 	protected.Post("/auth/logout", h.Logout)
-	protected.Post("/auth/revoke", h.RevokeToken)
+	protected.Post("/auth/revoke", WithValidation[dto.RevokeTokenRequest](config.ValidationMiddleware, h.RevokeToken))
 	protected.Post("/auth/revoke-all", h.RevokeAllTokens)
-	protected.Put("/auth/email", h.UpdateEmail)
-	protected.Put("/auth/username", h.UpdateUsername)
-	protected.Put("/auth/password", h.UpdatePassword)
+	protected.Put("/auth/email", WithValidation[dto.UpdateEmailRequest](config.ValidationMiddleware, h.UpdateEmail))
+	protected.Put("/auth/username", WithValidation[dto.UpdateUsernameRequest](config.ValidationMiddleware, h.UpdateUsername))
+	protected.Put("/auth/password", WithValidation[dto.UpdatePasswordRequest](config.ValidationMiddleware, h.UpdatePassword))
 	protected.Delete("/auth/account", h.DeleteAccount)
 }
