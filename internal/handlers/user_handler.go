@@ -99,13 +99,9 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} UserResponse "Internal server error"
 // @Router /api/users [post]
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		Username string `json:"username"`
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
-
-	if !DecodeJSONRequest(w, r, &req) {
+	req, ok := GetValidatedDTO[dto.RegisterRequest](r)
+	if !ok {
+		SendErrorResponse(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
@@ -189,7 +185,7 @@ func (h *UserHandler) MountRoutes(r chi.Router, config RouteModuleConfig) {
 	}
 
 	protected.Get("/users", h.GetUsers)
-	protected.Post("/users", h.CreateUser)
+	protected.Post("/users", WithValidation[dto.RegisterRequest](config.ValidationMiddleware, h.CreateUser))
 	protected.Get("/users/{id}", h.GetUser)
 	protected.Get("/users/{id}/posts", h.GetUserPosts)
 }
