@@ -788,7 +788,7 @@ func createUpdatePostRequest(body string) *http.Request {
 }
 
 func createVoteRequest(body string) *http.Request {
-	return createRequestWithDTO[dto.VoteRequest](http.MethodPost, "/api/posts/1/vote", []byte(body))
+	return createRequestWithDTO[dto.CastVoteRequest](http.MethodPost, "/api/posts/1/vote", []byte(body))
 }
 
 func TestParsePagination(t *testing.T) {

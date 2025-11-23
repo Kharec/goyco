@@ -58,7 +58,7 @@ type VoteResponse = CommonResponse
 // @Produce json
 // @Security BearerAuth
 // @Param id path int true "Post ID"
-// @Param request body dto.VoteRequest true "Vote data (type: 'up', 'down', or 'none' to remove)"
+// @Param request body dto.CastVoteRequest true "Vote data (type: 'up', 'down', or 'none' to remove)"
 // @Success 200 {object} VoteResponse "Vote cast successfully with updated post statistics"
 // @Failure 401 {object} VoteResponse "Authentication required"
 // @Failure 400 {object} VoteResponse "Invalid request data or vote type"
@@ -78,7 +78,7 @@ func (h *VoteHandler) CastVote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req, ok := GetValidatedDTO[dto.VoteRequest](r)
+	req, ok := GetValidatedDTO[dto.CastVoteRequest](r)
 	if !ok {
 		SendErrorResponse(w, "Invalid request", http.StatusBadRequest)
 		return
@@ -283,7 +283,7 @@ func (h *VoteHandler) MountRoutes(r chi.Router, config RouteModuleConfig) {
 		protected = config.GeneralRateLimit(protected)
 	}
 
-	protected.Post("/posts/{id}/vote", WithValidation[dto.VoteRequest](config.ValidationMiddleware, h.CastVote))
+	protected.Post("/posts/{id}/vote", WithValidation[dto.CastVoteRequest](config.ValidationMiddleware, h.CastVote))
 	protected.Delete("/posts/{id}/vote", h.RemoveVote)
 	protected.Get("/posts/{id}/vote", h.GetUserVote)
 	protected.Get("/posts/{id}/votes", h.GetPostVotes)
