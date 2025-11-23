@@ -71,8 +71,9 @@ func NewRouter(cfg RouterConfig) http.Handler {
 		AuthRateLimit: func(r chi.Router) chi.Router {
 			return r.With(middleware.AuthRateLimitMiddlewareWithLimit(cfg.RateLimitConfig.AuthLimit))
 		},
-		CSRFMiddleware: middleware.CSRFMiddleware(),
-		AuthMiddleware: middleware.NewAuth(cfg.AuthService),
+		CSRFMiddleware:       middleware.CSRFMiddleware(),
+		AuthMiddleware:       middleware.NewAuth(cfg.AuthService),
+		ValidationMiddleware: middleware.ValidationMiddleware(),
 	}
 
 	if cfg.PageHandler != nil {
