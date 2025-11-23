@@ -225,6 +225,11 @@ func (h *AuthHandler) ResendVerificationEmail(w http.ResponseWriter, r *http.Req
 
 	email := strings.TrimSpace(req.Email)
 
+	if email == "" {
+		SendErrorResponse(w, "Email address is required", http.StatusBadRequest)
+		return
+	}
+
 	err := h.authService.ResendVerificationEmail(email)
 	if err != nil {
 		switch {
@@ -293,6 +298,11 @@ func (h *AuthHandler) RequestPasswordReset(w http.ResponseWriter, r *http.Reques
 
 	usernameOrEmail := strings.TrimSpace(req.UsernameOrEmail)
 
+	if usernameOrEmail == "" {
+		SendErrorResponse(w, "Username or email is required", http.StatusBadRequest)
+		return
+	}
+
 	if err := h.authService.RequestPasswordReset(usernameOrEmail); err != nil {
 	}
 
@@ -318,6 +328,11 @@ func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 
 	token := strings.TrimSpace(req.Token)
 	newPassword := strings.TrimSpace(req.NewPassword)
+
+	if token == "" {
+		SendErrorResponse(w, "Token is required", http.StatusBadRequest)
+		return
+	}
 
 	if err := validation.ValidatePassword(newPassword); err != nil {
 		SendErrorResponse(w, err.Error(), http.StatusBadRequest)
@@ -467,6 +482,11 @@ func (h *AuthHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 	currentPassword := strings.TrimSpace(req.CurrentPassword)
 	newPassword := strings.TrimSpace(req.NewPassword)
 
+	if currentPassword == "" {
+		SendErrorResponse(w, "Current password is required", http.StatusBadRequest)
+		return
+	}
+
 	if err := validation.ValidatePassword(newPassword); err != nil {
 		SendErrorResponse(w, err.Error(), http.StatusBadRequest)
 		return
@@ -538,6 +558,11 @@ func (h *AuthHandler) ConfirmAccountDeletion(w http.ResponseWriter, r *http.Requ
 
 	token := strings.TrimSpace(req.Token)
 
+	if token == "" {
+		SendErrorResponse(w, "Deletion token is required", http.StatusBadRequest)
+		return
+	}
+
 	if err := h.authService.ConfirmAccountDeletionWithPosts(token, req.DeletePosts); err != nil {
 		switch {
 		case errors.Is(err, services.ErrInvalidDeletionToken):
@@ -591,6 +616,11 @@ func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if req.RefreshToken == "" {
+		SendErrorResponse(w, "Refresh token is required", http.StatusBadRequest)
+		return
+	}
+
 	result, err := h.authService.RefreshAccessToken(req.RefreshToken)
 	if !HandleServiceError(w, err, "Token refresh failed", http.StatusInternalServerError) {
 		return
@@ -615,6 +645,11 @@ func (h *AuthHandler) RevokeToken(w http.ResponseWriter, r *http.Request) {
 	req, ok := GetValidatedDTO[dto.RevokeTokenRequest](r)
 	if !ok {
 		SendErrorResponse(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+
+	if req.RefreshToken == "" {
+		SendErrorResponse(w, "Refresh token is required", http.StatusBadRequest)
 		return
 	}
 
