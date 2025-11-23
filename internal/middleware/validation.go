@@ -77,3 +77,7 @@ func GetDTOTypeFromContext(ctx context.Context) reflect.Type {
 func GetValidatedDTOFromContext(ctx context.Context) any {
 	return ctx.Value(validatedDTOKey)
 }
+
+func SetValidatedDTOInContext(ctx context.Context, dto any) context.Context {
+	return context.WithValue(ctx, validatedDTOKey, dto)
+}
