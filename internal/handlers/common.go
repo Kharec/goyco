@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -289,4 +290,25 @@ func HandleServiceError(w http.ResponseWriter, err error, defaultMsg string, def
 
 	SendErrorResponse(w, defaultMsg, defaultCode)
 	return false
+}
+
+func GetValidatedDTO[T any](r *http.Request) (*T, bool) {
+	dtoVal := middleware.GetValidatedDTOFromContext(r.Context())
+	if dtoVal == nil {
+		return nil, false
+	}
+	dto, ok := dtoVal.(*T)
+	return dto, ok
+}
+
+func WithValidation[T any](validationMiddleware func(http.Handler) http.Handler, handler http.HandlerFunc) http.HandlerFunc {
+	if validationMiddleware == nil {
+		return handler
+	}
+	var zero T
+	dtoType := reflect.TypeOf(zero)
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := middleware.SetDTOTypeInContext(r.Context(), dtoType)
+		validationMiddleware(handler).ServeHTTP(w, r.WithContext(ctx))
+	}
 }
