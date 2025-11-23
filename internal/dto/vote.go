@@ -6,6 +6,10 @@ import (
 	"goyco/internal/database"
 )
 
+type VoteRequest struct {
+	Type string `json:"type" validate:"required,oneof=up down none"`
+}
+
 type VoteDTO struct {
 	ID        uint      `json:"id"`
 	UserID    *uint     `json:"user_id,omitempty"`
