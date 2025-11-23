@@ -21,23 +21,11 @@ import (
 )
 
 func TestIntegration_Handlers(t *testing.T) {
-	suite := testutils.NewServiceSuite(t)
-
-	authService, err := services.NewAuthFacadeForTest(testutils.AppTestConfig, suite.UserRepo, suite.PostRepo, suite.DeletionRepo, suite.RefreshTokenRepo, suite.EmailSender)
-	if err != nil {
-		t.Fatalf("Failed to create auth service: %v", err)
-	}
-
-	voteService := services.NewVoteService(suite.VoteRepo, suite.PostRepo, suite.DB)
-	emailSender := suite.EmailSender
-	userRepo := suite.UserRepo
-	postRepo := suite.PostRepo
-	titleFetcher := suite.TitleFetcher
-
-	authHandler := handlers.NewAuthHandler(authService, userRepo)
-	postHandler := handlers.NewPostHandler(postRepo, titleFetcher, voteService)
-	voteHandler := handlers.NewVoteHandler(voteService)
-	userHandler := handlers.NewUserHandler(userRepo, authService)
+	ctx := setupTestContext(t)
+	authService := ctx.AuthService
+	emailSender := ctx.Suite.EmailSender
+	userRepo := ctx.Suite.UserRepo
+	postRepo := ctx.Suite.PostRepo
 
 	t.Run("Auth_Handler_Complete_Workflow", func(t *testing.T) {
 		emailSender.Reset()
@@ -51,7 +39,7 @@ func TestIntegration_Handlers(t *testing.T) {
 		registerReq.Header.Set("Content-Type", "application/json")
 		registerResp := httptest.NewRecorder()
 
-		authHandler.Register(registerResp, registerReq)
+		ctx.Router.ServeHTTP(registerResp, registerReq)
 		if registerResp.Code != http.StatusCreated {
 			t.Errorf("Expected status 201, got %d", registerResp.Code)
 		}
@@ -80,7 +68,7 @@ func TestIntegration_Handlers(t *testing.T) {
 
 		confirmReq := httptest.NewRequest(http.MethodGet, "/api/auth/confirm?token="+url.QueryEscape(mockToken), nil)
 		confirmResp := httptest.NewRecorder()
-		authHandler.ConfirmEmail(confirmResp, confirmReq)
+		ctx.Router.ServeHTTP(confirmResp, confirmReq)
 		if confirmResp.Code != http.StatusOK {
 			t.Fatalf("Expected 200 when confirming email via handler, got %d", confirmResp.Code)
 		}
@@ -97,7 +85,7 @@ func TestIntegration_Handlers(t *testing.T) {
 		meReq = testutils.WithUserContext(meReq, middleware.UserIDKey, loginSeed.User.ID)
 		meResp := httptest.NewRecorder()
 
-		authHandler.Me(meResp, meReq)
+		ctx.Router.ServeHTTP(meResp, meReq)
 		if meResp.Code != http.StatusOK {
 			t.Errorf("Expected status 200, got %d", meResp.Code)
 		}
@@ -115,7 +103,7 @@ func TestIntegration_Handlers(t *testing.T) {
 		weakReq.Header.Set("Content-Type", "application/json")
 		weakResp := httptest.NewRecorder()
 
-		authHandler.Register(weakResp, weakReq)
+		ctx.Router.ServeHTTP(weakResp, weakReq)
 		if weakResp.Code != http.StatusBadRequest {
 			t.Errorf("Expected status 400 for weak password, got %d", weakResp.Code)
 		}
@@ -141,7 +129,7 @@ func TestIntegration_Handlers(t *testing.T) {
 		invalidReq.Header.Set("Content-Type", "application/json")
 		invalidResp := httptest.NewRecorder()
 
-		authHandler.Register(invalidResp, invalidReq)
+		ctx.Router.ServeHTTP(invalidResp, invalidReq)
 		if invalidResp.Code != http.StatusBadRequest {
 			t.Errorf("Expected status 400 for invalid email, got %d", invalidResp.Code)
 		}
@@ -165,7 +153,7 @@ func TestIntegration_Handlers(t *testing.T) {
 		incompleteReq.Header.Set("Content-Type", "application/json")
 		incompleteResp := httptest.NewRecorder()
 
-		authHandler.Register(incompleteResp, incompleteReq)
+		ctx.Router.ServeHTTP(incompleteResp, incompleteReq)
 		if incompleteResp.Code != http.StatusBadRequest {
 			t.Errorf("Expected status 400 for missing fields, got %d", incompleteResp.Code)
 		}
@@ -198,7 +186,7 @@ func TestIntegration_Handlers(t *testing.T) {
 		postReq = testutils.WithUserContext(postReq, middleware.UserIDKey, user.User.ID)
 		postResp := httptest.NewRecorder()
 
-		postHandler.CreatePost(postResp, postReq)
+		ctx.Router.ServeHTTP(postResp, postReq)
 		if postResp.Code != http.StatusCreated {
 			t.Errorf("Expected status 201, got %d", postResp.Code)
 		}
@@ -220,7 +208,7 @@ func TestIntegration_Handlers(t *testing.T) {
 		getReq = testutils.WithURLParams(getReq, map[string]string{"id": fmt.Sprintf("%d", int(postID))})
 		getResp := httptest.NewRecorder()
 
-		postHandler.GetPost(getResp, getReq)
+		ctx.Router.ServeHTTP(getResp, getReq)
 		if getResp.Code != http.StatusOK {
 			t.Errorf("Expected status 200, got %d", getResp.Code)
 		}
@@ -228,7 +216,7 @@ func TestIntegration_Handlers(t *testing.T) {
 		postsReq := httptest.NewRequest("GET", "/api/posts", nil)
 		postsResp := httptest.NewRecorder()
 
-		postHandler.GetPosts(postsResp, postsReq)
+		ctx.Router.ServeHTTP(postsResp, postsReq)
 		if postsResp.Code != http.StatusOK {
 			t.Errorf("Expected status 200, got %d", postsResp.Code)
 		}
@@ -236,7 +224,7 @@ func TestIntegration_Handlers(t *testing.T) {
 		searchReq := httptest.NewRequest("GET", "/api/posts/search?q=handler", nil)
 		searchResp := httptest.NewRecorder()
 
-		postHandler.SearchPosts(searchResp, searchReq)
+		ctx.Router.ServeHTTP(searchResp, searchReq)
 		if searchResp.Code != http.StatusOK {
 			t.Errorf("Expected status 200, got %d", searchResp.Code)
 		}
@@ -254,7 +242,7 @@ func TestIntegration_Handlers(t *testing.T) {
 		postReq.Header.Set("Content-Type", "application/json")
 		postResp := httptest.NewRecorder()
 
-		postHandler.CreatePost(postResp, postReq)
+		ctx.Router.ServeHTTP(postResp, postReq)
 		if postResp.Code != http.StatusUnauthorized {
 			t.Errorf("Expected status 401 for unauthenticated post creation, got %d", postResp.Code)
 		}
@@ -284,7 +272,7 @@ func TestIntegration_Handlers(t *testing.T) {
 		invalidReq = testutils.WithUserContext(invalidReq, middleware.UserIDKey, user.User.ID)
 		invalidResp := httptest.NewRecorder()
 
-		postHandler.CreatePost(invalidResp, invalidReq)
+		ctx.Router.ServeHTTP(invalidResp, invalidReq)
 		if invalidResp.Code != http.StatusBadRequest {
 			t.Errorf("Expected status 400 for invalid post data, got %d", invalidResp.Code)
 		}
@@ -317,7 +305,7 @@ func TestIntegration_Handlers(t *testing.T) {
 		voteReq = testutils.WithURLParams(voteReq, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
 		voteResp := httptest.NewRecorder()
 
-		voteHandler.CastVote(voteResp, voteReq)
+		ctx.Router.ServeHTTP(voteResp, voteReq)
 		if voteResp.Code != http.StatusOK {
 			t.Errorf("Expected status 200, got %d", voteResp.Code)
 		}
@@ -328,7 +316,7 @@ func TestIntegration_Handlers(t *testing.T) {
 		getVoteReq = testutils.WithURLParams(getVoteReq, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
 		getVoteResp := httptest.NewRecorder()
 
-		voteHandler.GetUserVote(getVoteResp, getVoteReq)
+		ctx.Router.ServeHTTP(getVoteResp, getVoteReq)
 		if getVoteResp.Code != http.StatusOK {
 			t.Errorf("Expected status 200, got %d", getVoteResp.Code)
 		}
@@ -339,7 +327,7 @@ func TestIntegration_Handlers(t *testing.T) {
 		getPostVotesReq = testutils.WithURLParams(getPostVotesReq, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
 		getPostVotesResp := httptest.NewRecorder()
 
-		voteHandler.GetPostVotes(getPostVotesResp, getPostVotesReq)
+		ctx.Router.ServeHTTP(getPostVotesResp, getPostVotesReq)
 		if getPostVotesResp.Code != http.StatusOK {
 			t.Errorf("Expected status 200, got %d", getPostVotesResp.Code)
 		}
@@ -350,7 +338,7 @@ func TestIntegration_Handlers(t *testing.T) {
 		removeVoteReq = testutils.WithURLParams(removeVoteReq, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
 		removeVoteResp := httptest.NewRecorder()
 
-		voteHandler.RemoveVote(removeVoteResp, removeVoteReq)
+		ctx.Router.ServeHTTP(removeVoteResp, removeVoteReq)
 		if removeVoteResp.Code != http.StatusOK {
 			t.Errorf("Expected status 200, got %d", removeVoteResp.Code)
 		}
@@ -365,7 +353,7 @@ func TestIntegration_Handlers(t *testing.T) {
 		usersReq = testutils.WithUserContext(usersReq, middleware.UserIDKey, user.User.ID)
 		usersResp := httptest.NewRecorder()
 
-		userHandler.GetUsers(usersResp, usersReq)
+		ctx.Router.ServeHTTP(usersResp, usersReq)
 		if usersResp.Code != http.StatusOK {
 			t.Errorf("Expected status 200, got %d", usersResp.Code)
 		}
@@ -376,7 +364,7 @@ func TestIntegration_Handlers(t *testing.T) {
 		getUserReq = testutils.WithURLParams(getUserReq, map[string]string{"id": fmt.Sprintf("%d", user.User.ID)})
 		getUserResp := httptest.NewRecorder()
 
-		userHandler.GetUser(getUserResp, getUserReq)
+		ctx.Router.ServeHTTP(getUserResp, getUserReq)
 		if getUserResp.Code != http.StatusOK {
 			t.Errorf("Expected status 200, got %d", getUserResp.Code)
 		}
@@ -387,7 +375,7 @@ func TestIntegration_Handlers(t *testing.T) {
 		getUserPostsReq = testutils.WithURLParams(getUserPostsReq, map[string]string{"id": fmt.Sprintf("%d", user.User.ID)})
 		getUserPostsResp := httptest.NewRecorder()
 
-		userHandler.GetUserPosts(getUserPostsResp, getUserPostsReq)
+		ctx.Router.ServeHTTP(getUserPostsResp, getUserPostsReq)
 		if getUserPostsResp.Code != http.StatusOK {
 			t.Errorf("Expected status 200, got %d", getUserPostsResp.Code)
 		}
@@ -398,7 +386,7 @@ func TestIntegration_Handlers(t *testing.T) {
 		invalidJSONReq.Header.Set("Content-Type", "application/json")
 		invalidJSONResp := httptest.NewRecorder()
 
-		authHandler.Register(invalidJSONResp, invalidJSONReq)
+		ctx.Router.ServeHTTP(invalidJSONResp, invalidJSONReq)
 		if invalidJSONResp.Code != http.StatusBadRequest {
 			t.Errorf("Expected status 400 for invalid JSON, got %d", invalidJSONResp.Code)
 		}
@@ -423,7 +411,7 @@ func TestIntegration_Handlers(t *testing.T) {
 		missingCTReq := httptest.NewRequest("POST", "/api/auth/register", bytes.NewBuffer(missingCTBody))
 		missingCTResp := httptest.NewRecorder()
 
-		authHandler.Register(missingCTResp, missingCTReq)
+		ctx.Router.ServeHTTP(missingCTResp, missingCTReq)
 		if missingCTResp.Code != http.StatusCreated {
 			t.Errorf("Expected status 201, got %d", missingCTResp.Code)
 		}
@@ -431,7 +419,7 @@ func TestIntegration_Handlers(t *testing.T) {
 		invalidEndpointReq := httptest.NewRequest("GET", "/api/invalid/endpoint", nil)
 		invalidEndpointResp := httptest.NewRecorder()
 
-		authHandler.Me(invalidEndpointResp, invalidEndpointReq)
+		ctx.Router.ServeHTTP(invalidEndpointResp, invalidEndpointReq)
 		if invalidEndpointResp.Code == http.StatusOK {
 			t.Error("Expected error for invalid endpoint")
 		}
@@ -441,7 +429,7 @@ func TestIntegration_Handlers(t *testing.T) {
 		meReq := httptest.NewRequest("GET", "/api/auth/me", nil)
 		meResp := httptest.NewRecorder()
 
-		authHandler.Me(meResp, meReq)
+		ctx.Router.ServeHTTP(meResp, meReq)
 		if meResp.Code == http.StatusOK {
 			t.Error("Expected error for unauthenticated request")
 		}
@@ -450,7 +438,7 @@ func TestIntegration_Handlers(t *testing.T) {
 		invalidTokenReq.Header.Set("Authorization", "Bearer invalid-token")
 		invalidTokenResp := httptest.NewRecorder()
 
-		authHandler.Me(invalidTokenResp, invalidTokenReq)
+		ctx.Router.ServeHTTP(invalidTokenResp, invalidTokenReq)
 		if invalidTokenResp.Code == http.StatusOK {
 			t.Error("Expected error for invalid token")
 		}
@@ -459,7 +447,7 @@ func TestIntegration_Handlers(t *testing.T) {
 		malformedTokenReq.Header.Set("Authorization", "InvalidFormat token")
 		malformedTokenResp := httptest.NewRecorder()
 
-		authHandler.Me(malformedTokenResp, malformedTokenReq)
+		ctx.Router.ServeHTTP(malformedTokenResp, malformedTokenReq)
 		if malformedTokenResp.Code == http.StatusOK {
 			t.Error("Expected error for malformed token")
 		}
@@ -480,7 +468,7 @@ func TestIntegration_Handlers(t *testing.T) {
 		xssReq = testutils.WithUserContext(xssReq, middleware.UserIDKey, user.User.ID)
 		xssResp := httptest.NewRecorder()
 
-		postHandler.CreatePost(xssResp, xssReq)
+		ctx.Router.ServeHTTP(xssResp, xssReq)
 		if xssResp.Code != http.StatusCreated {
 			t.Errorf("Expected status 201 for XSS sanitization, got %d", xssResp.Code)
 		}
@@ -534,7 +522,7 @@ func TestIntegration_Handlers(t *testing.T) {
 		sqlReq = testutils.WithUserContext(sqlReq, middleware.UserIDKey, user.User.ID)
 		sqlResp := httptest.NewRecorder()
 
-		postHandler.CreatePost(sqlResp, sqlReq)
+		ctx.Router.ServeHTTP(sqlResp, sqlReq)
 		if sqlResp.Code != http.StatusCreated {
 			t.Errorf("Expected status 201 for SQL injection sanitization, got %d", sqlResp.Code)
 		}
@@ -590,7 +578,7 @@ func TestIntegration_Handlers(t *testing.T) {
 		getPostReq = testutils.WithURLParams(getPostReq, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
 		getPostResp := httptest.NewRecorder()
 
-		postHandler.GetPost(getPostResp, getPostReq)
+		ctx.Router.ServeHTTP(getPostResp, getPostReq)
 		testutils.AssertHTTPStatus(t, getPostResp, http.StatusOK)
 
 		updateData := map[string]string{
@@ -604,7 +592,7 @@ func TestIntegration_Handlers(t *testing.T) {
 		updateReq = testutils.WithURLParams(updateReq, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
 		updateResp := httptest.NewRecorder()
 
-		postHandler.UpdatePost(updateResp, updateReq)
+		ctx.Router.ServeHTTP(updateResp, updateReq)
 		testutils.AssertHTTPStatus(t, updateResp, http.StatusForbidden)
 
 		deleteReq := httptest.NewRequest("DELETE", fmt.Sprintf("/api/posts/%d", post.ID), nil)
@@ -613,7 +601,7 @@ func TestIntegration_Handlers(t *testing.T) {
 		deleteReq = testutils.WithURLParams(deleteReq, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
 		deleteResp := httptest.NewRecorder()
 
-		postHandler.DeletePost(deleteResp, deleteReq)
+		ctx.Router.ServeHTTP(deleteResp, deleteReq)
 		testutils.AssertHTTPStatus(t, deleteResp, http.StatusForbidden)
 	})
 
@@ -633,7 +621,7 @@ func TestIntegration_Handlers(t *testing.T) {
 		voteReq = testutils.WithURLParams(voteReq, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
 		voteResp := httptest.NewRecorder()
 
-		voteHandler.CastVote(voteResp, voteReq)
+		ctx.Router.ServeHTTP(voteResp, voteReq)
 		if voteResp.Code != http.StatusOK {
 			t.Errorf("Users should be able to vote on any post, got %d", voteResp.Code)
 		}
@@ -668,7 +656,7 @@ func TestIntegration_Handlers(t *testing.T) {
 		meReq.Header.Set("Authorization", "Bearer "+expiredToken)
 		meResp := httptest.NewRecorder()
 
-		authHandler.Me(meResp, meReq)
+		ctx.Router.ServeHTTP(meResp, meReq)
 		testutils.AssertHTTPStatus(t, meResp, http.StatusUnauthorized)
 	})
 
@@ -682,7 +670,7 @@ func TestIntegration_Handlers(t *testing.T) {
 		meReq.Header.Set("Authorization", "Bearer "+tamperedToken)
 		meResp := httptest.NewRecorder()
 
-		authHandler.Me(meResp, meReq)
+		ctx.Router.ServeHTTP(meResp, meReq)
 		testutils.AssertHTTPStatus(t, meResp, http.StatusUnauthorized)
 	})
 
@@ -715,7 +703,7 @@ func TestIntegration_Handlers(t *testing.T) {
 		meReq.Header.Set("Authorization", "Bearer "+invalidToken)
 		meResp := httptest.NewRecorder()
 
-		authHandler.Me(meResp, meReq)
+		ctx.Router.ServeHTTP(meResp, meReq)
 		testutils.AssertHTTPStatus(t, meResp, http.StatusUnauthorized)
 	})
 
