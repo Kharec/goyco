@@ -30,7 +30,7 @@ if [ ! -d "docs" ]; then
   mkdir -p docs
 fi
 
-SWAGGER_DIRECTORIES="cmd/goyco,internal/handlers"
+SWAGGER_DIRECTORIES="cmd/goyco,internal/handlers,internal/dto"
 SWAGGER_MAIN_FILE="main.go"
 SWAGGER_OUTPUT_DIR="docs"
 
