@@ -1,5 +1,94 @@
 basePath: /api
 definitions:
+  dto.ConfirmAccountDeletionRequest:
+    properties:
+      delete_posts:
+        type: boolean
+      token:
+        type: string
+    type: object
+  dto.CreatePostRequest:
+    properties:
+      content:
+        type: string
+      title:
+        type: string
+      url:
+        type: string
+    type: object
+  dto.ForgotPasswordRequest:
+    properties:
+      username_or_email:
+        type: string
+    type: object
+  dto.LoginRequest:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+  dto.RefreshTokenRequest:
+    properties:
+      refresh_token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
+    required:
+    - refresh_token
+    type: object
+  dto.RegisterRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+  dto.ResendVerificationRequest:
+    properties:
+      email:
+        type: string
+    type: object
+  dto.ResetPasswordRequest:
+    properties:
+      new_password:
+        type: string
+      token:
+        type: string
+    type: object
+  dto.RevokeTokenRequest:
+    properties:
+      refresh_token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
+    required:
+    - refresh_token
+    type: object
+  dto.UpdateEmailRequest:
+    properties:
+      email:
+        type: string
+    type: object
+  dto.UpdatePasswordRequest:
+    properties:
+      current_password:
+        type: string
+      new_password:
+        type: string
+    type: object
+  dto.UpdatePostRequest:
+    properties:
+      content:
+        type: string
+      title:
+        type: string
+    type: object
+  dto.UpdateUsernameRequest:
+    properties:
+      username:
+        type: string
+    type: object
   handlers.APIInfo:
     properties:
       data: {}
@@ -70,34 +159,6 @@ definitions:
       success:
         type: boolean
     type: object
-  handlers.ConfirmAccountDeletionRequest:
-    properties:
-      delete_posts:
-        type: boolean
-      token:
-        type: string
-    type: object
-  handlers.CreatePostRequest:
-    properties:
-      content:
-        type: string
-      title:
-        type: string
-      url:
-        type: string
-    type: object
-  handlers.ForgotPasswordRequest:
-    properties:
-      username_or_email:
-        type: string
-    type: object
-  handlers.LoginRequest:
-    properties:
-      password:
-        type: string
-      username:
-        type: string
-    type: object
   handlers.PostResponse:
     properties:
       data: {}
@@ -107,67 +168,6 @@ definitions:
         type: string
       success:
         type: boolean
-    type: object
-  handlers.RefreshTokenRequest:
-    properties:
-      refresh_token:
-        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-        type: string
-    required:
-    - refresh_token
-    type: object
-  handlers.RegisterRequest:
-    properties:
-      email:
-        type: string
-      password:
-        type: string
-      username:
-        type: string
-    type: object
-  handlers.ResendVerificationRequest:
-    properties:
-      email:
-        type: string
-    type: object
-  handlers.ResetPasswordRequest:
-    properties:
-      new_password:
-        type: string
-      token:
-        type: string
-    type: object
-  handlers.RevokeTokenRequest:
-    properties:
-      refresh_token:
-        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-        type: string
-    required:
-    - refresh_token
-    type: object
-  handlers.UpdateEmailRequest:
-    properties:
-      email:
-        type: string
-    type: object
-  handlers.UpdatePasswordRequest:
-    properties:
-      current_password:
-        type: string
-      new_password:
-        type: string
-    type: object
-  handlers.UpdatePostRequest:
-    properties:
-      content:
-        type: string
-      title:
-        type: string
-    type: object
-  handlers.UpdateUsernameRequest:
-    properties:
-      username:
-        type: string
     type: object
   handlers.UserResponse:
     properties:
@@ -268,7 +268,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/handlers.ConfirmAccountDeletionRequest'
+          $ref: '#/definitions/dto.ConfirmAccountDeletionRequest'
       produces:
       - application/json
       responses:
@@ -331,7 +331,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/handlers.UpdateEmailRequest'
+          $ref: '#/definitions/dto.UpdateEmailRequest'
       produces:
       - application/json
       responses:
@@ -375,7 +375,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/handlers.ForgotPasswordRequest'
+          $ref: '#/definitions/dto.ForgotPasswordRequest'
       produces:
       - application/json
       responses:
@@ -401,7 +401,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/handlers.LoginRequest'
+          $ref: '#/definitions/dto.LoginRequest'
       produces:
       - application/json
       responses:
@@ -485,7 +485,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/handlers.UpdatePasswordRequest'
+          $ref: '#/definitions/dto.UpdatePasswordRequest'
       produces:
       - application/json
       responses:
@@ -523,7 +523,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/handlers.RefreshTokenRequest'
+          $ref: '#/definitions/dto.RefreshTokenRequest'
       produces:
       - application/json
       responses:
@@ -561,7 +561,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/handlers.RegisterRequest'
+          $ref: '#/definitions/dto.RegisterRequest'
       produces:
       - application/json
       responses:
@@ -595,7 +595,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/handlers.ResendVerificationRequest'
+          $ref: '#/definitions/dto.ResendVerificationRequest'
       produces:
       - application/json
       responses:
@@ -641,7 +641,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/handlers.ResetPasswordRequest'
+          $ref: '#/definitions/dto.ResetPasswordRequest'
       produces:
       - application/json
       responses:
@@ -672,7 +672,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/handlers.RevokeTokenRequest'
+          $ref: '#/definitions/dto.RevokeTokenRequest'
       produces:
       - application/json
       responses:
@@ -735,7 +735,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/handlers.UpdateUsernameRequest'
+          $ref: '#/definitions/dto.UpdateUsernameRequest'
       produces:
       - application/json
       responses:
@@ -809,7 +809,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/handlers.CreatePostRequest'
+          $ref: '#/definitions/dto.CreatePostRequest'
       produces:
       - application/json
       responses:
@@ -933,7 +933,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/handlers.UpdatePostRequest'
+          $ref: '#/definitions/dto.UpdatePostRequest'
       produces:
       - application/json
       responses:
@@ -1260,7 +1260,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/handlers.RegisterRequest'
+          $ref: '#/definitions/dto.RegisterRequest'
       produces:
       - application/json
       responses:
