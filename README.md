@@ -456,12 +456,6 @@ Once you have it, follow the usual workflow:
 5. Ensure all tests pass
 6. Submit a pull request
 
-Then, I'll review your changes and merge them if they are good.
-
 ## License
 
 This project is licensed under the GNU General Public License v3.0 or later (GPLv3+). See the [LICENSE](LICENSE) file for details.
-
----
-
-**Goyco** - A modern news aggregation platform built with Go, PostgreSQL and most importantly, love.
