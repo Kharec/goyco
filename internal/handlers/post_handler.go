@@ -115,32 +115,9 @@ func (h *PostHandler) GetPost(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} PostResponse "Internal server error"
 // @Router /api/posts [post]
 func (h *PostHandler) CreatePost(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		Title   string `json:"title"`
-		URL     string `json:"url"`
-		Content string `json:"content"`
-	}
-
-	if !DecodeJSONRequest(w, r, &req) {
-		return
-	}
-
-	req.Title = security.SanitizeInput(req.Title)
-	req.URL = security.SanitizeURL(req.URL)
-	req.Content = security.SanitizePostContent(req.Content)
-
-	if req.URL == "" {
-		SendErrorResponse(w, "URL is required", http.StatusBadRequest)
-		return
-	}
-
-	if len(req.Title) > 200 {
-		SendErrorResponse(w, "Title must be no more than 200 characters", http.StatusBadRequest)
-		return
-	}
-
-	if len(req.Content) > 10000 {
-		SendErrorResponse(w, "Content must be no more than 10,000 characters", http.StatusBadRequest)
+	req, ok := GetValidatedDTO[dto.CreatePostRequest](r)
+	if !ok {
+		SendErrorResponse(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
@@ -149,13 +126,15 @@ func (h *PostHandler) CreatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	title := req.Title
+	title := security.SanitizeInput(req.Title)
+	url := security.SanitizeURL(req.URL)
+	content := security.SanitizePostContent(req.Content)
 
 	if title == "" && h.titleFetcher != nil {
 		titleCtx, cancel := context.WithTimeout(r.Context(), 7*time.Second)
 		defer cancel()
 
-		fetchedTitle, err := h.titleFetcher.FetchTitle(titleCtx, req.URL)
+		fetchedTitle, err := h.titleFetcher.FetchTitle(titleCtx, url)
 		if err != nil {
 			switch {
 			case errors.Is(err, services.ErrUnsupportedScheme):
@@ -183,8 +162,8 @@ func (h *PostHandler) CreatePost(w http.ResponseWriter, r *http.Request) {
 
 	post := &database.Post{
 		Title:    title,
-		URL:      req.URL,
-		Content:  req.Content,
+		URL:      url,
+		Content:  content,
 		AuthorID: &userID,
 	}
 
@@ -281,40 +260,27 @@ func (h *PostHandler) UpdatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req struct {
-		Title   string `json:"title"`
-		Content string `json:"content"`
-	}
-
-	if !DecodeJSONRequest(w, r, &req) {
+	req, ok := GetValidatedDTO[dto.UpdatePostRequest](r)
+	if !ok {
+		SendErrorResponse(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
-	req.Title = security.SanitizeInput(req.Title)
-	req.Content = security.SanitizePostContent(req.Content)
+	title := security.SanitizeInput(req.Title)
+	content := security.SanitizePostContent(req.Content)
 
-	if len(req.Title) > 200 {
-		SendErrorResponse(w, "Title must be no more than 200 characters", http.StatusBadRequest)
-		return
-	}
-
-	if len(req.Content) > 10000 {
-		SendErrorResponse(w, "Content must be no more than 10,000 characters", http.StatusBadRequest)
-		return
-	}
-
-	if err := validation.ValidateTitle(req.Title); err != nil {
+	if err := validation.ValidateTitle(title); err != nil {
 		SendErrorResponse(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	if err := validation.ValidateContent(req.Content); err != nil {
+	if err := validation.ValidateContent(content); err != nil {
 		SendErrorResponse(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	post.Title = req.Title
-	post.Content = req.Content
+	post.Title = title
+	post.Content = content
 
 	if err := h.postRepo.Update(post); err != nil {
 		SendErrorResponse(w, "Failed to update post", http.StatusInternalServerError)
@@ -453,7 +419,7 @@ func (h *PostHandler) MountRoutes(r chi.Router, config RouteModuleConfig) {
 	if config.GeneralRateLimit != nil {
 		protected = config.GeneralRateLimit(protected)
 	}
-	protected.Post("/posts", h.CreatePost)
-	protected.Put("/posts/{id}", h.UpdatePost)
+	protected.Post("/posts", WithValidation[dto.CreatePostRequest](config.ValidationMiddleware, h.CreatePost))
+	protected.Put("/posts/{id}", WithValidation[dto.UpdatePostRequest](config.ValidationMiddleware, h.UpdatePost))
 	protected.Delete("/posts/{id}", h.DeletePost)
 }
