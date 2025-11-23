@@ -27,7 +27,14 @@ func ValidationMiddleware() func(http.Handler) http.Handler {
 			dto := reflect.New(dtoType).Interface()
 
 			if err := json.NewDecoder(r.Body).Decode(dto); err != nil {
-				http.Error(w, "Invalid JSON", http.StatusBadRequest)
+				response := map[string]any{
+					"success": false,
+					"error":   "Invalid JSON",
+				}
+
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusBadRequest)
+				json.NewEncoder(w).Encode(response)
 				return
 			}
 
