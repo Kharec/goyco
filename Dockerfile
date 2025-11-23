@@ -1,4 +1,4 @@
-ARG GO_VERSION=1.25.3
+ARG GO_VERSION=1.25.4
 
 # Building the binary using a golang alpine image
 FROM golang:${GO_VERSION}-alpine AS go-builder
@@ -11,7 +11,7 @@ ARG TARGETARCH=amd64
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags="-s -w" -o /out/goyco ./cmd/goyco
 
 # building the application image
-FROM alpine:3.21
+FROM alpine:3.22
 RUN addgroup -S goyco && adduser -S -G goyco goyco \
   && apk add --no-cache ca-certificates tzdata
 WORKDIR /app
