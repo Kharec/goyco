@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -877,7 +878,8 @@ func (h *PageHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 func (h *PageHandler) Settings(w http.ResponseWriter, r *http.Request) {
 	user := h.currentUserWithLockCheck(w, r)
 	if user == nil {
-		http.Redirect(w, r, "/login?flash=Sign in to manage your account", http.StatusSeeOther)
+		redirectURL := "/login?flash=" + url.QueryEscape("Sign in to manage your account")
+		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 		return
 	}
 
@@ -897,7 +899,8 @@ func (h *PageHandler) Settings(w http.ResponseWriter, r *http.Request) {
 func (h *PageHandler) UpdateEmail(w http.ResponseWriter, r *http.Request) {
 	user := h.currentUserWithLockCheck(w, r)
 	if user == nil {
-		http.Redirect(w, r, "/login?flash=Sign in to manage your account", http.StatusSeeOther)
+		redirectURL := "/login?flash=" + url.QueryEscape("Sign in to manage your account")
+		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 		return
 	}
 
@@ -960,13 +963,15 @@ func (h *PageHandler) UpdateEmail(w http.ResponseWriter, r *http.Request) {
 	}
 	h.clearAuthCookie(w, r)
 
-	http.Redirect(w, r, "/login?flash=Email updated. Check your inbox to confirm the new address. You will need to sign in again after verification.", http.StatusSeeOther)
+	redirectURL := "/login?flash=" + url.QueryEscape("Email updated. Check your inbox to confirm the new address. You will need to sign in again after verification.")
+	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }
 
 func (h *PageHandler) UpdateUsername(w http.ResponseWriter, r *http.Request) {
 	user := h.currentUserWithLockCheck(w, r)
 	if user == nil {
-		http.Redirect(w, r, "/login?flash=Sign in to manage your account", http.StatusSeeOther)
+		redirectURL := "/login?flash=" + url.QueryEscape("Sign in to manage your account")
+		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 		return
 	}
 
@@ -1022,13 +1027,15 @@ func (h *PageHandler) UpdateUsername(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/settings?flash=Username updated successfully.", http.StatusSeeOther)
+	redirectURL := "/settings?flash=" + url.QueryEscape("Username updated successfully.")
+	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }
 
 func (h *PageHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 	user := h.currentUserWithLockCheck(w, r)
 	if user == nil {
-		http.Redirect(w, r, "/login?flash=Sign in to manage your account", http.StatusSeeOther)
+		redirectURL := "/login?flash=" + url.QueryEscape("Sign in to manage your account")
+		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 		return
 	}
 
@@ -1140,13 +1147,15 @@ func (h *PageHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/settings?flash=Password updated successfully.", http.StatusSeeOther)
+	redirectURL := "/settings?flash=" + url.QueryEscape("Password updated successfully.")
+	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }
 
 func (h *PageHandler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 	user := h.currentUserWithLockCheck(w, r)
 	if user == nil {
-		http.Redirect(w, r, "/login?flash=Sign in to manage your account", http.StatusSeeOther)
+		redirectURL := "/login?flash=" + url.QueryEscape("Sign in to manage your account")
+		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 		return
 	}
 
@@ -1204,7 +1213,8 @@ func (h *PageHandler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/settings?flash=Check your inbox for a confirmation link to finish deleting your account.", http.StatusSeeOther)
+	redirectURL := "/settings?flash=" + url.QueryEscape("Check your inbox for a confirmation link to finish deleting your account.")
+	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }
 
 func (h *PageHandler) ConfirmAccountDeletion(w http.ResponseWriter, r *http.Request) {
@@ -1328,7 +1338,8 @@ func (h *PageHandler) clearAuthCookie(w http.ResponseWriter, r *http.Request) {
 func (h *PageHandler) Vote(w http.ResponseWriter, r *http.Request) {
 	user := h.currentUserWithLockCheck(w, r)
 	if user == nil {
-		http.Redirect(w, r, "/login?flash=Please sign in to vote", http.StatusSeeOther)
+		redirectURL := "/login?flash=" + url.QueryEscape("Please sign in to vote")
+		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 		return
 	}
 
