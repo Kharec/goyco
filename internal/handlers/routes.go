@@ -13,9 +13,10 @@ type RouteModule interface {
 }
 
 type RouteModuleConfig struct {
-	AuthService      middleware.TokenVerifier
-	GeneralRateLimit func(chi.Router) chi.Router
-	AuthRateLimit    func(chi.Router) chi.Router
-	CSRFMiddleware   func(http.Handler) http.Handler
-	AuthMiddleware   func(http.Handler) http.Handler
+	AuthService          middleware.TokenVerifier
+	GeneralRateLimit     func(chi.Router) chi.Router
+	AuthRateLimit        func(chi.Router) chi.Router
+	CSRFMiddleware       func(http.Handler) http.Handler
+	AuthMiddleware       func(http.Handler) http.Handler
+	ValidationMiddleware func(http.Handler) http.Handler
 }
