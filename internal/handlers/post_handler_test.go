@@ -327,7 +327,7 @@ func TestPostHandlerCreatePostTitleFetcherErrors(t *testing.T) {
 		{name: "Generic", err: errors.New("timeout"), wantStatus: http.StatusBadGateway, wantMsg: "Failed to fetch title"},
 	}
 
-		for _, tc := range tests {
+	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			repo := testutils.NewPostRepositoryStub()
 			fetcher := &testutils.TitleFetcherStub{FetchTitleFn: func(ctx context.Context, rawURL string) (string, error) {
