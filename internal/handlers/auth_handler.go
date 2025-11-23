@@ -64,62 +64,6 @@ type AuthUserSummary struct {
 	Locked        bool   `json:"locked" example:"false"`
 }
 
-type LoginRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
-
-type RegisterRequest struct {
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
-}
-
-type CreatePostRequest struct {
-	Title   string `json:"title"`
-	URL     string `json:"url"`
-	Content string `json:"content"`
-}
-
-type ResendVerificationRequest struct {
-	Email string `json:"email"`
-}
-
-type ForgotPasswordRequest struct {
-	UsernameOrEmail string `json:"username_or_email"`
-}
-
-type ResetPasswordRequest struct {
-	Token       string `json:"token"`
-	NewPassword string `json:"new_password"`
-}
-
-type UpdateEmailRequest struct {
-	Email string `json:"email"`
-}
-
-type UpdateUsernameRequest struct {
-	Username string `json:"username"`
-}
-
-type UpdatePasswordRequest struct {
-	CurrentPassword string `json:"current_password"`
-	NewPassword     string `json:"new_password"`
-}
-
-type ConfirmAccountDeletionRequest struct {
-	Token       string `json:"token"`
-	DeletePosts bool   `json:"delete_posts"`
-}
-
-type RefreshTokenRequest struct {
-	RefreshToken string `json:"refresh_token" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." binding:"required"`
-}
-
-type RevokeTokenRequest struct {
-	RefreshToken string `json:"refresh_token" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." binding:"required"`
-}
-
 func NewAuthHandler(authService AuthServiceInterface, userRepo repositories.UserRepository) *AuthHandler {
 	return &AuthHandler{
 		authService: authService,
@@ -132,7 +76,7 @@ func NewAuthHandler(authService AuthServiceInterface, userRepo repositories.User
 // @Tags auth
 // @Accept json
 // @Produce json
-// @Param request body LoginRequest true "Login credentials"
+// @Param request body dto.LoginRequest true "Login credentials"
 // @Success 200 {object} AuthTokensResponse "Authentication successful"
 // @Failure 400 {object} AuthResponse "Invalid request data or validation failed"
 // @Failure 401 {object} AuthResponse "Invalid credentials"
@@ -175,7 +119,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 // @Tags auth
 // @Accept json
 // @Produce json
-// @Param request body RegisterRequest true "Registration data"
+// @Param request body dto.RegisterRequest true "Registration data"
 // @Success 201 {object} AuthResponse "Registration successful"
 // @Failure 400 {object} AuthResponse "Invalid request data or validation failed"
 // @Failure 409 {object} AuthResponse "Username or email already exists"
@@ -280,7 +224,7 @@ func (h *AuthHandler) ConfirmEmail(w http.ResponseWriter, r *http.Request) {
 // @Tags auth
 // @Accept json
 // @Produce json
-// @Param request body ResendVerificationRequest true "Email address"
+// @Param request body dto.ResendVerificationRequest true "Email address"
 // @Success 200 {object} AuthResponse
 // @Failure 400 {object} AuthResponse
 // @Failure 404 {object} AuthResponse
@@ -359,7 +303,7 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 // @Tags auth
 // @Accept json
 // @Produce json
-// @Param request body ForgotPasswordRequest true "Username or email"
+// @Param request body dto.ForgotPasswordRequest true "Username or email"
 // @Success 200 {object} AuthResponse "Password reset email sent if account exists"
 // @Failure 400 {object} AuthResponse "Invalid request data"
 // @Router /api/auth/forgot-password [post]
@@ -389,7 +333,7 @@ func (h *AuthHandler) RequestPasswordReset(w http.ResponseWriter, r *http.Reques
 // @Tags auth
 // @Accept json
 // @Produce json
-// @Param request body ResetPasswordRequest true "Password reset data"
+// @Param request body dto.ResetPasswordRequest true "Password reset data"
 // @Success 200 {object} AuthResponse "Password reset successfully"
 // @Failure 400 {object} AuthResponse "Invalid or expired token, or validation failed"
 // @Failure 500 {object} AuthResponse "Internal server error"
@@ -443,7 +387,7 @@ func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param request body UpdateEmailRequest true "New email address"
+// @Param request body dto.UpdateEmailRequest true "New email address"
 // @Success 200 {object} AuthResponse
 // @Failure 400 {object} AuthResponse
 // @Failure 401 {object} AuthResponse
@@ -498,7 +442,7 @@ func (h *AuthHandler) UpdateEmail(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param request body UpdateUsernameRequest true "New username"
+// @Param request body dto.UpdateUsernameRequest true "New username"
 // @Success 200 {object} AuthResponse
 // @Failure 400 {object} AuthResponse
 // @Failure 401 {object} AuthResponse
@@ -548,7 +492,7 @@ func (h *AuthHandler) UpdateUsername(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param request body UpdatePasswordRequest true "Password update data"
+// @Param request body dto.UpdatePasswordRequest true "Password update data"
 // @Success 200 {object} AuthResponse
 // @Failure 400 {object} AuthResponse
 // @Failure 401 {object} AuthResponse
@@ -633,7 +577,7 @@ func (h *AuthHandler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 // @Tags auth
 // @Accept json
 // @Produce json
-// @Param request body ConfirmAccountDeletionRequest true "Account deletion data"
+// @Param request body dto.ConfirmAccountDeletionRequest true "Account deletion data"
 // @Success 200 {object} AuthResponse "Account deleted successfully"
 // @Failure 400 {object} AuthResponse "Invalid or expired token"
 // @Failure 503 {object} AuthResponse "Email delivery unavailable"
@@ -694,7 +638,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 // @Tags auth
 // @Accept json
 // @Produce json
-// @Param request body RefreshTokenRequest true "Refresh token data"
+// @Param request body dto.RefreshTokenRequest true "Refresh token data"
 // @Success 200 {object} AuthTokensResponse "Token refreshed successfully"
 // @Failure 400 {object} AuthResponse "Invalid request body or missing refresh token"
 // @Failure 401 {object} AuthResponse "Invalid or expired refresh token"
@@ -702,7 +646,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} AuthResponse "Internal server error"
 // @Router /api/auth/refresh [post]
 func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
-	var req RefreshTokenRequest
+	var req dto.RefreshTokenRequest
 
 	if !DecodeJSONRequest(w, r, &req) {
 		return
@@ -727,14 +671,14 @@ func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param request body RevokeTokenRequest true "Token revocation data"
+// @Param request body dto.RevokeTokenRequest true "Token revocation data"
 // @Success 200 {object} AuthResponse "Token revoked successfully"
 // @Failure 400 {object} AuthResponse "Invalid request body or missing refresh token"
 // @Failure 401 {object} AuthResponse "Invalid or expired access token"
 // @Failure 500 {object} AuthResponse "Internal server error"
 // @Router /api/auth/revoke [post]
 func (h *AuthHandler) RevokeToken(w http.ResponseWriter, r *http.Request) {
-	var req RevokeTokenRequest
+	var req dto.RevokeTokenRequest
 
 	if !DecodeJSONRequest(w, r, &req) {
 		return
