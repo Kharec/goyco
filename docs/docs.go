@@ -1819,6 +1819,9 @@ const docTemplate = `{
     "definitions": {
         "dto.ConfirmAccountDeletionRequest": {
             "type": "object",
+            "required": [
+                "token"
+            ],
             "properties": {
                 "delete_posts": {
                     "type": "boolean"
@@ -1830,20 +1833,30 @@ const docTemplate = `{
         },
         "dto.CreatePostRequest": {
             "type": "object",
+            "required": [
+                "url"
+            ],
             "properties": {
                 "content": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 10000
                 },
                 "title": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 200,
+                    "minLength": 3
                 },
                 "url": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 2048
                 }
             }
         },
         "dto.ForgotPasswordRequest": {
             "type": "object",
+            "required": [
+                "username_or_email"
+            ],
             "properties": {
                 "username_or_email": {
                     "type": "string"
@@ -1852,12 +1865,20 @@ const docTemplate = `{
         },
         "dto.LoginRequest": {
             "type": "object",
+            "required": [
+                "password",
+                "username"
+            ],
             "properties": {
                 "password": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 128,
+                    "minLength": 8
                 },
                 "username": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 3
                 }
             }
         },
@@ -1875,31 +1896,51 @@ const docTemplate = `{
         },
         "dto.RegisterRequest": {
             "type": "object",
+            "required": [
+                "email",
+                "password",
+                "username"
+            ],
             "properties": {
                 "email": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 254
                 },
                 "password": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 128,
+                    "minLength": 8
                 },
                 "username": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 3
                 }
             }
         },
         "dto.ResendVerificationRequest": {
             "type": "object",
+            "required": [
+                "email"
+            ],
             "properties": {
                 "email": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 254
                 }
             }
         },
         "dto.ResetPasswordRequest": {
             "type": "object",
+            "required": [
+                "new_password",
+                "token"
+            ],
             "properties": {
                 "new_password": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 128,
+                    "minLength": 8
                 },
                 "token": {
                     "type": "string"
@@ -1920,39 +1961,60 @@ const docTemplate = `{
         },
         "dto.UpdateEmailRequest": {
             "type": "object",
+            "required": [
+                "email"
+            ],
             "properties": {
                 "email": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 254
                 }
             }
         },
         "dto.UpdatePasswordRequest": {
             "type": "object",
+            "required": [
+                "current_password",
+                "new_password"
+            ],
             "properties": {
                 "current_password": {
                     "type": "string"
                 },
                 "new_password": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 128,
+                    "minLength": 8
                 }
             }
         },
         "dto.UpdatePostRequest": {
             "type": "object",
+            "required": [
+                "title"
+            ],
             "properties": {
                 "content": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 10000
                 },
                 "title": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 200,
+                    "minLength": 3
                 }
             }
         },
         "dto.UpdateUsernameRequest": {
             "type": "object",
+            "required": [
+                "username"
+            ],
             "properties": {
                 "username": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 3
                 }
             }
         },
