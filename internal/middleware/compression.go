@@ -38,6 +38,10 @@ func CompressionMiddlewareWithConfig(config *CompressionConfig) func(http.Handle
 
 			next.ServeHTTP(bufferedWriter, r)
 
+			if bufferedWriter.isRedirect {
+				return
+			}
+
 			if buf.Len() < config.MinSize {
 				bufferedWriter.flush()
 				w.Write(buf.Bytes())
@@ -73,9 +77,13 @@ type bufferedResponseWriter struct {
 	buffer        *bytes.Buffer
 	statusCode    int
 	headerWritten bool
+	isRedirect    bool
 }
 
 func (brw *bufferedResponseWriter) Write(b []byte) (int, error) {
+	if brw.isRedirect {
+		return brw.ResponseWriter.Write(b)
+	}
 	if !brw.headerWritten {
 		brw.statusCode = http.StatusOK
 	}
@@ -87,6 +95,11 @@ func (brw *bufferedResponseWriter) WriteHeader(code int) {
 		return
 	}
 	brw.statusCode = code
+	if isRedirect(code) {
+		brw.isRedirect = true
+		brw.ResponseWriter.WriteHeader(code)
+		brw.headerWritten = true
+	}
 }
 
 func (brw *bufferedResponseWriter) Header() http.Header {
@@ -98,6 +111,10 @@ func (brw *bufferedResponseWriter) flush() {
 		brw.ResponseWriter.WriteHeader(brw.statusCode)
 		brw.headerWritten = true
 	}
+}
+
+func isRedirect(statusCode int) bool {
+	return statusCode >= 300 && statusCode < 400
 }
 
 func shouldCompress(r *http.Request, config *CompressionConfig) bool {
