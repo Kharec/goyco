@@ -130,6 +130,11 @@ func (h *PostHandler) CreatePost(w http.ResponseWriter, r *http.Request) {
 	url := security.SanitizeURL(req.URL)
 	content := security.SanitizePostContent(req.Content)
 
+	if url == "" {
+		SendErrorResponse(w, "Invalid URL", http.StatusBadRequest)
+		return
+	}
+
 	if title == "" && h.titleFetcher != nil {
 		titleCtx, cancel := context.WithTimeout(r.Context(), 7*time.Second)
 		defer cancel()
@@ -157,6 +162,16 @@ func (h *PostHandler) CreatePost(w http.ResponseWriter, r *http.Request) {
 
 	if len(title) < 3 {
 		SendErrorResponse(w, "Title must be at least 3 characters", http.StatusBadRequest)
+		return
+	}
+
+	if len(title) > 200 {
+		SendErrorResponse(w, "Title must be at most 200 characters", http.StatusBadRequest)
+		return
+	}
+
+	if len(content) > 10000 {
+		SendErrorResponse(w, "Content must be at most 10000 characters", http.StatusBadRequest)
 		return
 	}
 
