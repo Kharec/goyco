@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -11,6 +12,7 @@ import (
 	"testing"
 
 	"goyco/internal/database"
+	"goyco/internal/dto"
 	"goyco/internal/middleware"
 	"goyco/internal/services"
 	"goyco/internal/testutils"
@@ -719,6 +721,74 @@ func TestDecodeJSONRequest(t *testing.T) {
 			}
 		})
 	}
+}
+
+func createRequestWithDTO[T any](method, url string, body []byte) *http.Request {
+	r := httptest.NewRequest(method, url, bytes.NewReader(body))
+	var dto T
+	if len(body) > 0 {
+		if err := json.NewDecoder(bytes.NewReader(body)).Decode(&dto); err != nil {
+			return r
+		}
+	}
+	ctx := middleware.SetValidatedDTOInContext(r.Context(), &dto)
+	return r.WithContext(ctx)
+}
+
+func createLoginRequest(body string) *http.Request {
+	return createRequestWithDTO[dto.LoginRequest](http.MethodPost, "/api/auth/login", []byte(body))
+}
+
+func createRegisterRequest(body string) *http.Request {
+	return createRequestWithDTO[dto.RegisterRequest](http.MethodPost, "/api/auth/register", []byte(body))
+}
+
+func createResendVerificationRequest(body string) *http.Request {
+	return createRequestWithDTO[dto.ResendVerificationRequest](http.MethodPost, "/api/auth/resend-verification", []byte(body))
+}
+
+func createForgotPasswordRequest(body string) *http.Request {
+	return createRequestWithDTO[dto.ForgotPasswordRequest](http.MethodPost, "/api/auth/forgot-password", []byte(body))
+}
+
+func createResetPasswordRequest(body string) *http.Request {
+	return createRequestWithDTO[dto.ResetPasswordRequest](http.MethodPost, "/api/auth/reset-password", []byte(body))
+}
+
+func createUpdateEmailRequest(body string) *http.Request {
+	return createRequestWithDTO[dto.UpdateEmailRequest](http.MethodPut, "/api/auth/email", []byte(body))
+}
+
+func createUpdateUsernameRequest(body string) *http.Request {
+	return createRequestWithDTO[dto.UpdateUsernameRequest](http.MethodPut, "/api/auth/username", []byte(body))
+}
+
+func createUpdatePasswordRequest(body string) *http.Request {
+	return createRequestWithDTO[dto.UpdatePasswordRequest](http.MethodPut, "/api/auth/password", []byte(body))
+}
+
+func createConfirmAccountDeletionRequest(body string) *http.Request {
+	return createRequestWithDTO[dto.ConfirmAccountDeletionRequest](http.MethodPost, "/api/auth/account/confirm", []byte(body))
+}
+
+func createRefreshTokenRequest(body string) *http.Request {
+	return createRequestWithDTO[dto.RefreshTokenRequest](http.MethodPost, "/api/auth/refresh", []byte(body))
+}
+
+func createRevokeTokenRequest(body string) *http.Request {
+	return createRequestWithDTO[dto.RevokeTokenRequest](http.MethodPost, "/api/auth/revoke", []byte(body))
+}
+
+func createCreatePostRequest(body string) *http.Request {
+	return createRequestWithDTO[dto.CreatePostRequest](http.MethodPost, "/api/posts", []byte(body))
+}
+
+func createUpdatePostRequest(body string) *http.Request {
+	return createRequestWithDTO[dto.UpdatePostRequest](http.MethodPut, "/api/posts/1", []byte(body))
+}
+
+func createVoteRequest(body string) *http.Request {
+	return createRequestWithDTO[dto.VoteRequest](http.MethodPost, "/api/posts/1/vote", []byte(body))
 }
 
 func TestParsePagination(t *testing.T) {
