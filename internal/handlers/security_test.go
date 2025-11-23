@@ -41,7 +41,7 @@ func TestPostHandler_XSSProtection_Comprehensive(t *testing.T) {
 			}
 
 			body, _ := json.Marshal(postData)
-			request := httptest.NewRequest("POST", "/api/posts", bytes.NewBuffer(body))
+			request := createCreatePostRequest(string(body))
 			request.Header.Set("Content-Type", "application/json")
 			request = request.WithContext(context.WithValue(request.Context(), middleware.UserIDKey, uint(1)))
 			recorder := httptest.NewRecorder()
@@ -123,7 +123,7 @@ func TestPostHandler_InputValidation(t *testing.T) {
 			}
 
 			body, _ := json.Marshal(postData)
-			request := httptest.NewRequest("POST", "/api/posts", bytes.NewBuffer(body))
+			request := createCreatePostRequest(string(body))
 			request.Header.Set("Content-Type", "application/json")
 			request = request.WithContext(context.WithValue(request.Context(), middleware.UserIDKey, uint(1)))
 			recorder := httptest.NewRecorder()
@@ -230,7 +230,7 @@ func TestAuthHandler_PasswordValidation(t *testing.T) {
 			}
 
 			body, _ := json.Marshal(registerData)
-			request := httptest.NewRequest("POST", "/api/auth/register", bytes.NewBuffer(body))
+			request := createRegisterRequest(string(body))
 			request.Header.Set("Content-Type", "application/json")
 			recorder := httptest.NewRecorder()
 
@@ -290,7 +290,7 @@ func TestAuthHandler_UsernameSanitization(t *testing.T) {
 			}
 
 			body, _ := json.Marshal(registerData)
-			request := httptest.NewRequest("POST", "/api/auth/register", bytes.NewBuffer(body))
+			request := createRegisterRequest(string(body))
 			request.Header.Set("Content-Type", "application/json")
 			recorder := httptest.NewRecorder()
 

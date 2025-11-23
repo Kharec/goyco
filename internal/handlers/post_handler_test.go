@@ -69,9 +69,8 @@ func TestPostHandlerCreatePostWithTitleFetcher(t *testing.T) {
 
 	handler := NewPostHandler(repo, titleFetcher, nil)
 
-	request := httptest.NewRequest(http.MethodPost, "/api/posts", bytes.NewBufferString(`{"url":"https://example.com","content":"Test content"}`))
+	request := createCreatePostRequest(`{"url":"https://example.com","content":"Test content"}`)
 	request = testutils.WithUserContext(request, middleware.UserIDKey, uint(1))
-	request.Header.Set("Content-Type", "application/json")
 	recorder := httptest.NewRecorder()
 
 	handler.CreatePost(recorder, request)
@@ -171,7 +170,7 @@ func TestPostHandlerUpdatePostUnauthorized(t *testing.T) {
 
 	handler := NewPostHandler(repo, nil, nil)
 
-	request := httptest.NewRequest(http.MethodPut, "/api/posts/1", bytes.NewBufferString(`{"title":"Updated Title","content":"Updated content"}`))
+	request := createUpdatePostRequest(`{"title":"Updated Title","content":"Updated content"}`)
 	request = testutils.WithUserContext(request, middleware.UserIDKey, uint(1))
 	request = testutils.WithURLParams(request, map[string]string{"id": "1"})
 	request.Header.Set("Content-Type", "application/json")
@@ -278,8 +277,7 @@ func TestPostHandlerCreatePostSuccess(t *testing.T) {
 
 	handler := NewPostHandler(repo, fetcher, nil)
 
-	body := bytes.NewBufferString(`{"title":"  ","url":"https://example.com","content":"Go"}`)
-	request := httptest.NewRequest(http.MethodPost, "/api/posts", body)
+	request := createCreatePostRequest(`{"title":"  ","url":"https://example.com","content":"Go"}`)
 	ctx := context.WithValue(request.Context(), middleware.UserIDKey, uint(42))
 	request = request.WithContext(ctx)
 
@@ -297,7 +295,7 @@ func TestPostHandlerCreatePostValidation(t *testing.T) {
 	handler := NewPostHandler(testutils.NewPostRepositoryStub(), &testutils.TitleFetcherStub{}, nil)
 
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodPost, "/api/posts", bytes.NewBufferString(`{"title":"","url":"","content":""}`))
+	request := createCreatePostRequest(`{"title":"","url":"","content":""}`)
 	request = request.WithContext(context.WithValue(request.Context(), middleware.UserIDKey, uint(1)))
 	handler.CreatePost(recorder, request)
 	if recorder.Result().StatusCode != http.StatusBadRequest {
@@ -305,14 +303,14 @@ func TestPostHandlerCreatePostValidation(t *testing.T) {
 	}
 
 	recorder = httptest.NewRecorder()
-	request = httptest.NewRequest(http.MethodPost, "/api/posts", bytes.NewBufferString(`invalid json`))
+	request = createCreatePostRequest(`invalid json`)
 	handler.CreatePost(recorder, request)
 	if recorder.Result().StatusCode != http.StatusBadRequest {
 		t.Fatalf("expected 400 for invalid JSON, got %d", recorder.Result().StatusCode)
 	}
 
 	recorder = httptest.NewRecorder()
-	request = httptest.NewRequest(http.MethodPost, "/api/posts", bytes.NewBufferString(`{"title":"ok","url":"https://example.com"}`))
+	request = createCreatePostRequest(`{"title":"ok","url":"https://example.com"}`)
 	handler.CreatePost(recorder, request)
 	testutils.AssertHTTPStatus(t, recorder, http.StatusUnauthorized)
 }
@@ -329,15 +327,14 @@ func TestPostHandlerCreatePostTitleFetcherErrors(t *testing.T) {
 		{name: "Generic", err: errors.New("timeout"), wantStatus: http.StatusBadGateway, wantMsg: "Failed to fetch title"},
 	}
 
-	for _, tc := range tests {
+		for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			repo := testutils.NewPostRepositoryStub()
 			fetcher := &testutils.TitleFetcherStub{FetchTitleFn: func(ctx context.Context, rawURL string) (string, error) {
 				return "", tc.err
 			}}
 			handler := NewPostHandler(repo, fetcher, nil)
-			body := bytes.NewBufferString(`{"title":" ","url":"https://example.com"}`)
-			request := httptest.NewRequest(http.MethodPost, "/api/posts", body)
+			request := createCreatePostRequest(`{"title":" ","url":"https://example.com"}`)
 			request = request.WithContext(context.WithValue(request.Context(), middleware.UserIDKey, uint(1)))
 
 			recorder := httptest.NewRecorder()
@@ -495,7 +492,7 @@ func TestPostHandlerUpdatePost(t *testing.T) {
 			}
 			handler := NewPostHandler(repo, &testutils.TitleFetcherStub{}, nil)
 
-			request := httptest.NewRequest(http.MethodPut, "/api/posts/"+tt.postID, bytes.NewBufferString(tt.requestBody))
+			request := createUpdatePostRequest(tt.requestBody)
 			if tt.userID > 0 {
 				ctx := context.WithValue(request.Context(), middleware.UserIDKey, tt.userID)
 				request = request.WithContext(ctx)

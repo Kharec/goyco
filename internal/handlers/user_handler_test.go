@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -103,7 +102,7 @@ func TestUserHandlerCreateUser(t *testing.T) {
 		return nil
 	}})
 
-	request := httptest.NewRequest(http.MethodPost, "/api/users", bytes.NewBufferString(`{"username":"user","email":"user@example.com","password":"Password123!"}`))
+	request := createRegisterRequest(`{"username":"user","email":"user@example.com","password":"Password123!"}`)
 	recorder := httptest.NewRecorder()
 	handler.CreateUser(recorder, request)
 	testutils.AssertHTTPStatus(t, recorder, http.StatusCreated)
@@ -126,14 +125,14 @@ func TestUserHandlerCreateUser(t *testing.T) {
 	}
 
 	recorder = httptest.NewRecorder()
-	request = httptest.NewRequest(http.MethodPost, "/api/users", bytes.NewBufferString("invalid"))
+	request = createRegisterRequest("invalid")
 	handler.CreateUser(recorder, request)
 	if recorder.Result().StatusCode != http.StatusBadRequest {
 		t.Fatalf("expected 400 for invalid json, got %d", recorder.Result().StatusCode)
 	}
 
 	recorder = httptest.NewRecorder()
-	request = httptest.NewRequest(http.MethodPost, "/api/users", bytes.NewBufferString(`{"username":"","email":"","password":""}`))
+	request = createRegisterRequest(`{"username":"","email":"","password":""}`)
 	handler.CreateUser(recorder, request)
 	if recorder.Result().StatusCode != http.StatusBadRequest {
 		t.Fatalf("expected 400 for missing fields, got %d", recorder.Result().StatusCode)
@@ -144,7 +143,7 @@ func TestUserHandlerCreateUser(t *testing.T) {
 	}
 	handler = newUserHandler(repo)
 	recorder = httptest.NewRecorder()
-	request = httptest.NewRequest(http.MethodPost, "/api/users", bytes.NewBufferString(`{"username":"user","email":"user@example.com","password":"Password123!"}`))
+	request = createRegisterRequest(`{"username":"user","email":"user@example.com","password":"Password123!"}`)
 	handler.CreateUser(recorder, request)
 	testutils.AssertHTTPStatus(t, recorder, http.StatusConflict)
 }
@@ -350,7 +349,7 @@ func TestUserHandler_PasswordValidation(t *testing.T) {
 			handler := NewUserHandler(repo, authService)
 
 			requestBody := fmt.Sprintf(`{"username":"testuser","email":"test@example.com","password":"%s"}`, tt.password)
-			request := httptest.NewRequest(http.MethodPost, "/api/users", bytes.NewBufferString(requestBody))
+			request := createRegisterRequest(requestBody)
 			request.Header.Set("Content-Type", "application/json")
 			recorder := httptest.NewRecorder()
 

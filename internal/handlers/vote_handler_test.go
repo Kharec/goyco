@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -59,13 +58,13 @@ func TestVoteHandlerCastVote(t *testing.T) {
 	handler := newVoteHandlerWithRepos()
 
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodPost, "/api/posts/1/vote", bytes.NewBufferString(`{"type":"up"}`))
+	request := createVoteRequest(`{"type":"up"}`)
 	request = testutils.WithURLParams(request, map[string]string{"id": "1"})
 	handler.CastVote(recorder, request)
 	testutils.AssertHTTPStatus(t, recorder, http.StatusUnauthorized)
 
 	recorder = httptest.NewRecorder()
-	request = httptest.NewRequest(http.MethodPost, "/api/posts/abc/vote", bytes.NewBufferString(`{"type":"up"}`))
+	request = createVoteRequest(`{"type":"up"}`)
 	request = testutils.WithURLParams(request, map[string]string{"id": "abc"})
 	ctx := context.WithValue(request.Context(), middleware.UserIDKey, uint(1))
 	request = request.WithContext(ctx)
@@ -73,7 +72,7 @@ func TestVoteHandlerCastVote(t *testing.T) {
 	testutils.AssertHTTPStatus(t, recorder, http.StatusBadRequest)
 
 	recorder = httptest.NewRecorder()
-	request = httptest.NewRequest(http.MethodPost, "/api/posts/1/vote", bytes.NewBufferString(`invalid`))
+	request = createVoteRequest(`invalid`)
 	request = testutils.WithURLParams(request, map[string]string{"id": "1"})
 	ctx = context.WithValue(request.Context(), middleware.UserIDKey, uint(1))
 	request = request.WithContext(ctx)
@@ -83,7 +82,7 @@ func TestVoteHandlerCastVote(t *testing.T) {
 	}
 
 	recorder = httptest.NewRecorder()
-	request = httptest.NewRequest(http.MethodPost, "/api/posts/1/vote", bytes.NewBufferString(`{"type":"maybe"}`))
+	request = createVoteRequest(`{"type":"maybe"}`)
 	request = testutils.WithURLParams(request, map[string]string{"id": "1"})
 	ctx = context.WithValue(request.Context(), middleware.UserIDKey, uint(1))
 	request = request.WithContext(ctx)
@@ -93,7 +92,7 @@ func TestVoteHandlerCastVote(t *testing.T) {
 	}
 
 	recorder = httptest.NewRecorder()
-	request = httptest.NewRequest(http.MethodPost, "/api/posts/1/vote", bytes.NewBufferString(`{"type":"up"}`))
+	request = createVoteRequest(`{"type":"up"}`)
 	request = testutils.WithURLParams(request, map[string]string{"id": "1"})
 	ctx = context.WithValue(request.Context(), middleware.UserIDKey, uint(1))
 	request = request.WithContext(ctx)
@@ -101,7 +100,7 @@ func TestVoteHandlerCastVote(t *testing.T) {
 	testutils.AssertHTTPStatus(t, recorder, http.StatusOK)
 
 	recorder = httptest.NewRecorder()
-	request = httptest.NewRequest(http.MethodPost, "/api/posts/1/vote", bytes.NewBufferString(`{"type":"down"}`))
+	request = createVoteRequest(`{"type":"down"}`)
 	request = testutils.WithURLParams(request, map[string]string{"id": "1"})
 	ctx = context.WithValue(request.Context(), middleware.UserIDKey, uint(2))
 	request = request.WithContext(ctx)
@@ -111,7 +110,7 @@ func TestVoteHandlerCastVote(t *testing.T) {
 	}
 
 	recorder = httptest.NewRecorder()
-	request = httptest.NewRequest(http.MethodPost, "/api/posts/1/vote", bytes.NewBufferString(`{"type":"none"}`))
+	request = createVoteRequest(`{"type":"none"}`)
 	request = testutils.WithURLParams(request, map[string]string{"id": "1"})
 	ctx = context.WithValue(request.Context(), middleware.UserIDKey, uint(3))
 	request = request.WithContext(ctx)
@@ -125,7 +124,7 @@ func TestVoteHandlerCastVotePostNotFound(t *testing.T) {
 	handler, _, posts := newVoteHandlerWithReposRefs()
 	delete(posts, 1)
 
-	request := httptest.NewRequest(http.MethodPost, "/api/posts/1/vote", bytes.NewBufferString(`{"type":"up"}`))
+	request := createVoteRequest(`{"type":"up"}`)
 	request = testutils.WithURLParams(request, map[string]string{"id": "1"})
 	ctx := context.WithValue(request.Context(), middleware.UserIDKey, uint(1))
 	request = request.WithContext(ctx)
@@ -164,7 +163,7 @@ func TestVoteHandlerRemoveVote(t *testing.T) {
 	}
 
 	recorder = httptest.NewRecorder()
-	request = httptest.NewRequest(http.MethodPost, "/api/posts/1/vote", bytes.NewBufferString(`{"type":"up"}`))
+	request = createVoteRequest(`{"type":"up"}`)
 	request = testutils.WithURLParams(request, map[string]string{"id": "1"})
 	ctx = context.WithValue(request.Context(), middleware.UserIDKey, uint(1))
 	request = request.WithContext(ctx)
@@ -202,7 +201,7 @@ func TestVoteHandlerRemoveVotePostNotFound(t *testing.T) {
 func TestVoteHandlerRemoveVoteUnexpectedError(t *testing.T) {
 	handler, voteRepo, _ := newVoteHandlerWithReposRefs()
 
-	request := httptest.NewRequest(http.MethodPost, "/api/posts/1/vote", bytes.NewBufferString(`{"type":"up"}`))
+	request := createVoteRequest(`{"type":"up"}`)
 	request = testutils.WithURLParams(request, map[string]string{"id": "1"})
 	ctx := context.WithValue(request.Context(), middleware.UserIDKey, uint(1))
 	request = request.WithContext(ctx)
@@ -257,7 +256,7 @@ func TestVoteHandlerGetUserVote(t *testing.T) {
 	}
 
 	recorder = httptest.NewRecorder()
-	request = httptest.NewRequest(http.MethodPost, "/api/posts/1/vote", bytes.NewBufferString(`{"type":"up"}`))
+	request = createVoteRequest(`{"type":"up"}`)
 	request = testutils.WithURLParams(request, map[string]string{"id": "1"})
 	ctx = context.WithValue(request.Context(), middleware.UserIDKey, uint(1))
 	request = request.WithContext(ctx)
@@ -301,7 +300,7 @@ func TestVoteHandlerGetPostVotes(t *testing.T) {
 	}
 
 	recorder = httptest.NewRecorder()
-	request = httptest.NewRequest(http.MethodPost, "/api/posts/1/vote", bytes.NewBufferString(`{"type":"up"}`))
+	request = createVoteRequest(`{"type":"up"}`)
 	request = testutils.WithURLParams(request, map[string]string{"id": "1"})
 	ctx := context.WithValue(request.Context(), middleware.UserIDKey, uint(1))
 	request = request.WithContext(ctx)
@@ -311,7 +310,7 @@ func TestVoteHandlerGetPostVotes(t *testing.T) {
 	}
 
 	recorder = httptest.NewRecorder()
-	request = httptest.NewRequest(http.MethodPost, "/api/posts/1/vote", bytes.NewBufferString(`{"type":"down"}`))
+	request = createVoteRequest(`{"type":"down"}`)
 	request = testutils.WithURLParams(request, map[string]string{"id": "1"})
 	ctx = context.WithValue(request.Context(), middleware.UserIDKey, uint(2))
 	request = request.WithContext(ctx)
@@ -345,7 +344,7 @@ func TestVoteFlowRegression(t *testing.T) {
 		postID := "1"
 
 		recorder := httptest.NewRecorder()
-		request := httptest.NewRequest(http.MethodPost, "/api/posts/1/vote", bytes.NewBufferString(`{"type":"up"}`))
+		request := createVoteRequest(`{"type":"up"}`)
 		request = testutils.WithURLParams(request, map[string]string{"id": postID})
 		ctx := context.WithValue(request.Context(), middleware.UserIDKey, userID)
 		request = request.WithContext(ctx)
@@ -363,7 +362,7 @@ func TestVoteFlowRegression(t *testing.T) {
 		}
 
 		recorder = httptest.NewRecorder()
-		request = httptest.NewRequest(http.MethodPost, "/api/posts/1/vote", bytes.NewBufferString(`{"type":"down"}`))
+		request = createVoteRequest(`{"type":"down"}`)
 		request = testutils.WithURLParams(request, map[string]string{"id": postID})
 		ctx = context.WithValue(request.Context(), middleware.UserIDKey, userID)
 		request = request.WithContext(ctx)
@@ -373,7 +372,7 @@ func TestVoteFlowRegression(t *testing.T) {
 		}
 
 		recorder = httptest.NewRecorder()
-		request = httptest.NewRequest(http.MethodPost, "/api/posts/1/vote", bytes.NewBufferString(`{"type":"none"}`))
+		request = createVoteRequest(`{"type":"none"}`)
 		request = testutils.WithURLParams(request, map[string]string{"id": postID})
 		ctx = context.WithValue(request.Context(), middleware.UserIDKey, userID)
 		request = request.WithContext(ctx)
@@ -404,7 +403,7 @@ func TestVoteFlowRegression(t *testing.T) {
 		postID := "1"
 
 		recorder := httptest.NewRecorder()
-		request := httptest.NewRequest(http.MethodPost, "/api/posts/1/vote", bytes.NewBufferString(`{"type":"up"}`))
+		request := createVoteRequest(`{"type":"up"}`)
 		request = testutils.WithURLParams(request, map[string]string{"id": postID})
 		ctx := context.WithValue(request.Context(), middleware.UserIDKey, uint(1))
 		request = request.WithContext(ctx)
@@ -414,7 +413,7 @@ func TestVoteFlowRegression(t *testing.T) {
 		}
 
 		recorder = httptest.NewRecorder()
-		request = httptest.NewRequest(http.MethodPost, "/api/posts/1/vote", bytes.NewBufferString(`{"type":"down"}`))
+		request = createVoteRequest(`{"type":"down"}`)
 		request = testutils.WithURLParams(request, map[string]string{"id": postID})
 		ctx = context.WithValue(request.Context(), middleware.UserIDKey, uint(2))
 		request = request.WithContext(ctx)
@@ -424,7 +423,7 @@ func TestVoteFlowRegression(t *testing.T) {
 		}
 
 		recorder = httptest.NewRecorder()
-		request = httptest.NewRequest(http.MethodPost, "/api/posts/1/vote", bytes.NewBufferString(`{"type":"up"}`))
+		request = createVoteRequest(`{"type":"up"}`)
 		request = testutils.WithURLParams(request, map[string]string{"id": postID})
 		ctx = context.WithValue(request.Context(), middleware.UserIDKey, uint(3))
 		request = request.WithContext(ctx)
@@ -452,7 +451,7 @@ func TestVoteFlowRegression(t *testing.T) {
 
 	t.Run("ErrorHandlingEdgeCases", func(t *testing.T) {
 		recorder := httptest.NewRecorder()
-		request := httptest.NewRequest(http.MethodPost, "/api/posts/1/vote", bytes.NewBufferString(``))
+		request := createVoteRequest(``)
 		request = testutils.WithURLParams(request, map[string]string{"id": "1"})
 		ctx := context.WithValue(request.Context(), middleware.UserIDKey, uint(1))
 		request = request.WithContext(ctx)
@@ -460,7 +459,7 @@ func TestVoteFlowRegression(t *testing.T) {
 		testutils.AssertHTTPStatus(t, recorder, http.StatusBadRequest)
 
 		recorder = httptest.NewRecorder()
-		request = httptest.NewRequest(http.MethodPost, "/api/posts/1/vote", bytes.NewBufferString(`{}`))
+		request = createVoteRequest(`{}`)
 		request = testutils.WithURLParams(request, map[string]string{"id": "1"})
 		ctx = context.WithValue(request.Context(), middleware.UserIDKey, uint(1))
 		request = request.WithContext(ctx)
@@ -470,7 +469,7 @@ func TestVoteFlowRegression(t *testing.T) {
 		}
 
 		recorder = httptest.NewRecorder()
-		request = httptest.NewRequest(http.MethodPost, "/api/posts/1/vote", bytes.NewBufferString(`{"type":"invalid"}`))
+		request = createVoteRequest(`{"type":"invalid"}`)
 		request = testutils.WithURLParams(request, map[string]string{"id": "1"})
 		ctx = context.WithValue(request.Context(), middleware.UserIDKey, uint(1))
 		request = request.WithContext(ctx)
