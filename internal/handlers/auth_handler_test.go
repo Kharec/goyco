@@ -252,8 +252,8 @@ func TestAuthHandlerLoginSuccess(t *testing.T) {
 	}
 	handler := newAuthHandler(repo)
 
-	body := bytes.NewBufferString(`{"username":"user","password":"Password123!"}`)
-	request := httptest.NewRequest(http.MethodPost, "/api/auth/login", body)
+	bodyStr := `{"username":"user","password":"Password123!"}`
+	request := createLoginRequest(bodyStr)
 	recorder := httptest.NewRecorder()
 
 	handler.Login(recorder, request)
@@ -274,17 +274,17 @@ func TestAuthHandlerLoginErrors(t *testing.T) {
 	handler := newAuthHandler(&testutils.UserRepositoryStub{})
 
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodPost, "/api/auth/login", bytes.NewBufferString("invalid"))
+	request := createLoginRequest("invalid")
 	handler.Login(recorder, request)
 	testutils.AssertHTTPStatus(t, recorder, http.StatusBadRequest)
 
 	recorder = httptest.NewRecorder()
-	request = httptest.NewRequest(http.MethodPost, "/api/auth/login", bytes.NewBufferString(`{"username":" ","password":""}`))
+	request = createLoginRequest(`{"username":" ","password":""}`)
 	handler.Login(recorder, request)
 	testutils.AssertHTTPStatus(t, recorder, http.StatusBadRequest)
 
 	recorder = httptest.NewRecorder()
-	request = httptest.NewRequest(http.MethodPost, "/api/auth/login", bytes.NewBufferString(`{"username":"user","password":"WrongPass123!"}`))
+	request = createLoginRequest(`{"username":"user","password":"WrongPass123!"}`)
 	handler.Login(recorder, request)
 	testutils.AssertHTTPStatus(t, recorder, http.StatusUnauthorized)
 
@@ -294,7 +294,7 @@ func TestAuthHandlerLoginErrors(t *testing.T) {
 	}}
 	handler = newAuthHandler(repo)
 	recorder = httptest.NewRecorder()
-	request = httptest.NewRequest(http.MethodPost, "/api/auth/login", bytes.NewBufferString(`{"username":"user","password":"Password123!"}`))
+	request = createLoginRequest(`{"username":"user","password":"Password123!"}`)
 	handler.Login(recorder, request)
 	testutils.AssertHTTPStatus(t, recorder, http.StatusForbidden)
 
@@ -304,7 +304,7 @@ func TestAuthHandlerLoginErrors(t *testing.T) {
 	handler = newAuthHandler(repo)
 
 	recorder = httptest.NewRecorder()
-	request = httptest.NewRequest(http.MethodPost, "/api/auth/login", bytes.NewBufferString(`{"username":"user","password":"Password123!"}`))
+	request = createLoginRequest(`{"username":"user","password":"Password123!"}`)
 	handler.Login(recorder, request)
 	testutils.AssertHTTPStatus(t, recorder, http.StatusInternalServerError)
 
@@ -330,8 +330,7 @@ func TestAuthHandlerRegisterSuccess(t *testing.T) {
 		return nil
 	}})
 
-	body := bytes.NewBufferString(`{"username":"newuser","email":"new@example.com","password":"Password123!"}`)
-	request := httptest.NewRequest(http.MethodPost, "/api/auth/register", body)
+	request := createRegisterRequest(`{"username":"newuser","email":"new@example.com","password":"Password123!"}`)
 	recorder := httptest.NewRecorder()
 
 	handler.Register(recorder, request)
@@ -354,12 +353,12 @@ func TestAuthHandlerRegisterErrors(t *testing.T) {
 	handler := newAuthHandler(repo)
 
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodPost, "/api/auth/register", bytes.NewBufferString("invalid"))
+	request := createRegisterRequest("invalid")
 	handler.Register(recorder, request)
 	testutils.AssertHTTPStatus(t, recorder, http.StatusBadRequest)
 
 	recorder = httptest.NewRecorder()
-	request = httptest.NewRequest(http.MethodPost, "/api/auth/register", bytes.NewBufferString(`{"username":"","email":"","password":""}`))
+	request = createRegisterRequest(`{"username":"","email":"","password":""}`)
 	handler.Register(recorder, request)
 	testutils.AssertHTTPStatus(t, recorder, http.StatusBadRequest)
 
@@ -368,7 +367,7 @@ func TestAuthHandlerRegisterErrors(t *testing.T) {
 	}}
 	handler = newAuthHandler(repo)
 	recorder = httptest.NewRecorder()
-	request = httptest.NewRequest(http.MethodPost, "/api/auth/register", bytes.NewBufferString(`{"username":"new","email":"taken@example.com","password":"Password123!"}`))
+	request = createRegisterRequest(`{"username":"new","email":"taken@example.com","password":"Password123!"}`)
 	handler.Register(recorder, request)
 	testutils.AssertHTTPStatus(t, recorder, http.StatusConflict)
 
@@ -382,7 +381,7 @@ func TestAuthHandlerRegisterErrors(t *testing.T) {
 	}
 	handler = newAuthHandler(repo)
 	recorder = httptest.NewRecorder()
-	request = httptest.NewRequest(http.MethodPost, "/api/auth/register", bytes.NewBufferString(`{"username":"another","email":"taken@example.com","password":"Password123!"}`))
+	request = createRegisterRequest(`{"username":"another","email":"taken@example.com","password":"Password123!"}`)
 	handler.Register(recorder, request)
 	testutils.AssertHTTPStatus(t, recorder, http.StatusConflict)
 }
@@ -477,7 +476,7 @@ func TestAuthHandlerRequestPasswordReset(t *testing.T) {
 	}})
 
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodPost, "/api/auth/forgot-password", bytes.NewBufferString(`{"username_or_email":"user@example.com"}`))
+	request := createForgotPasswordRequest(`{"username_or_email":"user@example.com"}`)
 	handler.RequestPasswordReset(recorder, request)
 
 	testutils.AssertHTTPStatus(t, recorder, http.StatusOK)
@@ -495,19 +494,19 @@ func TestAuthHandlerRequestPasswordReset(t *testing.T) {
 	}})
 
 	recorder = httptest.NewRecorder()
-	request = httptest.NewRequest(http.MethodPost, "/api/auth/forgot-password", bytes.NewBufferString(`{"username_or_email":"user"}`))
+	request = createForgotPasswordRequest(`{"username_or_email":"user"}`)
 	handler.RequestPasswordReset(recorder, request)
 
 	testutils.AssertHTTPStatus(t, recorder, http.StatusOK)
 
 	recorder = httptest.NewRecorder()
-	request = httptest.NewRequest(http.MethodPost, "/api/auth/forgot-password", bytes.NewBufferString(`{"username_or_email":""}`))
+	request = createForgotPasswordRequest(`{"username_or_email":""}`)
 	handler.RequestPasswordReset(recorder, request)
 
 	testutils.AssertHTTPStatus(t, recorder, http.StatusBadRequest)
 
 	recorder = httptest.NewRecorder()
-	request = httptest.NewRequest(http.MethodPost, "/api/auth/forgot-password", bytes.NewBufferString(`invalid json`))
+	request = createForgotPasswordRequest(`invalid json`)
 	handler.RequestPasswordReset(recorder, request)
 
 	testutils.AssertHTTPStatus(t, recorder, http.StatusBadRequest)
@@ -518,25 +517,25 @@ func TestAuthHandlerResetPassword(t *testing.T) {
 	handler := newAuthHandler(repo)
 
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodPost, "/api/auth/reset-password", bytes.NewBufferString(`{"new_password":"NewPassword123!"}`))
+	request := createResetPasswordRequest(`{"new_password":"NewPassword123!"}`)
 	handler.ResetPassword(recorder, request)
 
 	testutils.AssertHTTPStatus(t, recorder, http.StatusBadRequest)
 
 	recorder = httptest.NewRecorder()
-	request = httptest.NewRequest(http.MethodPost, "/api/auth/reset-password", bytes.NewBufferString(`{"token":"valid_token"}`))
+	request = createResetPasswordRequest(`{"token":"valid_token"}`)
 	handler.ResetPassword(recorder, request)
 
 	testutils.AssertHTTPStatus(t, recorder, http.StatusBadRequest)
 
 	recorder = httptest.NewRecorder()
-	request = httptest.NewRequest(http.MethodPost, "/api/auth/reset-password", bytes.NewBufferString(`{"token":"valid_token","new_password":"short"}`))
+	request = createResetPasswordRequest(`{"token":"valid_token","new_password":"short"}`)
 	handler.ResetPassword(recorder, request)
 
 	testutils.AssertHTTPStatus(t, recorder, http.StatusBadRequest)
 
 	recorder = httptest.NewRecorder()
-	request = httptest.NewRequest(http.MethodPost, "/api/auth/reset-password", bytes.NewBufferString(`invalid json`))
+	request = createResetPasswordRequest(`invalid json`)
 	handler.ResetPassword(recorder, request)
 
 	testutils.AssertHTTPStatus(t, recorder, http.StatusBadRequest)
@@ -602,7 +601,7 @@ func TestAuthHandlerResetPasswordServiceOutcomes(t *testing.T) {
 
 			handler := newMockAuthHandler(repo, mockService)
 
-			request := httptest.NewRequest(http.MethodPost, "/api/auth/reset-password", bytes.NewBufferString(`{"token":"abc","new_password":"Password123!"}`))
+			request := createResetPasswordRequest(`{"token":"abc","new_password":"Password123!"}`)
 			recorder := httptest.NewRecorder()
 
 			handler.ResetPassword(recorder, request)
@@ -664,7 +663,7 @@ func TestAuthHandlerUpdateEmail(t *testing.T) {
 			userID:         1,
 			mockSetup:      func(repo *testutils.UserRepositoryStub) {},
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "Invalid request body",
+			expectedError:  "Invalid request",
 		},
 		{
 			name:           "empty email",
@@ -702,7 +701,7 @@ func TestAuthHandlerUpdateEmail(t *testing.T) {
 
 			handler := newMockAuthHandler(repo, mockService)
 
-			request := httptest.NewRequest(http.MethodPut, "/api/auth/email", bytes.NewBufferString(tt.requestBody))
+			request := createUpdateEmailRequest(tt.requestBody)
 			if tt.userID > 0 {
 				ctx := context.WithValue(request.Context(), middleware.UserIDKey, tt.userID)
 				request = request.WithContext(ctx)
@@ -789,7 +788,7 @@ func TestAuthHandlerUpdateUsername(t *testing.T) {
 
 			handler := newMockAuthHandler(repo, mockService)
 
-			request := httptest.NewRequest(http.MethodPut, "/api/auth/username", bytes.NewBufferString(tt.requestBody))
+			request := createUpdateUsernameRequest(tt.requestBody)
 			if tt.userID > 0 {
 				ctx := context.WithValue(request.Context(), middleware.UserIDKey, tt.userID)
 				request = request.WithContext(ctx)
@@ -886,7 +885,7 @@ func TestAuthHandlerUpdatePassword(t *testing.T) {
 			tt.mockSetup(repo)
 			handler := newAuthHandler(repo)
 
-			request := httptest.NewRequest(http.MethodPut, "/api/auth/password", bytes.NewBufferString(tt.requestBody))
+			request := createUpdatePasswordRequest(tt.requestBody)
 			if tt.userID > 0 {
 				ctx := context.WithValue(request.Context(), middleware.UserIDKey, tt.userID)
 				request = request.WithContext(ctx)
@@ -984,8 +983,7 @@ func TestAuthHandlerDeleteAccount(t *testing.T) {
 
 func TestAuthHandlerResendVerificationEmail(t *testing.T) {
 	makeRequest := func(body string, setup func(*mockAuthService)) (*httptest.ResponseRecorder, AuthResponse) {
-		request := httptest.NewRequest(http.MethodPost, "/api/auth/resend-verification", bytes.NewBufferString(body))
-		request = request.WithContext(context.Background())
+		request := createResendVerificationRequest(body)
 
 		repo := &testutils.UserRepositoryStub{}
 		mockService := &mockAuthService{}
@@ -1014,7 +1012,7 @@ func TestAuthHandlerResendVerificationEmail(t *testing.T) {
 			name:           "invalid json",
 			body:           "not-json",
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "Invalid request body",
+			expectedError:  "Invalid request",
 		},
 		{
 			name:           "missing email",
@@ -1139,7 +1137,7 @@ func TestAuthHandlerConfirmAccountDeletion(t *testing.T) {
 			name:           "invalid json",
 			body:           "not-json",
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "Invalid request body",
+			expectedError:  "Invalid request",
 		},
 		{
 			name:           "missing token",
@@ -1209,7 +1207,7 @@ func TestAuthHandlerConfirmAccountDeletion(t *testing.T) {
 
 			handler := newMockAuthHandler(repo, mockService)
 
-			request := httptest.NewRequest(http.MethodPost, "/api/auth/account/confirm", bytes.NewBufferString(tt.body))
+			request := createConfirmAccountDeletionRequest(tt.body)
 			recorder := httptest.NewRecorder()
 
 			handler.ConfirmAccountDeletion(recorder, request)
@@ -1338,9 +1336,7 @@ func TestAuthHandler_ConcurrentAccess(t *testing.T) {
 
 		for i := 0; i < concurrency; i++ {
 			go func() {
-				body := bytes.NewBufferString(`{"username":"testuser","password":"Password123!"}`)
-				req := httptest.NewRequest("POST", "/api/auth/login", body)
-				req.Header.Set("Content-Type", "application/json")
+				req := createLoginRequest(`{"username":"testuser","password":"Password123!"}`)
 				w := httptest.NewRecorder()
 
 				handler.Login(w, req)
@@ -1370,8 +1366,7 @@ func TestAuthHandler_RefreshToken(t *testing.T) {
 			}, nil
 		}
 
-		body := bytes.NewBufferString(`{"refresh_token":"valid_refresh_token"}`)
-		req := httptest.NewRequest("POST", "/api/auth/refresh", body)
+		req := createRefreshTokenRequest(`{"refresh_token":"valid_refresh_token"}`)
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 
@@ -1381,8 +1376,7 @@ func TestAuthHandler_RefreshToken(t *testing.T) {
 	})
 
 	t.Run("Invalid_Request_Body", func(t *testing.T) {
-		body := bytes.NewBufferString(`invalid json`)
-		req := httptest.NewRequest("POST", "/api/auth/refresh", body)
+		req := createRefreshTokenRequest(`invalid json`)
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 
@@ -1392,8 +1386,7 @@ func TestAuthHandler_RefreshToken(t *testing.T) {
 	})
 
 	t.Run("Missing_Refresh_Token", func(t *testing.T) {
-		body := bytes.NewBufferString(`{"refresh_token":""}`)
-		req := httptest.NewRequest("POST", "/api/auth/refresh", body)
+		req := createRefreshTokenRequest(`{"refresh_token":""}`)
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 
@@ -1407,8 +1400,7 @@ func TestAuthHandler_RefreshToken(t *testing.T) {
 			return nil, services.ErrRefreshTokenExpired
 		}
 
-		body := bytes.NewBufferString(`{"refresh_token":"expired_token"}`)
-		req := httptest.NewRequest("POST", "/api/auth/refresh", body)
+		req := createRefreshTokenRequest(`{"refresh_token":"expired_token"}`)
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 
@@ -1422,8 +1414,7 @@ func TestAuthHandler_RefreshToken(t *testing.T) {
 			return nil, services.ErrRefreshTokenInvalid
 		}
 
-		body := bytes.NewBufferString(`{"refresh_token":"invalid_token"}`)
-		req := httptest.NewRequest("POST", "/api/auth/refresh", body)
+		req := createRefreshTokenRequest(`{"refresh_token":"invalid_token"}`)
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 
@@ -1437,8 +1428,7 @@ func TestAuthHandler_RefreshToken(t *testing.T) {
 			return nil, services.ErrAccountLocked
 		}
 
-		body := bytes.NewBufferString(`{"refresh_token":"locked_token"}`)
-		req := httptest.NewRequest("POST", "/api/auth/refresh", body)
+		req := createRefreshTokenRequest(`{"refresh_token":"locked_token"}`)
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 
@@ -1452,8 +1442,7 @@ func TestAuthHandler_RefreshToken(t *testing.T) {
 			return nil, fmt.Errorf("internal error")
 		}
 
-		body := bytes.NewBufferString(`{"refresh_token":"error_token"}`)
-		req := httptest.NewRequest("POST", "/api/auth/refresh", body)
+		req := createRefreshTokenRequest(`{"refresh_token":"error_token"}`)
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 
@@ -1473,8 +1462,7 @@ func TestAuthHandler_RevokeToken(t *testing.T) {
 			return nil
 		}
 
-		body := bytes.NewBufferString(`{"refresh_token":"token_to_revoke"}`)
-		req := httptest.NewRequest("POST", "/api/auth/revoke", body)
+		req := createRevokeTokenRequest(`{"refresh_token":"token_to_revoke"}`)
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 
@@ -1484,8 +1472,7 @@ func TestAuthHandler_RevokeToken(t *testing.T) {
 	})
 
 	t.Run("Invalid_Request_Body", func(t *testing.T) {
-		body := bytes.NewBufferString(`invalid json`)
-		req := httptest.NewRequest("POST", "/api/auth/revoke", body)
+		req := createRevokeTokenRequest(`invalid json`)
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 
@@ -1495,8 +1482,7 @@ func TestAuthHandler_RevokeToken(t *testing.T) {
 	})
 
 	t.Run("Missing_Refresh_Token", func(t *testing.T) {
-		body := bytes.NewBufferString(`{"refresh_token":""}`)
-		req := httptest.NewRequest("POST", "/api/auth/revoke", body)
+		req := createRevokeTokenRequest(`{"refresh_token":""}`)
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 
@@ -1510,8 +1496,7 @@ func TestAuthHandler_RevokeToken(t *testing.T) {
 			return fmt.Errorf("revoke failed")
 		}
 
-		body := bytes.NewBufferString(`{"refresh_token":"token"}`)
-		req := httptest.NewRequest("POST", "/api/auth/revoke", body)
+		req := createRevokeTokenRequest(`{"refresh_token":"token"}`)
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 
