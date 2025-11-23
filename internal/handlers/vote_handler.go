@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"goyco/internal/database"
+	"goyco/internal/dto"
 	"goyco/internal/services"
 
 	"github.com/go-chi/chi/v5"
@@ -39,11 +40,6 @@ func NewVoteHandler(voteService *services.VoteService) *VoteHandler {
 	}
 }
 
-// @Description Vote request with type field. All votes are handled the same way.
-type VoteRequest struct {
-	Type string `json:"type" example:"up" enums:"up,down,none" description:"Vote type: 'up' for upvote, 'down' for downvote, 'none' to remove vote"`
-}
-
 type VoteResponse = CommonResponse
 
 // @Summary Cast a vote on a post
@@ -62,7 +58,7 @@ type VoteResponse = CommonResponse
 // @Produce json
 // @Security BearerAuth
 // @Param id path int true "Post ID"
-// @Param request body VoteRequest true "Vote data (type: 'up', 'down', or 'none' to remove)"
+// @Param request body dto.VoteRequest true "Vote data (type: 'up', 'down', or 'none' to remove)"
 // @Success 200 {object} VoteResponse "Vote cast successfully with updated post statistics"
 // @Failure 401 {object} VoteResponse "Authentication required"
 // @Failure 400 {object} VoteResponse "Invalid request data or vote type"
@@ -82,8 +78,9 @@ func (h *VoteHandler) CastVote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req VoteRequest
-	if !DecodeJSONRequest(w, r, &req) {
+	req, ok := GetValidatedDTO[dto.VoteRequest](r)
+	if !ok {
+		SendErrorResponse(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
@@ -286,7 +283,7 @@ func (h *VoteHandler) MountRoutes(r chi.Router, config RouteModuleConfig) {
 		protected = config.GeneralRateLimit(protected)
 	}
 
-	protected.Post("/posts/{id}/vote", h.CastVote)
+	protected.Post("/posts/{id}/vote", WithValidation[dto.VoteRequest](config.ValidationMiddleware, h.CastVote))
 	protected.Delete("/posts/{id}/vote", h.RemoveVote)
 	protected.Get("/posts/{id}/vote", h.GetUserVote)
 	protected.Get("/posts/{id}/votes", h.GetPostVotes)
