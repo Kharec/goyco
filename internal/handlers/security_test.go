@@ -24,10 +24,6 @@ func TestPostHandler_XSSProtection_Comprehensive(t *testing.T) {
 		t.Run("XSS_"+payload[:minLen(20, len(payload))], func(t *testing.T) {
 			repo := &testutils.PostRepositoryStub{
 				CreateFn: func(post *database.Post) error {
-					sanitizedTitle := security.SanitizeInput(payload)
-					if post.Title != sanitizedTitle {
-						t.Errorf("Expected sanitized title, got %q", post.Title)
-					}
 					return nil
 				},
 			}
@@ -48,7 +44,39 @@ func TestPostHandler_XSSProtection_Comprehensive(t *testing.T) {
 
 			handler.CreatePost(recorder, request)
 
-			testutils.AssertHTTPStatus(t, recorder, http.StatusCreated)
+			if recorder.Code != http.StatusCreated {
+				t.Errorf("Expected status %d, got %d. Body: %s", http.StatusCreated, recorder.Code, recorder.Body.String())
+				return
+			}
+
+			var response CommonResponse
+			if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
+				t.Fatalf("Failed to decode response: %v", err)
+			}
+
+			if !response.Success {
+				t.Errorf("Expected successful response, got error: %s", response.Error)
+				return
+			}
+
+			dataMap, ok := response.Data.(map[string]any)
+			if !ok {
+				t.Fatalf("Expected data to be a map, got %T", response.Data)
+			}
+
+			title, ok := dataMap["title"].(string)
+			if !ok {
+				t.Fatalf("Expected title to be a string, got %T", dataMap["title"])
+			}
+
+			expectedSanitized := security.SanitizeInput(payload)
+			if title != expectedSanitized {
+				t.Errorf("Expected sanitized title %q, got %q", expectedSanitized, title)
+			}
+
+			if title == payload {
+				t.Errorf("Title was not sanitized - original payload %q matches response %q", payload, title)
+			}
 		})
 	}
 }
