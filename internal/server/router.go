@@ -1,8 +1,10 @@
 package server
 
 import (
+	"mime"
 	"net/http"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"goyco/internal/config"
@@ -124,7 +126,33 @@ func NewRouter(cfg RouterConfig) http.Handler {
 		staticDir = "./internal/static/"
 	}
 
-	router.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir(staticDir))))
+	staticFileServer := http.StripPrefix("/static/", http.FileServer(http.Dir(staticDir)))
+	router.Handle("/static/*", staticFileHandler(staticFileServer))
 
 	return router
+}
+
+func staticFileHandler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+		ext := filepath.Ext(path)
+
+		if ext == ".css" {
+			w.Header().Set("Content-Type", "text/css; charset=utf-8")
+		} else if ext == ".js" {
+			w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
+		} else if ext == ".json" {
+			w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		} else if ext == ".ico" {
+			w.Header().Set("Content-Type", "image/x-icon")
+		} else if strings.HasPrefix(mime.TypeByExtension(ext), "image/") {
+			w.Header().Set("Content-Type", mime.TypeByExtension(ext))
+		} else if strings.HasPrefix(mime.TypeByExtension(ext), "font/") {
+			w.Header().Set("Content-Type", mime.TypeByExtension(ext))
+		} else if mimeType := mime.TypeByExtension(ext); mimeType != "" {
+			w.Header().Set("Content-Type", mimeType)
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }
