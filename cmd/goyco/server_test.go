@@ -96,21 +96,21 @@ func TestServerConfigurationFromConfig(t *testing.T) {
 	testServer := httptest.NewServer(srv.Handler)
 	defer testServer.Close()
 
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, testServer.URL+"/health", nil)
+	request, err := http.NewRequestWithContext(context.Background(), http.MethodGet, testServer.URL+"/health", nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	response, err := http.DefaultClient.Do(request)
 	if err != nil {
 		t.Fatalf("Failed to make request: %v", err)
 	}
 	defer func() {
-		_ = resp.Body.Close()
+		_ = response.Body.Close()
 	}()
 
-	if resp.StatusCode != http.StatusOK {
-		t.Errorf("Expected status 200, got %d", resp.StatusCode)
+	if response.StatusCode != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", response.StatusCode)
 	}
 }
 
@@ -208,27 +208,27 @@ func TestTLSWiringFromConfig(t *testing.T) {
 			},
 		}
 
-		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, testServer.URL+"/health", nil)
+		request, err := http.NewRequestWithContext(context.Background(), http.MethodGet, testServer.URL+"/health", nil)
 		if err != nil {
 			t.Fatalf("Failed to create request: %v", err)
 		}
 
-		resp, err := client.Do(req)
+		response, err := client.Do(request)
 		if err != nil {
 			t.Fatalf("Failed to make TLS request: %v", err)
 		}
 		defer func() {
-			_ = resp.Body.Close()
+			_ = response.Body.Close()
 		}()
 
-		if resp.StatusCode != http.StatusOK {
-			t.Errorf("Expected status 200 over TLS, got %d", resp.StatusCode)
+		if response.StatusCode != http.StatusOK {
+			t.Errorf("Expected status 200 over TLS, got %d", response.StatusCode)
 		}
 
-		if resp.TLS == nil {
+		if response.TLS == nil {
 			t.Error("Expected TLS connection info to be present in response")
-		} else if resp.TLS.Version < tls.VersionTLS12 {
-			t.Errorf("Expected TLS version 1.2 or higher, got %x", resp.TLS.Version)
+		} else if response.TLS.Version < tls.VersionTLS12 {
+			t.Errorf("Expected TLS version 1.2 or higher, got %x", response.TLS.Version)
 		}
 	}
 }
@@ -368,38 +368,38 @@ func TestServerInitializationFlow(t *testing.T) {
 	testServer := httptest.NewServer(srv.Handler)
 	defer testServer.Close()
 
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, testServer.URL+"/health", nil)
+	request, err := http.NewRequestWithContext(context.Background(), http.MethodGet, testServer.URL+"/health", nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	response, err := http.DefaultClient.Do(request)
 	if err != nil {
 		t.Fatalf("Failed to make request: %v", err)
 	}
 	defer func() {
-		_ = resp.Body.Close()
+		_ = response.Body.Close()
 	}()
 
-	if resp.StatusCode != http.StatusOK {
-		t.Errorf("Expected status 200, got %d", resp.StatusCode)
+	if response.StatusCode != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", response.StatusCode)
 	}
 
-	req, err = http.NewRequestWithContext(context.Background(), http.MethodGet, testServer.URL+"/api", nil)
+	request, err = http.NewRequestWithContext(context.Background(), http.MethodGet, testServer.URL+"/api", nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
 	}
 
-	resp, err = http.DefaultClient.Do(req)
+	response, err = http.DefaultClient.Do(request)
 	if err != nil {
 		t.Fatalf("Failed to make request: %v", err)
 	}
 	defer func() {
-		_ = resp.Body.Close()
+		_ = response.Body.Close()
 	}()
 
-	if resp.StatusCode != http.StatusOK {
-		t.Errorf("Expected status 200 for API endpoint, got %d", resp.StatusCode)
+	if response.StatusCode != http.StatusOK {
+		t.Errorf("Expected status 200 for API endpoint, got %d", response.StatusCode)
 	}
 }
 
