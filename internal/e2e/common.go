@@ -112,37 +112,37 @@ func newInMemoryRoundTripper(handler http.Handler) http.RoundTripper {
 	return &inMemoryRoundTripper{handler: handler}
 }
 
-func (rt *inMemoryRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+func (rt *inMemoryRoundTripper) RoundTrip(request *http.Request) (*http.Response, error) {
 	if rt == nil || rt.handler == nil {
 		return nil, fmt.Errorf("in-memory round tripper not initialized")
 	}
 
 	var bodyBytes []byte
-	if req.Body != nil && req.Body != http.NoBody {
-		defer req.Body.Close()
+	if request.Body != nil && request.Body != http.NoBody {
+		defer request.Body.Close()
 		var err error
-		bodyBytes, err = io.ReadAll(req.Body)
+		bodyBytes, err = io.ReadAll(request.Body)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read request body: %w", err)
 		}
 	}
 
 	if len(bodyBytes) > 0 {
-		req.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+		request.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 	} else {
-		req.Body = http.NoBody
+		request.Body = http.NoBody
 	}
 
-	clonedReq := req.Clone(req.Context())
+	clonedRequest := request.Clone(request.Context())
 	if len(bodyBytes) > 0 {
-		clonedReq.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+		clonedRequest.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 	} else {
-		clonedReq.Body = http.NoBody
+		clonedRequest.Body = http.NoBody
 	}
-	clonedReq.RequestURI = clonedReq.URL.RequestURI()
+	clonedRequest.RequestURI = clonedRequest.URL.RequestURI()
 
 	recorder := httptest.NewRecorder()
-	rt.handler.ServeHTTP(recorder, clonedReq)
+	rt.handler.ServeHTTP(recorder, clonedRequest)
 	resp := recorder.Result()
 	return resp, nil
 }
@@ -250,7 +250,7 @@ func tokenHash(token string) string {
 
 func retryOnRateLimit(t *testing.T, maxRetries int, operation func() int) int {
 	t.Helper()
-	for attempt := 0; attempt < maxRetries; attempt++ {
+	for attempt := range maxRetries {
 		statusCode := operation()
 		if statusCode != http.StatusTooManyRequests {
 			return statusCode
