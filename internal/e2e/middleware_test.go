@@ -15,22 +15,22 @@ func TestE2E_CompressionMiddleware(t *testing.T) {
 	ctx := setupTestContext(t)
 
 	t.Run("compression_enabled_with_accept_encoding", func(t *testing.T) {
-		req, err := http.NewRequest("GET", ctx.baseURL+"/api/posts", nil)
+		request, err := http.NewRequest("GET", ctx.baseURL+"/api/posts", nil)
 		if err != nil {
 			t.Fatalf("Failed to create request: %v", err)
 		}
-		req.Header.Set("Accept-Encoding", "gzip")
-		testutils.WithStandardHeaders(req)
+		request.Header.Set("Accept-Encoding", "gzip")
+		testutils.WithStandardHeaders(request)
 
-		resp, err := ctx.client.Do(req)
+		response, err := ctx.client.Do(request)
 		if err != nil {
 			t.Fatalf("Request failed: %v", err)
 		}
-		defer resp.Body.Close()
+		defer response.Body.Close()
 
-		contentEncoding := resp.Header.Get("Content-Encoding")
+		contentEncoding := response.Header.Get("Content-Encoding")
 		if contentEncoding == "gzip" {
-			body, err := io.ReadAll(resp.Body)
+			body, err := io.ReadAll(response.Body)
 			if err != nil {
 				t.Fatalf("Failed to read response body: %v", err)
 			}
@@ -57,19 +57,19 @@ func TestE2E_CompressionMiddleware(t *testing.T) {
 	})
 
 	t.Run("no_compression_without_accept_encoding", func(t *testing.T) {
-		req, err := http.NewRequest("GET", ctx.baseURL+"/api/posts", nil)
+		request, err := http.NewRequest("GET", ctx.baseURL+"/api/posts", nil)
 		if err != nil {
 			t.Fatalf("Failed to create request: %v", err)
 		}
-		testutils.WithStandardHeaders(req)
+		testutils.WithStandardHeaders(request)
 
-		resp, err := ctx.client.Do(req)
+		response, err := ctx.client.Do(request)
 		if err != nil {
 			t.Fatalf("Request failed: %v", err)
 		}
-		defer resp.Body.Close()
+		defer response.Body.Close()
 
-		contentEncoding := resp.Header.Get("Content-Encoding")
+		contentEncoding := response.Header.Get("Content-Encoding")
 		if contentEncoding == "gzip" {
 			t.Error("Expected no compression without Accept-Encoding header")
 		}
@@ -85,22 +85,22 @@ func TestE2E_CompressionMiddleware(t *testing.T) {
 		gz.Write([]byte(postData))
 		gz.Close()
 
-		req, err := http.NewRequest("POST", ctx.baseURL+"/api/posts", &buf)
+		request, err := http.NewRequest("POST", ctx.baseURL+"/api/posts", &buf)
 		if err != nil {
 			t.Fatalf("Failed to create request: %v", err)
 		}
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Content-Encoding", "gzip")
-		testutils.WithStandardHeaders(req)
-		req.Header.Set("Authorization", "Bearer "+authClient.Token)
+		request.Header.Set("Content-Type", "application/json")
+		request.Header.Set("Content-Encoding", "gzip")
+		testutils.WithStandardHeaders(request)
+		request.Header.Set("Authorization", "Bearer "+authClient.Token)
 
-		resp, err := ctx.client.Do(req)
+		response, err := ctx.client.Do(request)
 		if err != nil {
 			t.Fatalf("Request failed: %v", err)
 		}
-		defer resp.Body.Close()
+		defer response.Body.Close()
 
-		switch resp.StatusCode {
+		switch response.StatusCode {
 		case http.StatusBadRequest:
 			t.Log("Decompression middleware rejected invalid gzip")
 		case http.StatusCreated, http.StatusOK:
@@ -113,37 +113,37 @@ func TestE2E_CacheMiddleware(t *testing.T) {
 	ctx := setupTestContext(t)
 
 	t.Run("cache_miss_then_hit", func(t *testing.T) {
-		req1, err := http.NewRequest("GET", ctx.baseURL+"/api/posts", nil)
+		firstRequest, err := http.NewRequest("GET", ctx.baseURL+"/api/posts", nil)
 		if err != nil {
 			t.Fatalf("Failed to create request: %v", err)
 		}
-		testutils.WithStandardHeaders(req1)
+		testutils.WithStandardHeaders(firstRequest)
 
-		resp1, err := ctx.client.Do(req1)
+		firstResponse, err := ctx.client.Do(firstRequest)
 		if err != nil {
 			t.Fatalf("Request failed: %v", err)
 		}
-		resp1.Body.Close()
+		firstResponse.Body.Close()
 
-		cacheStatus1 := resp1.Header.Get("X-Cache")
-		if cacheStatus1 == "HIT" {
+		firstCacheStatus := firstResponse.Header.Get("X-Cache")
+		if firstCacheStatus == "HIT" {
 			t.Log("First request was cached (unexpected but acceptable)")
 		}
 
-		req2, err := http.NewRequest("GET", ctx.baseURL+"/api/posts", nil)
+		secondRequest, err := http.NewRequest("GET", ctx.baseURL+"/api/posts", nil)
 		if err != nil {
 			t.Fatalf("Failed to create request: %v", err)
 		}
-		testutils.WithStandardHeaders(req2)
+		testutils.WithStandardHeaders(secondRequest)
 
-		resp2, err := ctx.client.Do(req2)
+		secondResponse, err := ctx.client.Do(secondRequest)
 		if err != nil {
 			t.Fatalf("Request failed: %v", err)
 		}
-		defer resp2.Body.Close()
+		defer secondResponse.Body.Close()
 
-		cacheStatus2 := resp2.Header.Get("X-Cache")
-		if cacheStatus2 == "HIT" {
+		secondCacheStatus := secondResponse.Header.Get("X-Cache")
+		if secondCacheStatus == "HIT" {
 			t.Log("Second request was served from cache")
 		}
 	})
@@ -152,48 +152,48 @@ func TestE2E_CacheMiddleware(t *testing.T) {
 		testUser := ctx.createUserWithCleanup(t, "cacheuser", "StrongPass123!")
 		authClient := ctx.loginUser(t, testUser.Username, "StrongPass123!")
 
-		req1, err := http.NewRequest("GET", ctx.baseURL+"/api/posts", nil)
+		firstRequest, err := http.NewRequest("GET", ctx.baseURL+"/api/posts", nil)
 		if err != nil {
 			t.Fatalf("Failed to create request: %v", err)
 		}
-		testutils.WithStandardHeaders(req1)
-		req1.Header.Set("Authorization", "Bearer "+authClient.Token)
+		testutils.WithStandardHeaders(firstRequest)
+		firstRequest.Header.Set("Authorization", "Bearer "+authClient.Token)
 
-		resp1, err := ctx.client.Do(req1)
+		firstResponse, err := ctx.client.Do(firstRequest)
 		if err != nil {
 			t.Fatalf("Request failed: %v", err)
 		}
-		resp1.Body.Close()
+		firstResponse.Body.Close()
 
 		postData := `{"title":"Cache Invalidation Test","url":"https://example.com/cache","content":"Test"}`
-		req2, err := http.NewRequest("POST", ctx.baseURL+"/api/posts", strings.NewReader(postData))
+		secondRequest, err := http.NewRequest("POST", ctx.baseURL+"/api/posts", strings.NewReader(postData))
 		if err != nil {
 			t.Fatalf("Failed to create request: %v", err)
 		}
-		req2.Header.Set("Content-Type", "application/json")
-		testutils.WithStandardHeaders(req2)
-		req2.Header.Set("Authorization", "Bearer "+authClient.Token)
+		secondRequest.Header.Set("Content-Type", "application/json")
+		testutils.WithStandardHeaders(secondRequest)
+		secondRequest.Header.Set("Authorization", "Bearer "+authClient.Token)
 
-		resp2, err := ctx.client.Do(req2)
+		secondResponse, err := ctx.client.Do(secondRequest)
 		if err != nil {
 			t.Fatalf("Request failed: %v", err)
 		}
-		resp2.Body.Close()
+		secondResponse.Body.Close()
 
-		req3, err := http.NewRequest("GET", ctx.baseURL+"/api/posts", nil)
+		thirdRequest, err := http.NewRequest("GET", ctx.baseURL+"/api/posts", nil)
 		if err != nil {
 			t.Fatalf("Failed to create request: %v", err)
 		}
-		testutils.WithStandardHeaders(req3)
-		req3.Header.Set("Authorization", "Bearer "+authClient.Token)
+		testutils.WithStandardHeaders(thirdRequest)
+		thirdRequest.Header.Set("Authorization", "Bearer "+authClient.Token)
 
-		resp3, err := ctx.client.Do(req3)
+		thirdResponse, err := ctx.client.Do(thirdRequest)
 		if err != nil {
 			t.Fatalf("Request failed: %v", err)
 		}
-		defer resp3.Body.Close()
+		defer thirdResponse.Body.Close()
 
-		cacheStatus := resp3.Header.Get("X-Cache")
+		cacheStatus := thirdResponse.Header.Get("X-Cache")
 		if cacheStatus == "HIT" {
 			t.Log("Cache was invalidated after POST")
 		}
@@ -204,23 +204,23 @@ func TestE2E_CSRFProtection(t *testing.T) {
 	ctx := setupTestContext(t)
 
 	t.Run("csrf_protection_for_non_api_routes", func(t *testing.T) {
-		req, err := http.NewRequest("POST", ctx.baseURL+"/auth/login", strings.NewReader(`{"username":"test","password":"test"}`))
+		request, err := http.NewRequest("POST", ctx.baseURL+"/auth/login", strings.NewReader(`{"username":"test","password":"test"}`))
 		if err != nil {
 			t.Fatalf("Failed to create request: %v", err)
 		}
-		req.Header.Set("Content-Type", "application/json")
-		testutils.WithStandardHeaders(req)
+		request.Header.Set("Content-Type", "application/json")
+		testutils.WithStandardHeaders(request)
 
-		resp, err := ctx.client.Do(req)
+		response, err := ctx.client.Do(request)
 		if err != nil {
 			t.Fatalf("Request failed: %v", err)
 		}
-		defer resp.Body.Close()
+		defer response.Body.Close()
 
-		if resp.StatusCode == http.StatusForbidden {
+		if response.StatusCode == http.StatusForbidden {
 			t.Log("CSRF protection active for non-API routes")
 		} else {
-			t.Logf("CSRF check result: status %d", resp.StatusCode)
+			t.Logf("CSRF check result: status %d", response.StatusCode)
 		}
 	})
 
@@ -229,39 +229,39 @@ func TestE2E_CSRFProtection(t *testing.T) {
 		authClient := ctx.loginUser(t, testUser.Username, "StrongPass123!")
 
 		postData := `{"title":"CSRF Test","url":"https://example.com/csrf","content":"Test"}`
-		req, err := http.NewRequest("POST", ctx.baseURL+"/api/posts", strings.NewReader(postData))
+		request, err := http.NewRequest("POST", ctx.baseURL+"/api/posts", strings.NewReader(postData))
 		if err != nil {
 			t.Fatalf("Failed to create request: %v", err)
 		}
-		req.Header.Set("Content-Type", "application/json")
-		testutils.WithStandardHeaders(req)
-		req.Header.Set("Authorization", "Bearer "+authClient.Token)
+		request.Header.Set("Content-Type", "application/json")
+		testutils.WithStandardHeaders(request)
+		request.Header.Set("Authorization", "Bearer "+authClient.Token)
 
-		resp, err := ctx.client.Do(req)
+		response, err := ctx.client.Do(request)
 		if err != nil {
 			t.Fatalf("Request failed: %v", err)
 		}
-		defer resp.Body.Close()
+		defer response.Body.Close()
 
-		if resp.StatusCode == http.StatusForbidden {
+		if response.StatusCode == http.StatusForbidden {
 			t.Error("API routes should bypass CSRF protection")
 		}
 	})
 
 	t.Run("csrf_allows_get_requests", func(t *testing.T) {
-		req, err := http.NewRequest("GET", ctx.baseURL+"/auth/login", nil)
+		request, err := http.NewRequest("GET", ctx.baseURL+"/auth/login", nil)
 		if err != nil {
 			t.Fatalf("Failed to create request: %v", err)
 		}
-		testutils.WithStandardHeaders(req)
+		testutils.WithStandardHeaders(request)
 
-		resp, err := ctx.client.Do(req)
+		response, err := ctx.client.Do(request)
 		if err != nil {
 			t.Fatalf("Request failed: %v", err)
 		}
-		defer resp.Body.Close()
+		defer response.Body.Close()
 
-		if resp.StatusCode == http.StatusForbidden {
+		if response.StatusCode == http.StatusForbidden {
 			t.Error("GET requests should not require CSRF token")
 		}
 	})
@@ -276,21 +276,21 @@ func TestE2E_RequestSizeLimit(t *testing.T) {
 
 		smallData := strings.Repeat("a", 100)
 		postData := `{"title":"` + smallData + `","url":"https://example.com","content":"test"}`
-		req, err := http.NewRequest("POST", ctx.baseURL+"/api/posts", strings.NewReader(postData))
+		request, err := http.NewRequest("POST", ctx.baseURL+"/api/posts", strings.NewReader(postData))
 		if err != nil {
 			t.Fatalf("Failed to create request: %v", err)
 		}
-		req.Header.Set("Content-Type", "application/json")
-		testutils.WithStandardHeaders(req)
-		req.Header.Set("Authorization", "Bearer "+authClient.Token)
+		request.Header.Set("Content-Type", "application/json")
+		testutils.WithStandardHeaders(request)
+		request.Header.Set("Authorization", "Bearer "+authClient.Token)
 
-		resp, err := ctx.client.Do(req)
+		response, err := ctx.client.Do(request)
 		if err != nil {
 			t.Fatalf("Request failed: %v", err)
 		}
-		defer resp.Body.Close()
+		defer response.Body.Close()
 
-		if resp.StatusCode == http.StatusRequestEntityTooLarge {
+		if response.StatusCode == http.StatusRequestEntityTooLarge {
 			t.Error("Small request should not exceed size limit")
 		}
 	})
@@ -301,24 +301,24 @@ func TestE2E_RequestSizeLimit(t *testing.T) {
 
 		largeData := strings.Repeat("a", 2*1024*1024)
 		postData := `{"title":"test","url":"https://example.com","content":"` + largeData + `"}`
-		req, err := http.NewRequest("POST", ctx.baseURL+"/api/posts", strings.NewReader(postData))
+		request, err := http.NewRequest("POST", ctx.baseURL+"/api/posts", strings.NewReader(postData))
 		if err != nil {
 			t.Fatalf("Failed to create request: %v", err)
 		}
-		req.Header.Set("Content-Type", "application/json")
-		testutils.WithStandardHeaders(req)
-		req.Header.Set("Authorization", "Bearer "+authClient.Token)
+		request.Header.Set("Content-Type", "application/json")
+		testutils.WithStandardHeaders(request)
+		request.Header.Set("Authorization", "Bearer "+authClient.Token)
 
-		resp, err := ctx.client.Do(req)
+		response, err := ctx.client.Do(request)
 		if err != nil {
 			return
 		}
-		defer resp.Body.Close()
+		defer response.Body.Close()
 
-		if resp.StatusCode == http.StatusRequestEntityTooLarge {
+		if response.StatusCode == http.StatusRequestEntityTooLarge {
 			t.Log("Request size limit enforced correctly")
 		} else {
-			t.Logf("Request size limit check result: status %d", resp.StatusCode)
+			t.Logf("Request size limit check result: status %d", response.StatusCode)
 		}
 	})
 }
