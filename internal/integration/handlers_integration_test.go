@@ -11,13 +11,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
 	"goyco/internal/database"
 	"goyco/internal/handlers"
 	"goyco/internal/middleware"
 	"goyco/internal/repositories"
 	"goyco/internal/services"
 	"goyco/internal/testutils"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 func TestIntegration_Handlers(t *testing.T) {
@@ -29,25 +30,16 @@ func TestIntegration_Handlers(t *testing.T) {
 
 	t.Run("Auth_Handler_Complete_Workflow", func(t *testing.T) {
 		emailSender.Reset()
-		registerData := map[string]string{
+		registerResponse := makePostRequestWithJSON(t, ctx.Router, "/api/auth/register", map[string]any{
 			"username": "handler_user",
 			"email":    "handler@example.com",
 			"password": "SecurePass123!",
-		}
-		registerBody, _ := json.Marshal(registerData)
-		registerReq := httptest.NewRequest("POST", "/api/auth/register", bytes.NewBuffer(registerBody))
-		registerReq.Header.Set("Content-Type", "application/json")
-		registerResp := httptest.NewRecorder()
-
-		ctx.Router.ServeHTTP(registerResp, registerReq)
-		if registerResp.Code != http.StatusCreated {
-			t.Errorf("Expected status 201, got %d", registerResp.Code)
+		})
+		if registerResponse.Code != http.StatusCreated {
+			t.Errorf("Expected status 201, got %d", registerResponse.Code)
 		}
 
-		var registerPayload map[string]any
-		if err := json.Unmarshal(registerResp.Body.Bytes(), &registerPayload); err != nil {
-			t.Fatalf("Failed to decode register response: %v", err)
-		}
+		registerPayload := assertJSONResponse(t, registerResponse, http.StatusCreated)
 		if success, _ := registerPayload["success"].(bool); !success {
 			t.Fatalf("Expected register response success, got %v", registerPayload)
 		}
@@ -66,11 +58,9 @@ func TestIntegration_Handlers(t *testing.T) {
 			t.Fatalf("Failed to update user with mock token: %v", err)
 		}
 
-		confirmReq := httptest.NewRequest(http.MethodGet, "/api/auth/confirm?token="+url.QueryEscape(mockToken), nil)
-		confirmResp := httptest.NewRecorder()
-		ctx.Router.ServeHTTP(confirmResp, confirmReq)
-		if confirmResp.Code != http.StatusOK {
-			t.Fatalf("Expected 200 when confirming email via handler, got %d", confirmResp.Code)
+		confirmResponse := makeGetRequest(t, ctx.Router, "/api/auth/confirm?token="+url.QueryEscape(mockToken))
+		if confirmResponse.Code != http.StatusOK {
+			t.Fatalf("Expected 200 when confirming email via handler, got %d", confirmResponse.Code)
 		}
 
 		loginSeed := createAuthenticatedUser(t, authService, userRepo, "auth_handler_login", "auth_handler_login@example.com")
@@ -80,38 +70,24 @@ func TestIntegration_Handlers(t *testing.T) {
 			t.Fatalf("Service login failed for seeded user: %v", err)
 		}
 
-		meReq := httptest.NewRequest("GET", "/api/auth/me", nil)
-		meReq.Header.Set("Authorization", "Bearer "+loginAuth.AccessToken)
-		meReq = testutils.WithUserContext(meReq, middleware.UserIDKey, loginSeed.User.ID)
-		meResp := httptest.NewRecorder()
-
-		ctx.Router.ServeHTTP(meResp, meReq)
-		if meResp.Code != http.StatusOK {
-			t.Errorf("Expected status 200, got %d", meResp.Code)
+		meResponse := makeAuthenticatedGetRequest(t, ctx.Router, "/api/auth/me", &authenticatedUser{User: loginSeed.User, Token: loginAuth.AccessToken}, nil)
+		if meResponse.Code != http.StatusOK {
+			t.Errorf("Expected status 200, got %d", meResponse.Code)
 		}
 	})
 
 	t.Run("Auth_Handler_Security_Validation", func(t *testing.T) {
 		emailSender.Reset()
-		weakData := map[string]string{
+		weakResponse := makePostRequestWithJSON(t, ctx.Router, "/api/auth/register", map[string]any{
 			"username": "weak_user",
 			"email":    "weak@example.com",
 			"password": "123",
-		}
-		weakBody, _ := json.Marshal(weakData)
-		weakReq := httptest.NewRequest("POST", "/api/auth/register", bytes.NewBuffer(weakBody))
-		weakReq.Header.Set("Content-Type", "application/json")
-		weakResp := httptest.NewRecorder()
-
-		ctx.Router.ServeHTTP(weakResp, weakReq)
-		if weakResp.Code != http.StatusBadRequest {
-			t.Errorf("Expected status 400 for weak password, got %d", weakResp.Code)
+		})
+		if weakResponse.Code != http.StatusBadRequest {
+			t.Errorf("Expected status 400 for weak password, got %d", weakResponse.Code)
 		}
 
-		var weakErrorResp map[string]any
-		if err := json.Unmarshal(weakResp.Body.Bytes(), &weakErrorResp); err != nil {
-			t.Fatalf("Failed to decode error response: %v", err)
-		}
+		weakErrorResp := assertJSONResponse(t, weakResponse, http.StatusBadRequest)
 		if success, _ := weakErrorResp["success"].(bool); success {
 			t.Error("Expected error response to have success=false")
 		}
@@ -119,53 +95,35 @@ func TestIntegration_Handlers(t *testing.T) {
 			t.Error("Expected error response to contain validation error message")
 		}
 
-		invalidData := map[string]string{
+		invalidResponse := makePostRequestWithJSON(t, ctx.Router, "/api/auth/register", map[string]any{
 			"username": "invalid_user",
 			"email":    "not-an-email",
 			"password": "SecurePass123!",
-		}
-		invalidBody, _ := json.Marshal(invalidData)
-		invalidReq := httptest.NewRequest("POST", "/api/auth/register", bytes.NewBuffer(invalidBody))
-		invalidReq.Header.Set("Content-Type", "application/json")
-		invalidResp := httptest.NewRecorder()
-
-		ctx.Router.ServeHTTP(invalidResp, invalidReq)
-		if invalidResp.Code != http.StatusBadRequest {
-			t.Errorf("Expected status 400 for invalid email, got %d", invalidResp.Code)
+		})
+		if invalidResponse.Code != http.StatusBadRequest {
+			t.Errorf("Expected status 400 for invalid email, got %d", invalidResponse.Code)
 		}
 
-		var invalidEmailErrorResp map[string]any
-		if err := json.Unmarshal(invalidResp.Body.Bytes(), &invalidEmailErrorResp); err != nil {
-			t.Fatalf("Failed to decode error response: %v", err)
-		}
-		if success, _ := invalidEmailErrorResp["success"].(bool); success {
+		invalidEmailErrorResponse := assertJSONResponse(t, invalidResponse, http.StatusBadRequest)
+		if success, _ := invalidEmailErrorResponse["success"].(bool); success {
 			t.Error("Expected error response to have success=false")
 		}
-		if errorMsg, ok := invalidEmailErrorResp["error"].(string); !ok || errorMsg == "" {
+		if errorMsg, ok := invalidEmailErrorResponse["error"].(string); !ok || errorMsg == "" {
 			t.Error("Expected error response to contain validation error message")
 		}
 
-		incompleteData := map[string]string{
+		incompleteResponse := makePostRequestWithJSON(t, ctx.Router, "/api/auth/register", map[string]any{
 			"username": "incomplete_user",
-		}
-		incompleteBody, _ := json.Marshal(incompleteData)
-		incompleteReq := httptest.NewRequest("POST", "/api/auth/register", bytes.NewBuffer(incompleteBody))
-		incompleteReq.Header.Set("Content-Type", "application/json")
-		incompleteResp := httptest.NewRecorder()
-
-		ctx.Router.ServeHTTP(incompleteResp, incompleteReq)
-		if incompleteResp.Code != http.StatusBadRequest {
-			t.Errorf("Expected status 400 for missing fields, got %d", incompleteResp.Code)
+		})
+		if incompleteResponse.Code != http.StatusBadRequest {
+			t.Errorf("Expected status 400 for missing fields, got %d", incompleteResponse.Code)
 		}
 
-		var incompleteErrorResp map[string]any
-		if err := json.Unmarshal(incompleteResp.Body.Bytes(), &incompleteErrorResp); err != nil {
-			t.Fatalf("Failed to decode error response: %v", err)
-		}
-		if success, _ := incompleteErrorResp["success"].(bool); success {
+		incompleteErrorResponse := assertJSONResponse(t, incompleteResponse, http.StatusBadRequest)
+		if success, _ := incompleteErrorResponse["success"].(bool); success {
 			t.Error("Expected error response to have success=false")
 		}
-		if errorMsg, ok := incompleteErrorResp["error"].(string); !ok || errorMsg == "" {
+		if errorMsg, ok := incompleteErrorResponse["error"].(string); !ok || errorMsg == "" {
 			t.Error("Expected error response to contain validation error message")
 		}
 	})
@@ -174,28 +132,17 @@ func TestIntegration_Handlers(t *testing.T) {
 		emailSender.Reset()
 		user := createAuthenticatedUser(t, authService, userRepo, "post_user", "post@example.com")
 
-		postData := map[string]string{
+		postResponse := makePostRequest(t, ctx.Router, "/api/posts", map[string]any{
 			"title":   "Handler Test Post",
 			"url":     "https://example.com/handler-test",
 			"content": "This is a handler test post",
-		}
-		postBody, _ := json.Marshal(postData)
-		postReq := httptest.NewRequest("POST", "/api/posts", bytes.NewBuffer(postBody))
-		postReq.Header.Set("Content-Type", "application/json")
-		postReq.Header.Set("Authorization", "Bearer "+user.Token)
-		postReq = testutils.WithUserContext(postReq, middleware.UserIDKey, user.User.ID)
-		postResp := httptest.NewRecorder()
-
-		ctx.Router.ServeHTTP(postResp, postReq)
-		if postResp.Code != http.StatusCreated {
-			t.Errorf("Expected status 201, got %d", postResp.Code)
+		}, user, nil)
+		if postResponse.Code != http.StatusCreated {
+			t.Errorf("Expected status 201, got %d", postResponse.Code)
 		}
 
-		var postResult map[string]any
-		if err := json.Unmarshal(postResp.Body.Bytes(), &postResult); err != nil {
-			t.Fatalf("Failed to decode post response: %v", err)
-		}
-		postDetails, ok := postResult["data"].(map[string]any)
+		postResult := assertJSONResponse(t, postResponse, http.StatusCreated)
+		postDetails, ok := getDataFromResponse(postResult)
 		if !ok {
 			t.Fatalf("Expected data object in post response, got %v", postResult)
 		}
@@ -204,83 +151,45 @@ func TestIntegration_Handlers(t *testing.T) {
 			t.Fatal("Expected post ID in response")
 		}
 
-		getReq := httptest.NewRequest("GET", fmt.Sprintf("/api/posts/%d", int(postID)), nil)
-		getReq = testutils.WithURLParams(getReq, map[string]string{"id": fmt.Sprintf("%d", int(postID))})
-		getResp := httptest.NewRecorder()
-
-		ctx.Router.ServeHTTP(getResp, getReq)
-		if getResp.Code != http.StatusOK {
-			t.Errorf("Expected status 200, got %d", getResp.Code)
+		getResponse := makeGetRequest(t, ctx.Router, fmt.Sprintf("/api/posts/%d", int(postID)))
+		if getResponse.Code != http.StatusOK {
+			t.Errorf("Expected status 200, got %d", getResponse.Code)
 		}
 
-		postsReq := httptest.NewRequest("GET", "/api/posts", nil)
-		postsResp := httptest.NewRecorder()
-
-		ctx.Router.ServeHTTP(postsResp, postsReq)
-		if postsResp.Code != http.StatusOK {
-			t.Errorf("Expected status 200, got %d", postsResp.Code)
+		postsResponse := makeGetRequest(t, ctx.Router, "/api/posts")
+		if postsResponse.Code != http.StatusOK {
+			t.Errorf("Expected status 200, got %d", postsResponse.Code)
 		}
 
-		searchReq := httptest.NewRequest("GET", "/api/posts/search?q=handler", nil)
-		searchResp := httptest.NewRecorder()
-
-		ctx.Router.ServeHTTP(searchResp, searchReq)
-		if searchResp.Code != http.StatusOK {
-			t.Errorf("Expected status 200, got %d", searchResp.Code)
+		searchResponse := makeGetRequest(t, ctx.Router, "/api/posts/search?q=handler")
+		if searchResponse.Code != http.StatusOK {
+			t.Errorf("Expected status 200, got %d", searchResponse.Code)
 		}
 	})
 
 	t.Run("Post_Handler_Security_Validation", func(t *testing.T) {
 		emailSender.Reset()
-		postData := map[string]string{
+		postResponse := makePostRequestWithJSON(t, ctx.Router, "/api/posts", map[string]any{
 			"title":   "Unauthorized Post",
 			"url":     "https://example.com/unauthorized",
 			"content": "This should fail",
-		}
-		postBody, _ := json.Marshal(postData)
-		postReq := httptest.NewRequest("POST", "/api/posts", bytes.NewBuffer(postBody))
-		postReq.Header.Set("Content-Type", "application/json")
-		postResp := httptest.NewRecorder()
-
-		ctx.Router.ServeHTTP(postResp, postReq)
-		if postResp.Code != http.StatusUnauthorized {
-			t.Errorf("Expected status 401 for unauthenticated post creation, got %d", postResp.Code)
-		}
-
-		var authErrorResp map[string]any
-		if err := json.Unmarshal(postResp.Body.Bytes(), &authErrorResp); err != nil {
-			t.Fatalf("Failed to decode error response: %v", err)
-		}
-		if success, _ := authErrorResp["success"].(bool); success {
+		})
+		authErrorResponse := assertJSONResponse(t, postResponse, http.StatusUnauthorized)
+		if success, _ := authErrorResponse["success"].(bool); success {
 			t.Error("Expected error response to have success=false")
 		}
-		if errorMsg, ok := authErrorResp["error"].(string); !ok || errorMsg == "" {
+		if errorMsg, ok := authErrorResponse["error"].(string); !ok || errorMsg == "" {
 			t.Error("Expected error response to contain authentication error message")
 		}
 
 		user := createAuthenticatedUser(t, authService, userRepo, "security_user", "security@example.com")
 
-		invalidData := map[string]string{
+		invalidResponse := makePostRequest(t, ctx.Router, "/api/posts", map[string]any{
 			"title":   "",
 			"url":     "not-a-url",
 			"content": "Invalid post",
-		}
-		invalidBody, _ := json.Marshal(invalidData)
-		invalidReq := httptest.NewRequest("POST", "/api/posts", bytes.NewBuffer(invalidBody))
-		invalidReq.Header.Set("Content-Type", "application/json")
-		invalidReq.Header.Set("Authorization", "Bearer "+user.Token)
-		invalidReq = testutils.WithUserContext(invalidReq, middleware.UserIDKey, user.User.ID)
-		invalidResp := httptest.NewRecorder()
-
-		ctx.Router.ServeHTTP(invalidResp, invalidReq)
-		if invalidResp.Code != http.StatusBadRequest {
-			t.Errorf("Expected status 400 for invalid post data, got %d", invalidResp.Code)
-		}
-
-		var postValidationErrorResp map[string]any
-		if err := json.Unmarshal(invalidResp.Body.Bytes(), &postValidationErrorResp); err != nil {
-			t.Fatalf("Failed to decode error response: %v", err)
-		}
+		}, user, nil)
+		postValidationErrorResp := assertJSONResponse(t, invalidResponse, http.StatusBadRequest)
 		if success, _ := postValidationErrorResp["success"].(bool); success {
 			t.Error("Expected error response to have success=false")
 		}
@@ -294,114 +203,43 @@ func TestIntegration_Handlers(t *testing.T) {
 		user := createAuthenticatedUser(t, authService, userRepo, "vote_handler_user", "vote_handler@example.com")
 		post := testutils.CreatePostWithRepo(t, postRepo, user.User.ID, "Vote Handler Test Post", "https://example.com/vote-handler")
 
-		voteData := map[string]string{
-			"type": "up",
-		}
-		voteBody, _ := json.Marshal(voteData)
-		voteReq := httptest.NewRequest("POST", fmt.Sprintf("/api/posts/%d/vote", post.ID), bytes.NewBuffer(voteBody))
-		voteReq.Header.Set("Content-Type", "application/json")
-		voteReq.Header.Set("Authorization", "Bearer "+user.Token)
-		voteReq = testutils.WithUserContext(voteReq, middleware.UserIDKey, user.User.ID)
-		voteReq = testutils.WithURLParams(voteReq, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
-		voteResp := httptest.NewRecorder()
+		voteResponse := makePostRequest(t, ctx.Router, fmt.Sprintf("/api/posts/%d/vote", post.ID), map[string]any{"type": "up"}, user, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
+		assertStatus(t, voteResponse, http.StatusOK)
 
-		ctx.Router.ServeHTTP(voteResp, voteReq)
-		if voteResp.Code != http.StatusOK {
-			t.Errorf("Expected status 200, got %d", voteResp.Code)
-		}
+		getVoteResponse := makeAuthenticatedGetRequest(t, ctx.Router, fmt.Sprintf("/api/posts/%d/vote", post.ID), user, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
+		assertStatus(t, getVoteResponse, http.StatusOK)
 
-		getVoteReq := httptest.NewRequest("GET", fmt.Sprintf("/api/posts/%d/vote", post.ID), nil)
-		getVoteReq.Header.Set("Authorization", "Bearer "+user.Token)
-		getVoteReq = testutils.WithUserContext(getVoteReq, middleware.UserIDKey, user.User.ID)
-		getVoteReq = testutils.WithURLParams(getVoteReq, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
-		getVoteResp := httptest.NewRecorder()
+		getPostVotesResponse := makeAuthenticatedGetRequest(t, ctx.Router, fmt.Sprintf("/api/posts/%d/votes", post.ID), user, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
+		assertStatus(t, getPostVotesResponse, http.StatusOK)
 
-		ctx.Router.ServeHTTP(getVoteResp, getVoteReq)
-		if getVoteResp.Code != http.StatusOK {
-			t.Errorf("Expected status 200, got %d", getVoteResp.Code)
-		}
-
-		getPostVotesReq := httptest.NewRequest("GET", fmt.Sprintf("/api/posts/%d/votes", post.ID), nil)
-		getPostVotesReq.Header.Set("Authorization", "Bearer "+user.Token)
-		getPostVotesReq = testutils.WithUserContext(getPostVotesReq, middleware.UserIDKey, user.User.ID)
-		getPostVotesReq = testutils.WithURLParams(getPostVotesReq, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
-		getPostVotesResp := httptest.NewRecorder()
-
-		ctx.Router.ServeHTTP(getPostVotesResp, getPostVotesReq)
-		if getPostVotesResp.Code != http.StatusOK {
-			t.Errorf("Expected status 200, got %d", getPostVotesResp.Code)
-		}
-
-		removeVoteReq := httptest.NewRequest("DELETE", fmt.Sprintf("/api/posts/%d/vote", post.ID), nil)
-		removeVoteReq.Header.Set("Authorization", "Bearer "+user.Token)
-		removeVoteReq = testutils.WithUserContext(removeVoteReq, middleware.UserIDKey, user.User.ID)
-		removeVoteReq = testutils.WithURLParams(removeVoteReq, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
-		removeVoteResp := httptest.NewRecorder()
-
-		ctx.Router.ServeHTTP(removeVoteResp, removeVoteReq)
-		if removeVoteResp.Code != http.StatusOK {
-			t.Errorf("Expected status 200, got %d", removeVoteResp.Code)
-		}
+		removeVoteResponse := makeDeleteRequest(t, ctx.Router, fmt.Sprintf("/api/posts/%d/vote", post.ID), user, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
+		assertStatus(t, removeVoteResponse, http.StatusOK)
 	})
 
 	t.Run("User_Handler_Complete_Workflow", func(t *testing.T) {
 		emailSender.Reset()
 		user := createAuthenticatedUser(t, authService, userRepo, "user_handler_user", "user_handler@example.com")
 
-		usersReq := httptest.NewRequest("GET", "/api/users", nil)
-		usersReq.Header.Set("Authorization", "Bearer "+user.Token)
-		usersReq = testutils.WithUserContext(usersReq, middleware.UserIDKey, user.User.ID)
-		usersResp := httptest.NewRecorder()
+		usersResponse := makeAuthenticatedGetRequest(t, ctx.Router, "/api/users", user, nil)
+		assertStatus(t, usersResponse, http.StatusOK)
 
-		ctx.Router.ServeHTTP(usersResp, usersReq)
-		if usersResp.Code != http.StatusOK {
-			t.Errorf("Expected status 200, got %d", usersResp.Code)
-		}
+		getUserResponse := makeAuthenticatedGetRequest(t, ctx.Router, fmt.Sprintf("/api/users/%d", user.User.ID), user, map[string]string{"id": fmt.Sprintf("%d", user.User.ID)})
+		assertStatus(t, getUserResponse, http.StatusOK)
 
-		getUserReq := httptest.NewRequest("GET", fmt.Sprintf("/api/users/%d", user.User.ID), nil)
-		getUserReq.Header.Set("Authorization", "Bearer "+user.Token)
-		getUserReq = testutils.WithUserContext(getUserReq, middleware.UserIDKey, user.User.ID)
-		getUserReq = testutils.WithURLParams(getUserReq, map[string]string{"id": fmt.Sprintf("%d", user.User.ID)})
-		getUserResp := httptest.NewRecorder()
-
-		ctx.Router.ServeHTTP(getUserResp, getUserReq)
-		if getUserResp.Code != http.StatusOK {
-			t.Errorf("Expected status 200, got %d", getUserResp.Code)
-		}
-
-		getUserPostsReq := httptest.NewRequest("GET", fmt.Sprintf("/api/users/%d/posts", user.User.ID), nil)
-		getUserPostsReq.Header.Set("Authorization", "Bearer "+user.Token)
-		getUserPostsReq = testutils.WithUserContext(getUserPostsReq, middleware.UserIDKey, user.User.ID)
-		getUserPostsReq = testutils.WithURLParams(getUserPostsReq, map[string]string{"id": fmt.Sprintf("%d", user.User.ID)})
-		getUserPostsResp := httptest.NewRecorder()
-
-		ctx.Router.ServeHTTP(getUserPostsResp, getUserPostsReq)
-		if getUserPostsResp.Code != http.StatusOK {
-			t.Errorf("Expected status 200, got %d", getUserPostsResp.Code)
-		}
+		getUserPostsResponse := makeAuthenticatedGetRequest(t, ctx.Router, fmt.Sprintf("/api/users/%d/posts", user.User.ID), user, map[string]string{"id": fmt.Sprintf("%d", user.User.ID)})
+		assertStatus(t, getUserPostsResponse, http.StatusOK)
 	})
 
 	t.Run("Error_Handling_Invalid_Requests", func(t *testing.T) {
 		middleware.StopAllRateLimiters()
 		ctx.Suite.EmailSender.Reset()
 
-		invalidJSONReq := httptest.NewRequest("POST", "/api/auth/register", bytes.NewBuffer([]byte("invalid json")))
-		invalidJSONReq.Header.Set("Content-Type", "application/json")
-		invalidJSONResp := httptest.NewRecorder()
-
-		ctx.Router.ServeHTTP(invalidJSONResp, invalidJSONReq)
-		if invalidJSONResp.Code != http.StatusBadRequest {
-			t.Errorf("Expected status 400 for invalid JSON, got %d", invalidJSONResp.Code)
-		}
-
-		var jsonErrorResp map[string]any
-		if err := json.Unmarshal(invalidJSONResp.Body.Bytes(), &jsonErrorResp); err != nil {
-			t.Fatalf("Failed to decode error response: %v", err)
-		}
-		if success, _ := jsonErrorResp["success"].(bool); success {
+		invalidJSONResponse := makeRequest(t, ctx.Router, "POST", "/api/auth/register", []byte("invalid json"), map[string]string{"Content-Type": "application/json"})
+		jsonErrorResponse := assertJSONResponse(t, invalidJSONResponse, http.StatusBadRequest)
+		if success, _ := jsonErrorResponse["success"].(bool); success {
 			t.Error("Expected error response to have success=false")
 		}
-		if errorMsg, ok := jsonErrorResp["error"].(string); !ok || errorMsg == "" {
+		if errorMsg, ok := jsonErrorResponse["error"].(string); !ok || errorMsg == "" {
 			t.Error("Expected error response to contain JSON parsing error message")
 		}
 
@@ -411,54 +249,54 @@ func TestIntegration_Handlers(t *testing.T) {
 			"password": "SecurePass123!",
 		}
 		missingCTBody, _ := json.Marshal(missingCTData)
-		missingCTReq := httptest.NewRequest("POST", "/api/auth/register", bytes.NewBuffer(missingCTBody))
-		missingCTResp := httptest.NewRecorder()
+		missingCTRequest := httptest.NewRequest("POST", "/api/auth/register", bytes.NewBuffer(missingCTBody))
+		missingCTResponse := httptest.NewRecorder()
 
-		ctx.Router.ServeHTTP(missingCTResp, missingCTReq)
-		if missingCTResp.Code == http.StatusTooManyRequests {
-			var rateLimitResp map[string]any
-			if err := json.Unmarshal(missingCTResp.Body.Bytes(), &rateLimitResp); err != nil {
+		ctx.Router.ServeHTTP(missingCTResponse, missingCTRequest)
+		if missingCTResponse.Code == http.StatusTooManyRequests {
+			var rateLimitResponse map[string]any
+			if err := json.Unmarshal(missingCTResponse.Body.Bytes(), &rateLimitResponse); err != nil {
 				t.Errorf("Rate limited but response is not valid JSON: %v", err)
 			} else {
 				t.Logf("Rate limit hit (expected in full test suite run), but request was processed correctly (not rejected as invalid JSON)")
 			}
-		} else if missingCTResp.Code != http.StatusCreated {
-			t.Errorf("Expected status 201, got %d", missingCTResp.Code)
+		} else if missingCTResponse.Code != http.StatusCreated {
+			t.Errorf("Expected status 201, got %d", missingCTResponse.Code)
 		}
 
-		invalidEndpointReq := httptest.NewRequest("GET", "/api/invalid/endpoint", nil)
-		invalidEndpointResp := httptest.NewRecorder()
+		invalidEndpointRequest := httptest.NewRequest("GET", "/api/invalid/endpoint", nil)
+		invalidEndpointResponse := httptest.NewRecorder()
 
-		ctx.Router.ServeHTTP(invalidEndpointResp, invalidEndpointReq)
-		if invalidEndpointResp.Code == http.StatusOK {
+		ctx.Router.ServeHTTP(invalidEndpointResponse, invalidEndpointRequest)
+		if invalidEndpointResponse.Code == http.StatusOK {
 			t.Error("Expected error for invalid endpoint")
 		}
 	})
 
 	t.Run("Security_Authentication_Bypass", func(t *testing.T) {
-		meReq := httptest.NewRequest("GET", "/api/auth/me", nil)
-		meResp := httptest.NewRecorder()
+		meRequest := httptest.NewRequest("GET", "/api/auth/me", nil)
+		meResponse := httptest.NewRecorder()
 
-		ctx.Router.ServeHTTP(meResp, meReq)
-		if meResp.Code == http.StatusOK {
+		ctx.Router.ServeHTTP(meResponse, meRequest)
+		if meResponse.Code == http.StatusOK {
 			t.Error("Expected error for unauthenticated request")
 		}
 
-		invalidTokenReq := httptest.NewRequest("GET", "/api/auth/me", nil)
-		invalidTokenReq.Header.Set("Authorization", "Bearer invalid-token")
-		invalidTokenResp := httptest.NewRecorder()
+		invalidTokenRequest := httptest.NewRequest("GET", "/api/auth/me", nil)
+		invalidTokenRequest.Header.Set("Authorization", "Bearer invalid-token")
+		invalidTokenResponse := httptest.NewRecorder()
 
-		ctx.Router.ServeHTTP(invalidTokenResp, invalidTokenReq)
-		if invalidTokenResp.Code == http.StatusOK {
+		ctx.Router.ServeHTTP(invalidTokenResponse, invalidTokenRequest)
+		if invalidTokenResponse.Code == http.StatusOK {
 			t.Error("Expected error for invalid token")
 		}
 
-		malformedTokenReq := httptest.NewRequest("GET", "/api/auth/me", nil)
-		malformedTokenReq.Header.Set("Authorization", "InvalidFormat token")
-		malformedTokenResp := httptest.NewRecorder()
+		malformedTokenRequest := httptest.NewRequest("GET", "/api/auth/me", nil)
+		malformedTokenRequest.Header.Set("Authorization", "InvalidFormat token")
+		malformedTokenResponse := httptest.NewRecorder()
 
-		ctx.Router.ServeHTTP(malformedTokenResp, malformedTokenReq)
-		if malformedTokenResp.Code == http.StatusOK {
+		ctx.Router.ServeHTTP(malformedTokenResponse, malformedTokenRequest)
+		if malformedTokenResponse.Code == http.StatusOK {
 			t.Error("Expected error for malformed token")
 		}
 	})
@@ -466,32 +304,21 @@ func TestIntegration_Handlers(t *testing.T) {
 	t.Run("Security_Input_Sanitization", func(t *testing.T) {
 		user := createAuthenticatedUser(t, authService, userRepo, "xss_user", "xss@example.com")
 
-		xssData := map[string]string{
+		xssResponse := makePostRequest(t, ctx.Router, "/api/posts", map[string]any{
 			"title":   "<script>alert('xss')</script>",
 			"url":     "https://example.com/xss",
-			"content": "XSS test content",
-		}
-		xssBody, _ := json.Marshal(xssData)
-		xssReq := httptest.NewRequest("POST", "/api/posts", bytes.NewBuffer(xssBody))
-		xssReq.Header.Set("Content-Type", "application/json")
-		xssReq.Header.Set("Authorization", "Bearer "+user.Token)
-		xssReq = testutils.WithUserContext(xssReq, middleware.UserIDKey, user.User.ID)
-		xssResp := httptest.NewRecorder()
-
-		ctx.Router.ServeHTTP(xssResp, xssReq)
-		if xssResp.Code != http.StatusCreated {
-			t.Errorf("Expected status 201 for XSS sanitization, got %d", xssResp.Code)
+			"content": "<script>alert('xss')</script>",
+		}, user, nil)
+		if xssResponse.Code != http.StatusCreated {
+			t.Errorf("Expected status 201 for XSS sanitization, got %d", xssResponse.Code)
 		}
 
-		var xssResult map[string]any
-		if err := json.Unmarshal(xssResp.Body.Bytes(), &xssResult); err != nil {
-			t.Fatalf("Failed to decode XSS response: %v", err)
-		}
+		xssResult := assertJSONResponse(t, xssResponse, http.StatusCreated)
 		if success, _ := xssResult["success"].(bool); !success {
 			t.Error("Expected XSS response to have success=true")
 		}
 
-		data, ok := xssResult["data"].(map[string]any)
+		data, ok := getDataFromResponse(xssResult)
 		if !ok {
 			t.Fatalf("Expected data object in XSS response, got %T", xssResult["data"])
 		}
@@ -520,32 +347,21 @@ func TestIntegration_Handlers(t *testing.T) {
 			t.Errorf("Expected script tags to be HTML-escaped in content, got: %s", content)
 		}
 
-		sqlData := map[string]string{
+		sqlResponse := makePostRequest(t, ctx.Router, "/api/posts", map[string]any{
 			"title":   "'; DROP TABLE posts; --",
 			"url":     "https://example.com/sql",
 			"content": "SQL injection test",
-		}
-		sqlBody, _ := json.Marshal(sqlData)
-		sqlReq := httptest.NewRequest("POST", "/api/posts", bytes.NewBuffer(sqlBody))
-		sqlReq.Header.Set("Content-Type", "application/json")
-		sqlReq.Header.Set("Authorization", "Bearer "+user.Token)
-		sqlReq = testutils.WithUserContext(sqlReq, middleware.UserIDKey, user.User.ID)
-		sqlResp := httptest.NewRecorder()
-
-		ctx.Router.ServeHTTP(sqlResp, sqlReq)
-		if sqlResp.Code != http.StatusCreated {
-			t.Errorf("Expected status 201 for SQL injection sanitization, got %d", sqlResp.Code)
+		}, user, nil)
+		if sqlResponse.Code != http.StatusCreated {
+			t.Errorf("Expected status 201 for SQL injection sanitization, got %d", sqlResponse.Code)
 		}
 
-		var sqlResult map[string]any
-		if err := json.Unmarshal(sqlResp.Body.Bytes(), &sqlResult); err != nil {
-			t.Fatalf("Failed to decode SQL response: %v", err)
-		}
+		sqlResult := assertJSONResponse(t, sqlResponse, http.StatusCreated)
 		if success, _ := sqlResult["success"].(bool); !success {
 			t.Error("Expected SQL response to have success=true")
 		}
 
-		sqlResponseData, ok := sqlResult["data"].(map[string]any)
+		sqlResponseData, ok := getDataFromResponse(sqlResult)
 		if !ok {
 			t.Fatalf("Expected data object in SQL response, got %T", sqlResult["data"])
 		}
@@ -577,63 +393,31 @@ func TestIntegration_Handlers(t *testing.T) {
 
 	t.Run("Authorization_User_Access_Control", func(t *testing.T) {
 		emailSender.Reset()
-		user1 := createAuthenticatedUser(t, authService, userRepo, "auth_user1", "auth1@example.com")
-		user2 := createAuthenticatedUser(t, authService, userRepo, "auth_user2", "auth2@example.com")
+		firstUser := createAuthenticatedUser(t, authService, userRepo, "auth_user1", "auth1@example.com")
+		secondUser := createAuthenticatedUser(t, authService, userRepo, "auth_user2", "auth2@example.com")
 
-		post := testutils.CreatePostWithRepo(t, postRepo, user1.User.ID, "Private Post", "https://example.com/private")
+		post := testutils.CreatePostWithRepo(t, postRepo, firstUser.User.ID, "Private Post", "https://example.com/private")
 
-		getPostReq := httptest.NewRequest("GET", fmt.Sprintf("/api/posts/%d", post.ID), nil)
-		getPostReq.Header.Set("Authorization", "Bearer "+user2.Token)
-		getPostReq = testutils.WithUserContext(getPostReq, middleware.UserIDKey, user2.User.ID)
-		getPostReq = testutils.WithURLParams(getPostReq, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
-		getPostResp := httptest.NewRecorder()
+		getPostResponse := makeAuthenticatedGetRequest(t, ctx.Router, fmt.Sprintf("/api/posts/%d", post.ID), secondUser, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
+		testutils.AssertHTTPStatus(t, getPostResponse, http.StatusOK)
 
-		ctx.Router.ServeHTTP(getPostResp, getPostReq)
-		testutils.AssertHTTPStatus(t, getPostResp, http.StatusOK)
+		updateResponse := makePutRequest(t, ctx.Router, fmt.Sprintf("/api/posts/%d", post.ID), map[string]any{"title": "Updated Title"}, secondUser, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
+		testutils.AssertHTTPStatus(t, updateResponse, http.StatusForbidden)
 
-		updateData := map[string]string{
-			"title": "Updated Title",
-		}
-		updateBody, _ := json.Marshal(updateData)
-		updateReq := httptest.NewRequest("PUT", fmt.Sprintf("/api/posts/%d", post.ID), bytes.NewBuffer(updateBody))
-		updateReq.Header.Set("Content-Type", "application/json")
-		updateReq.Header.Set("Authorization", "Bearer "+user2.Token)
-		updateReq = testutils.WithUserContext(updateReq, middleware.UserIDKey, user2.User.ID)
-		updateReq = testutils.WithURLParams(updateReq, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
-		updateResp := httptest.NewRecorder()
-
-		ctx.Router.ServeHTTP(updateResp, updateReq)
-		testutils.AssertHTTPStatus(t, updateResp, http.StatusForbidden)
-
-		deleteReq := httptest.NewRequest("DELETE", fmt.Sprintf("/api/posts/%d", post.ID), nil)
-		deleteReq.Header.Set("Authorization", "Bearer "+user2.Token)
-		deleteReq = testutils.WithUserContext(deleteReq, middleware.UserIDKey, user2.User.ID)
-		deleteReq = testutils.WithURLParams(deleteReq, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
-		deleteResp := httptest.NewRecorder()
-
-		ctx.Router.ServeHTTP(deleteResp, deleteReq)
-		testutils.AssertHTTPStatus(t, deleteResp, http.StatusForbidden)
+		deleteResponse := makeDeleteRequest(t, ctx.Router, fmt.Sprintf("/api/posts/%d", post.ID), secondUser, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
+		testutils.AssertHTTPStatus(t, deleteResponse, http.StatusForbidden)
 	})
 
 	t.Run("Authorization_Vote_Access_Control", func(t *testing.T) {
 		emailSender.Reset()
-		user1 := createAuthenticatedUser(t, authService, userRepo, "vote_auth_user1", "vote_auth1@example.com")
-		user2 := createAuthenticatedUser(t, authService, userRepo, "vote_auth_user2", "vote_auth2@example.com")
+		firstUser := createAuthenticatedUser(t, authService, userRepo, "vote_auth_user1", "vote_auth1@example.com")
+		secondUser := createAuthenticatedUser(t, authService, userRepo, "vote_auth_user2", "vote_auth2@example.com")
 
-		post := testutils.CreatePostWithRepo(t, postRepo, user1.User.ID, "Vote Auth Post", "https://example.com/vote-auth")
+		post := testutils.CreatePostWithRepo(t, postRepo, firstUser.User.ID, "Vote Auth Post", "https://example.com/vote-auth")
 
-		voteData := map[string]string{"type": "up"}
-		voteBody, _ := json.Marshal(voteData)
-		voteReq := httptest.NewRequest("POST", fmt.Sprintf("/api/posts/%d/vote", post.ID), bytes.NewBuffer(voteBody))
-		voteReq.Header.Set("Content-Type", "application/json")
-		voteReq.Header.Set("Authorization", "Bearer "+user2.Token)
-		voteReq = testutils.WithUserContext(voteReq, middleware.UserIDKey, user2.User.ID)
-		voteReq = testutils.WithURLParams(voteReq, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
-		voteResp := httptest.NewRecorder()
-
-		ctx.Router.ServeHTTP(voteResp, voteReq)
-		if voteResp.Code != http.StatusOK {
-			t.Errorf("Users should be able to vote on any post, got %d", voteResp.Code)
+		voteResponse := makePostRequest(t, ctx.Router, fmt.Sprintf("/api/posts/%d/vote", post.ID), map[string]any{"type": "up"}, secondUser, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
+		if voteResponse.Code != http.StatusOK {
+			t.Errorf("Users should be able to vote on any post, got %d", voteResponse.Code)
 		}
 	})
 
@@ -662,12 +446,8 @@ func TestIntegration_Handlers(t *testing.T) {
 			t.Fatalf("Failed to generate expired token: %v", err)
 		}
 
-		meReq := httptest.NewRequest("GET", "/api/auth/me", nil)
-		meReq.Header.Set("Authorization", "Bearer "+expiredToken)
-		meResp := httptest.NewRecorder()
-
-		ctx.Router.ServeHTTP(meResp, meReq)
-		testutils.AssertHTTPStatus(t, meResp, http.StatusUnauthorized)
+		meResponse := makeRequest(t, ctx.Router, "GET", "/api/auth/me", nil, map[string]string{"Authorization": "Bearer " + expiredToken})
+		testutils.AssertHTTPStatus(t, meResponse, http.StatusUnauthorized)
 	})
 
 	t.Run("Authorization_Token_Tampering", func(t *testing.T) {
@@ -676,12 +456,12 @@ func TestIntegration_Handlers(t *testing.T) {
 
 		tamperedToken := user.Token[:len(user.Token)-5] + "XXXXX"
 
-		meReq := httptest.NewRequest("GET", "/api/auth/me", nil)
-		meReq.Header.Set("Authorization", "Bearer "+tamperedToken)
-		meResp := httptest.NewRecorder()
+		meRequest := httptest.NewRequest("GET", "/api/auth/me", nil)
+		meRequest.Header.Set("Authorization", "Bearer "+tamperedToken)
+		meResponse := httptest.NewRecorder()
 
-		ctx.Router.ServeHTTP(meResp, meReq)
-		testutils.AssertHTTPStatus(t, meResp, http.StatusUnauthorized)
+		ctx.Router.ServeHTTP(meResponse, meRequest)
+		testutils.AssertHTTPStatus(t, meResponse, http.StatusUnauthorized)
 	})
 
 	t.Run("Authorization_Session_Version_Mismatch", func(t *testing.T) {
@@ -709,12 +489,12 @@ func TestIntegration_Handlers(t *testing.T) {
 			t.Fatalf("Failed to generate invalid token: %v", err)
 		}
 
-		meReq := httptest.NewRequest("GET", "/api/auth/me", nil)
-		meReq.Header.Set("Authorization", "Bearer "+invalidToken)
-		meResp := httptest.NewRecorder()
+		meRequest := httptest.NewRequest("GET", "/api/auth/me", nil)
+		meRequest.Header.Set("Authorization", "Bearer "+invalidToken)
+		meResponse := httptest.NewRecorder()
 
-		ctx.Router.ServeHTTP(meResp, meReq)
-		testutils.AssertHTTPStatus(t, meResp, http.StatusUnauthorized)
+		ctx.Router.ServeHTTP(meResponse, meRequest)
+		testutils.AssertHTTPStatus(t, meResponse, http.StatusUnauthorized)
 	})
 
 }
@@ -746,11 +526,9 @@ func TestIntegration_DatabaseMonitoring(t *testing.T) {
 	}
 
 	voteService := services.NewVoteService(voteRepo, postRepo, db)
-
 	apiHandler := handlers.NewAPIHandlerWithMonitoring(testutils.AppTestConfig, postRepo, userRepo, voteService, db, monitor)
 
 	t.Run("Health endpoint includes database monitoring", func(t *testing.T) {
-
 		user := &database.User{
 			Username:      "monitoring_user",
 			Email:         "monitoring@example.com",
@@ -763,7 +541,6 @@ func TestIntegration_DatabaseMonitoring(t *testing.T) {
 		recorder := httptest.NewRecorder()
 
 		apiHandler.GetHealth(recorder, request)
-
 		testutils.AssertHTTPStatus(t, recorder, http.StatusOK)
 
 		var response map[string]any
@@ -775,7 +552,7 @@ func TestIntegration_DatabaseMonitoring(t *testing.T) {
 			t.Error("Expected success to be true")
 		}
 
-		data, ok := response["data"].(map[string]any)
+		data, ok := getDataFromResponse(response)
 		if !ok {
 			t.Fatal("Expected data to be a map")
 		}
@@ -811,7 +588,6 @@ func TestIntegration_DatabaseMonitoring(t *testing.T) {
 		recorder := httptest.NewRecorder()
 
 		apiHandler.GetMetrics(recorder, request)
-
 		testutils.AssertHTTPStatus(t, recorder, http.StatusOK)
 
 		var response map[string]any
@@ -823,7 +599,7 @@ func TestIntegration_DatabaseMonitoring(t *testing.T) {
 			t.Error("Expected success to be true")
 		}
 
-		data, ok := response["data"].(map[string]any)
+		data, ok := getDataFromResponse(response)
 		if !ok {
 			t.Fatal("Expected data to be a map")
 		}
