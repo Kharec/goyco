@@ -19,27 +19,18 @@ func TestIntegration_DataConsistency(t *testing.T) {
 		ctx.Suite.EmailSender.Reset()
 		user := createAuthenticatedUser(t, ctx.AuthService, ctx.Suite.UserRepo, "consistency_user", "consistency@example.com")
 
-		postBody := map[string]string{
+		request := makePostRequest(t, ctx.Router, "/api/posts", map[string]any{
 			"title":   "Consistency Test Post",
 			"url":     "https://example.com/consistency",
 			"content": "Test content",
-		}
-		body, _ := json.Marshal(postBody)
+		}, user, nil)
 
-		req := httptest.NewRequest("POST", "/api/posts", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", "Bearer "+user.Token)
-		req = testutils.WithUserContext(req, middleware.UserIDKey, user.User.ID)
-		rec := httptest.NewRecorder()
-
-		ctx.Router.ServeHTTP(rec, req)
-
-		createResponse := assertJSONResponse(t, rec, http.StatusCreated)
+		createResponse := assertJSONResponse(t, request, http.StatusCreated)
 		if createResponse == nil {
 			return
 		}
 
-		postData, ok := createResponse["data"].(map[string]any)
+		postData, ok := getDataFromResponse(createResponse)
 		if !ok {
 			t.Fatal("Response missing data")
 		}
@@ -53,16 +44,14 @@ func TestIntegration_DataConsistency(t *testing.T) {
 		createdURL := postData["url"]
 		createdContent := postData["content"]
 
-		getReq := httptest.NewRequest("GET", fmt.Sprintf("/api/posts/%.0f", postID), nil)
-		getRec := httptest.NewRecorder()
-		ctx.Router.ServeHTTP(getRec, getReq)
+		getRequest := makeGetRequest(t, ctx.Router, fmt.Sprintf("/api/posts/%.0f", postID))
 
-		getResponse := assertJSONResponse(t, getRec, http.StatusOK)
+		getResponse := assertJSONResponse(t, getRequest, http.StatusOK)
 		if getResponse == nil {
 			return
 		}
 
-		getPostData, ok := getResponse["data"].(map[string]any)
+		getPostData, ok := getDataFromResponse(getResponse)
 		if !ok {
 			t.Fatal("Get response missing data")
 		}
@@ -96,32 +85,17 @@ func TestIntegration_DataConsistency(t *testing.T) {
 
 		post := testutils.CreatePostWithRepo(t, ctx.Suite.PostRepo, user.User.ID, "Vote Consistency Post", "https://example.com/vote-consistency")
 
-		voteBody := map[string]string{"type": "up"}
-		body, _ := json.Marshal(voteBody)
+		voteRequest := makePostRequest(t, ctx.Router, fmt.Sprintf("/api/posts/%d/vote", post.ID), map[string]any{"type": "up"}, user, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
+		assertStatus(t, voteRequest, http.StatusOK)
 
-		voteReq := httptest.NewRequest("POST", fmt.Sprintf("/api/posts/%d/vote", post.ID), bytes.NewBuffer(body))
-		voteReq.Header.Set("Content-Type", "application/json")
-		voteReq.Header.Set("Authorization", "Bearer "+user.Token)
-		voteReq = testutils.WithUserContext(voteReq, middleware.UserIDKey, user.User.ID)
-		voteReq = testutils.WithURLParams(voteReq, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
-		voteRec := httptest.NewRecorder()
-		ctx.Router.ServeHTTP(voteRec, voteReq)
+		getVotesRequest := makeAuthenticatedGetRequest(t, ctx.Router, fmt.Sprintf("/api/posts/%d/votes", post.ID), user, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
 
-		assertStatus(t, voteRec, http.StatusOK)
-
-		getVotesReq := httptest.NewRequest("GET", fmt.Sprintf("/api/posts/%d/votes", post.ID), nil)
-		getVotesReq.Header.Set("Authorization", "Bearer "+user.Token)
-		getVotesReq = testutils.WithUserContext(getVotesReq, middleware.UserIDKey, user.User.ID)
-		getVotesReq = testutils.WithURLParams(getVotesReq, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
-		getVotesRec := httptest.NewRecorder()
-		ctx.Router.ServeHTTP(getVotesRec, getVotesReq)
-
-		votesResponse := assertJSONResponse(t, getVotesRec, http.StatusOK)
+		votesResponse := assertJSONResponse(t, getVotesRequest, http.StatusOK)
 		if votesResponse == nil {
 			return
 		}
 
-		votesData, ok := votesResponse["data"].(map[string]any)
+		votesData, ok := getDataFromResponse(votesResponse)
 		if !ok {
 			t.Fatal("Votes response missing data")
 		}
@@ -172,32 +146,21 @@ func TestIntegration_DataConsistency(t *testing.T) {
 
 		post := testutils.CreatePostWithRepo(t, ctx.Suite.PostRepo, user.User.ID, "Original Title", "https://example.com/original")
 
-		updateBody := map[string]string{
+		updateRequest := makePutRequest(t, ctx.Router, fmt.Sprintf("/api/posts/%d", post.ID), map[string]any{
 			"title":   "Updated Title",
 			"content": "Updated content",
-		}
-		body, _ := json.Marshal(updateBody)
+		}, user, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
 
-		updateReq := httptest.NewRequest("PUT", fmt.Sprintf("/api/posts/%d", post.ID), bytes.NewBuffer(body))
-		updateReq.Header.Set("Content-Type", "application/json")
-		updateReq.Header.Set("Authorization", "Bearer "+user.Token)
-		updateReq = testutils.WithUserContext(updateReq, middleware.UserIDKey, user.User.ID)
-		updateReq = testutils.WithURLParams(updateReq, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
-		updateRec := httptest.NewRecorder()
-		ctx.Router.ServeHTTP(updateRec, updateReq)
+		assertStatus(t, updateRequest, http.StatusOK)
 
-		assertStatus(t, updateRec, http.StatusOK)
+		getRequest := makeGetRequest(t, ctx.Router, fmt.Sprintf("/api/posts/%d", post.ID))
 
-		getReq := httptest.NewRequest("GET", fmt.Sprintf("/api/posts/%d", post.ID), nil)
-		getRec := httptest.NewRecorder()
-		ctx.Router.ServeHTTP(getRec, getReq)
-
-		getResponse := assertJSONResponse(t, getRec, http.StatusOK)
+		getResponse := assertJSONResponse(t, getRequest, http.StatusOK)
 		if getResponse == nil {
 			return
 		}
 
-		getPostData, ok := getResponse["data"].(map[string]any)
+		getPostData, ok := getDataFromResponse(getResponse)
 		if !ok {
 			t.Fatal("Get response missing data")
 		}
@@ -215,18 +178,18 @@ func TestIntegration_DataConsistency(t *testing.T) {
 		ctx.Suite.EmailSender.Reset()
 		user := createAuthenticatedUser(t, ctx.AuthService, ctx.Suite.UserRepo, "user_posts_consistency", "user_posts_consistency@example.com")
 
-		post1 := testutils.CreatePostWithRepo(t, ctx.Suite.PostRepo, user.User.ID, "Post 1", "https://example.com/post1")
-		post2 := testutils.CreatePostWithRepo(t, ctx.Suite.PostRepo, user.User.ID, "Post 2", "https://example.com/post2")
+		firstPost := testutils.CreatePostWithRepo(t, ctx.Suite.PostRepo, user.User.ID, "Post 1", "https://example.com/post1")
+		secondPost := testutils.CreatePostWithRepo(t, ctx.Suite.PostRepo, user.User.ID, "Post 2", "https://example.com/post2")
 
-		req := httptest.NewRequest("GET", fmt.Sprintf("/api/users/%d/posts", user.User.ID), nil)
-		req.Header.Set("Authorization", "Bearer "+user.Token)
-		req = testutils.WithUserContext(req, middleware.UserIDKey, user.User.ID)
-		req = testutils.WithURLParams(req, map[string]string{"id": fmt.Sprintf("%d", user.User.ID)})
-		rec := httptest.NewRecorder()
+		request := httptest.NewRequest("GET", fmt.Sprintf("/api/users/%d/posts", user.User.ID), nil)
+		request.Header.Set("Authorization", "Bearer "+user.Token)
+		request = testutils.WithUserContext(request, middleware.UserIDKey, user.User.ID)
+		request = testutils.WithURLParams(request, map[string]string{"id": fmt.Sprintf("%d", user.User.ID)})
+		recorder := httptest.NewRecorder()
 
-		ctx.Router.ServeHTTP(rec, req)
+		ctx.Router.ServeHTTP(recorder, request)
 
-		response := assertJSONResponse(t, rec, http.StatusOK)
+		response := assertJSONResponse(t, recorder, http.StatusOK)
 		if response == nil {
 			return
 		}
@@ -245,26 +208,26 @@ func TestIntegration_DataConsistency(t *testing.T) {
 			t.Errorf("Expected at least 2 posts, got %d", len(posts))
 		}
 
-		foundPost1 := false
-		foundPost2 := false
+		foundFirstPost := false
+		foundSecondPost := false
 		for _, post := range posts {
 			if postMap, ok := post.(map[string]any); ok {
 				if postID, ok := postMap["id"].(float64); ok {
-					if uint(postID) == post1.ID {
-						foundPost1 = true
+					if uint(postID) == firstPost.ID {
+						foundFirstPost = true
 					}
-					if uint(postID) == post2.ID {
-						foundPost2 = true
+					if uint(postID) == secondPost.ID {
+						foundSecondPost = true
 					}
 				}
 			}
 		}
 
-		if !foundPost1 {
+		if !foundFirstPost {
 			t.Error("Post 1 not found in user posts")
 		}
 
-		if !foundPost2 {
+		if !foundSecondPost {
 			t.Error("Post 2 not found in user posts")
 		}
 	})
@@ -275,20 +238,20 @@ func TestIntegration_DataConsistency(t *testing.T) {
 
 		post := testutils.CreatePostWithRepo(t, ctx.Suite.PostRepo, user.User.ID, "Delete Consistency Post", "https://example.com/delete-consistency")
 
-		deleteReq := httptest.NewRequest("DELETE", fmt.Sprintf("/api/posts/%d", post.ID), nil)
-		deleteReq.Header.Set("Authorization", "Bearer "+user.Token)
-		deleteReq = testutils.WithUserContext(deleteReq, middleware.UserIDKey, user.User.ID)
-		deleteReq = testutils.WithURLParams(deleteReq, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
-		deleteRec := httptest.NewRecorder()
-		ctx.Router.ServeHTTP(deleteRec, deleteReq)
+		deleteRequest := httptest.NewRequest("DELETE", fmt.Sprintf("/api/posts/%d", post.ID), nil)
+		deleteRequest.Header.Set("Authorization", "Bearer "+user.Token)
+		deleteRequest = testutils.WithUserContext(deleteRequest, middleware.UserIDKey, user.User.ID)
+		deleteRequest = testutils.WithURLParams(deleteRequest, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
+		deleteRecorder := httptest.NewRecorder()
+		ctx.Router.ServeHTTP(deleteRecorder, deleteRequest)
 
-		assertStatus(t, deleteRec, http.StatusOK)
+		assertStatus(t, deleteRecorder, http.StatusOK)
 
-		getReq := httptest.NewRequest("GET", fmt.Sprintf("/api/posts/%d", post.ID), nil)
-		getRec := httptest.NewRecorder()
-		ctx.Router.ServeHTTP(getRec, getReq)
+		getRequest := httptest.NewRequest("GET", fmt.Sprintf("/api/posts/%d", post.ID), nil)
+		getRecorder := httptest.NewRecorder()
+		ctx.Router.ServeHTTP(getRecorder, getRequest)
 
-		assertStatus(t, getRec, http.StatusNotFound)
+		assertStatus(t, getRecorder, http.StatusNotFound)
 	})
 
 	t.Run("Vote_Removal_Consistency", func(t *testing.T) {
@@ -300,33 +263,33 @@ func TestIntegration_DataConsistency(t *testing.T) {
 		voteBody := map[string]string{"type": "up"}
 		body, _ := json.Marshal(voteBody)
 
-		voteReq := httptest.NewRequest("POST", fmt.Sprintf("/api/posts/%d/vote", post.ID), bytes.NewBuffer(body))
-		voteReq.Header.Set("Content-Type", "application/json")
-		voteReq.Header.Set("Authorization", "Bearer "+user.Token)
-		voteReq = testutils.WithUserContext(voteReq, middleware.UserIDKey, user.User.ID)
-		voteReq = testutils.WithURLParams(voteReq, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
-		voteRec := httptest.NewRecorder()
-		ctx.Router.ServeHTTP(voteRec, voteReq)
+		voteRequest := httptest.NewRequest("POST", fmt.Sprintf("/api/posts/%d/vote", post.ID), bytes.NewBuffer(body))
+		voteRequest.Header.Set("Content-Type", "application/json")
+		voteRequest.Header.Set("Authorization", "Bearer "+user.Token)
+		voteRequest = testutils.WithUserContext(voteRequest, middleware.UserIDKey, user.User.ID)
+		voteRequest = testutils.WithURLParams(voteRequest, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
+		voteRecorder := httptest.NewRecorder()
+		ctx.Router.ServeHTTP(voteRecorder, voteRequest)
 
-		assertStatus(t, voteRec, http.StatusOK)
+		assertStatus(t, voteRecorder, http.StatusOK)
 
-		removeVoteReq := httptest.NewRequest("DELETE", fmt.Sprintf("/api/posts/%d/vote", post.ID), nil)
-		removeVoteReq.Header.Set("Authorization", "Bearer "+user.Token)
-		removeVoteReq = testutils.WithUserContext(removeVoteReq, middleware.UserIDKey, user.User.ID)
-		removeVoteReq = testutils.WithURLParams(removeVoteReq, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
-		removeVoteRec := httptest.NewRecorder()
-		ctx.Router.ServeHTTP(removeVoteRec, removeVoteReq)
+		removeVoteRequest := httptest.NewRequest("DELETE", fmt.Sprintf("/api/posts/%d/vote", post.ID), nil)
+		removeVoteRequest.Header.Set("Authorization", "Bearer "+user.Token)
+		removeVoteRequest = testutils.WithUserContext(removeVoteRequest, middleware.UserIDKey, user.User.ID)
+		removeVoteRequest = testutils.WithURLParams(removeVoteRequest, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
+		removeVoteRecorder := httptest.NewRecorder()
+		ctx.Router.ServeHTTP(removeVoteRecorder, removeVoteRequest)
 
-		assertStatus(t, removeVoteRec, http.StatusOK)
+		assertStatus(t, removeVoteRecorder, http.StatusOK)
 
-		getVotesReq := httptest.NewRequest("GET", fmt.Sprintf("/api/posts/%d/votes", post.ID), nil)
-		getVotesReq.Header.Set("Authorization", "Bearer "+user.Token)
-		getVotesReq = testutils.WithUserContext(getVotesReq, middleware.UserIDKey, user.User.ID)
-		getVotesReq = testutils.WithURLParams(getVotesReq, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
-		getVotesRec := httptest.NewRecorder()
-		ctx.Router.ServeHTTP(getVotesRec, getVotesReq)
+		getVotesRequest := httptest.NewRequest("GET", fmt.Sprintf("/api/posts/%d/votes", post.ID), nil)
+		getVotesRequest.Header.Set("Authorization", "Bearer "+user.Token)
+		getVotesRequest = testutils.WithUserContext(getVotesRequest, middleware.UserIDKey, user.User.ID)
+		getVotesRequest = testutils.WithURLParams(getVotesRequest, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
+		getVotesRecorder := httptest.NewRecorder()
+		ctx.Router.ServeHTTP(getVotesRecorder, getVotesRequest)
 
-		votesResponse := assertJSONResponse(t, getVotesRec, http.StatusOK)
+		votesResponse := assertJSONResponse(t, getVotesRecorder, http.StatusOK)
 		if votesResponse == nil {
 			return
 		}
