@@ -22,41 +22,39 @@ func TestIntegration_EdgeCases(t *testing.T) {
 
 		expiredToken := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2MDAwMDAwMDB9.expired"
 
-		req := httptest.NewRequest("GET", "/api/auth/me", nil)
-		req.Header.Set("Authorization", "Bearer "+expiredToken)
-		rec := httptest.NewRecorder()
+		request := httptest.NewRequest("GET", "/api/auth/me", nil)
+		request.Header.Set("Authorization", "Bearer "+expiredToken)
+		recorder := httptest.NewRecorder()
 
-		ctx.Router.ServeHTTP(rec, req)
+		ctx.Router.ServeHTTP(recorder, request)
 
-		assertErrorResponse(t, rec, http.StatusUnauthorized)
+		assertErrorResponse(t, recorder, http.StatusUnauthorized)
 	})
 
 	t.Run("Concurrent_Vote_Operations", func(t *testing.T) {
 		ctx.Suite.EmailSender.Reset()
-		user1 := createAuthenticatedUser(t, ctx.AuthService, ctx.Suite.UserRepo, "vote_user1", "vote1@example.com")
+		firstUser := createAuthenticatedUser(t, ctx.AuthService, ctx.Suite.UserRepo, "vote_user1", "vote1@example.com")
 
-		post := testutils.CreatePostWithRepo(t, ctx.Suite.PostRepo, user1.User.ID, "Concurrent Vote Post", "https://example.com/concurrent")
+		post := testutils.CreatePostWithRepo(t, ctx.Suite.PostRepo, firstUser.User.ID, "Concurrent Vote Post", "https://example.com/concurrent")
 
 		var wg sync.WaitGroup
 		errors := make(chan error, 10)
 
-		for i := 0; i < 5; i++ {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+		for range 5 {
+			wg.Go(func() {
 				voteBody := map[string]string{"type": "up"}
 				body, _ := json.Marshal(voteBody)
-				req := httptest.NewRequest("POST", fmt.Sprintf("/api/posts/%d/vote", post.ID), bytes.NewBuffer(body))
-				req.Header.Set("Content-Type", "application/json")
-				req.Header.Set("Authorization", "Bearer "+user1.Token)
-				req = testutils.WithUserContext(req, middleware.UserIDKey, user1.User.ID)
-				req = testutils.WithURLParams(req, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
-				rec := httptest.NewRecorder()
-				ctx.Router.ServeHTTP(rec, req)
-				if rec.Code != http.StatusOK {
-					errors <- fmt.Errorf("unexpected status: %d", rec.Code)
+				request := httptest.NewRequest("POST", fmt.Sprintf("/api/posts/%d/vote", post.ID), bytes.NewBuffer(body))
+				request.Header.Set("Content-Type", "application/json")
+				request.Header.Set("Authorization", "Bearer "+firstUser.Token)
+				request = testutils.WithUserContext(request, middleware.UserIDKey, firstUser.User.ID)
+				request = testutils.WithURLParams(request, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
+				recorder := httptest.NewRecorder()
+				ctx.Router.ServeHTTP(recorder, request)
+				if recorder.Code != http.StatusOK {
+					errors <- fmt.Errorf("unexpected status: %d", recorder.Code)
 				}
-			}()
+			})
 		}
 
 		wg.Wait()
@@ -72,8 +70,8 @@ func TestIntegration_EdgeCases(t *testing.T) {
 		user := createAuthenticatedUser(t, ctx.AuthService, ctx.Suite.UserRepo, "large_user", "large@example.com")
 
 		largeContent := make([]byte, 10001)
-		for i := range largeContent {
-			largeContent[i] = 'a'
+		for idx := range largeContent {
+			largeContent[idx] = 'a'
 		}
 
 		postBody := map[string]string{
@@ -82,36 +80,36 @@ func TestIntegration_EdgeCases(t *testing.T) {
 			"content": string(largeContent),
 		}
 		body, _ := json.Marshal(postBody)
-		req := httptest.NewRequest("POST", "/api/posts", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", "Bearer "+user.Token)
-		req = testutils.WithUserContext(req, middleware.UserIDKey, user.User.ID)
-		rec := httptest.NewRecorder()
+		request := httptest.NewRequest("POST", "/api/posts", bytes.NewBuffer(body))
+		request.Header.Set("Content-Type", "application/json")
+		request.Header.Set("Authorization", "Bearer "+user.Token)
+		request = testutils.WithUserContext(request, middleware.UserIDKey, user.User.ID)
+		recorder := httptest.NewRecorder()
 
-		ctx.Router.ServeHTTP(rec, req)
+		ctx.Router.ServeHTTP(recorder, request)
 
-		assertErrorResponse(t, rec, http.StatusBadRequest)
+		assertErrorResponse(t, recorder, http.StatusBadRequest)
 
 		smallContent := make([]byte, 1000)
-		for i := range smallContent {
-			smallContent[i] = 'a'
+		for idx := range smallContent {
+			smallContent[idx] = 'a'
 		}
 
-		postBody2 := map[string]string{
+		secondPostBody := map[string]string{
 			"title":   "Small Post",
 			"url":     "https://example.com/small",
 			"content": string(smallContent),
 		}
-		body2, _ := json.Marshal(postBody2)
-		req2 := httptest.NewRequest("POST", "/api/posts", bytes.NewBuffer(body2))
-		req2.Header.Set("Content-Type", "application/json")
-		req2.Header.Set("Authorization", "Bearer "+user.Token)
-		req2 = testutils.WithUserContext(req2, middleware.UserIDKey, user.User.ID)
-		rec2 := httptest.NewRecorder()
+		secondBody, _ := json.Marshal(secondPostBody)
+		secondRequest := httptest.NewRequest("POST", "/api/posts", bytes.NewBuffer(secondBody))
+		secondRequest.Header.Set("Content-Type", "application/json")
+		secondRequest.Header.Set("Authorization", "Bearer "+user.Token)
+		secondRequest = testutils.WithUserContext(secondRequest, middleware.UserIDKey, user.User.ID)
+		secondRecorder := httptest.NewRecorder()
 
-		ctx.Router.ServeHTTP(rec2, req2)
+		ctx.Router.ServeHTTP(secondRecorder, secondRequest)
 
-		assertStatus(t, rec2, http.StatusCreated)
+		assertStatus(t, secondRecorder, http.StatusCreated)
 	})
 
 	t.Run("Malformed_JSON_Payloads", func(t *testing.T) {
@@ -127,15 +125,15 @@ func TestIntegration_EdgeCases(t *testing.T) {
 		}
 
 		for _, payload := range malformedPayloads {
-			req := httptest.NewRequest("POST", "/api/posts", bytes.NewBufferString(payload))
-			req.Header.Set("Content-Type", "application/json")
-			req.Header.Set("Authorization", "Bearer "+user.Token)
-			req = testutils.WithUserContext(req, middleware.UserIDKey, user.User.ID)
-			rec := httptest.NewRecorder()
+			request := httptest.NewRequest("POST", "/api/posts", bytes.NewBufferString(payload))
+			request.Header.Set("Content-Type", "application/json")
+			request.Header.Set("Authorization", "Bearer "+user.Token)
+			request = testutils.WithUserContext(request, middleware.UserIDKey, user.User.ID)
+			recorder := httptest.NewRecorder()
 
-			ctx.Router.ServeHTTP(rec, req)
+			ctx.Router.ServeHTTP(recorder, request)
 
-			assertErrorResponse(t, rec, http.StatusBadRequest)
+			assertErrorResponse(t, recorder, http.StatusBadRequest)
 		}
 	})
 
@@ -148,38 +146,36 @@ func TestIntegration_EdgeCases(t *testing.T) {
 		voteBody := map[string]string{"type": "up"}
 		body, _ := json.Marshal(voteBody)
 
-		voteReq := httptest.NewRequest("POST", fmt.Sprintf("/api/posts/%d/vote", post.ID), bytes.NewBuffer(body))
-		voteReq.Header.Set("Content-Type", "application/json")
-		voteReq.Header.Set("Authorization", "Bearer "+user.Token)
-		voteReq = testutils.WithUserContext(voteReq, middleware.UserIDKey, user.User.ID)
-		voteReq = testutils.WithURLParams(voteReq, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
-		voteRec := httptest.NewRecorder()
-		ctx.Router.ServeHTTP(voteRec, voteReq)
-		assertStatus(t, voteRec, http.StatusOK)
+		voteRequest := httptest.NewRequest("POST", fmt.Sprintf("/api/posts/%d/vote", post.ID), bytes.NewBuffer(body))
+		voteRequest.Header.Set("Content-Type", "application/json")
+		voteRequest.Header.Set("Authorization", "Bearer "+user.Token)
+		voteRequest = testutils.WithUserContext(voteRequest, middleware.UserIDKey, user.User.ID)
+		voteRequest = testutils.WithURLParams(voteRequest, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
+		voteRecorder := httptest.NewRecorder()
+		ctx.Router.ServeHTTP(voteRecorder, voteRequest)
+		assertStatus(t, voteRecorder, http.StatusOK)
 
 		var wg sync.WaitGroup
-		for i := 0; i < 3; i++ {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				req := httptest.NewRequest("DELETE", fmt.Sprintf("/api/posts/%d/vote", post.ID), nil)
-				req.Header.Set("Authorization", "Bearer "+user.Token)
-				req = testutils.WithUserContext(req, middleware.UserIDKey, user.User.ID)
-				req = testutils.WithURLParams(req, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
-				rec := httptest.NewRecorder()
-				ctx.Router.ServeHTTP(rec, req)
-			}()
+		for range 3 {
+			wg.Go(func() {
+				request := httptest.NewRequest("DELETE", fmt.Sprintf("/api/posts/%d/vote", post.ID), nil)
+				request.Header.Set("Authorization", "Bearer "+user.Token)
+				request = testutils.WithUserContext(request, middleware.UserIDKey, user.User.ID)
+				request = testutils.WithURLParams(request, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
+				recorder := httptest.NewRecorder()
+				ctx.Router.ServeHTTP(recorder, request)
+			})
 		}
 		wg.Wait()
 
-		getVotesReq := httptest.NewRequest("GET", fmt.Sprintf("/api/posts/%d/votes", post.ID), nil)
-		getVotesReq.Header.Set("Authorization", "Bearer "+user.Token)
-		getVotesReq = testutils.WithUserContext(getVotesReq, middleware.UserIDKey, user.User.ID)
-		getVotesReq = testutils.WithURLParams(getVotesReq, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
-		getVotesRec := httptest.NewRecorder()
-		ctx.Router.ServeHTTP(getVotesRec, getVotesReq)
+		getVotesRequest := httptest.NewRequest("GET", fmt.Sprintf("/api/posts/%d/votes", post.ID), nil)
+		getVotesRequest.Header.Set("Authorization", "Bearer "+user.Token)
+		getVotesRequest = testutils.WithUserContext(getVotesRequest, middleware.UserIDKey, user.User.ID)
+		getVotesRequest = testutils.WithURLParams(getVotesRequest, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
+		getVotesRecorder := httptest.NewRecorder()
+		ctx.Router.ServeHTTP(getVotesRecorder, getVotesRequest)
 
-		votesResponse := assertJSONResponse(t, getVotesRec, http.StatusOK)
+		votesResponse := assertJSONResponse(t, getVotesRecorder, http.StatusOK)
 		if votesResponse != nil {
 			if data, ok := votesResponse["data"].(map[string]any); ok {
 				if votes, ok := data["votes"].([]any); ok {
