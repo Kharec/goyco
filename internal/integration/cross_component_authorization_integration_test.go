@@ -1,14 +1,10 @@
 package integration
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 
-	"goyco/internal/middleware"
 	"goyco/internal/testutils"
 )
 
@@ -22,33 +18,19 @@ func TestIntegration_CrossComponentAuthorization(t *testing.T) {
 
 		post := testutils.CreatePostWithRepo(t, ctx.Suite.PostRepo, owner.User.ID, "Owner Post", "https://example.com/owner")
 
-		updateBody := map[string]string{
+		request := makePutRequest(t, ctx.Router, fmt.Sprintf("/api/posts/%d", post.ID), map[string]any{
 			"title":   "Updated Title",
 			"content": "Updated content",
-		}
-		body, _ := json.Marshal(updateBody)
+		}, otherUser, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
 
-		req := httptest.NewRequest("PUT", fmt.Sprintf("/api/posts/%d", post.ID), bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", "Bearer "+otherUser.Token)
-		req = testutils.WithUserContext(req, middleware.UserIDKey, otherUser.User.ID)
-		req = testutils.WithURLParams(req, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
-		rec := httptest.NewRecorder()
+		assertErrorResponse(t, request, http.StatusForbidden)
 
-		ctx.Router.ServeHTTP(rec, req)
+		request = makePutRequest(t, ctx.Router, fmt.Sprintf("/api/posts/%d", post.ID), map[string]any{
+			"title":   "Updated Title",
+			"content": "Updated content",
+		}, owner, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
 
-		assertErrorResponse(t, rec, http.StatusForbidden)
-
-		req = httptest.NewRequest("PUT", fmt.Sprintf("/api/posts/%d", post.ID), bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", "Bearer "+owner.Token)
-		req = testutils.WithUserContext(req, middleware.UserIDKey, owner.User.ID)
-		req = testutils.WithURLParams(req, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
-		rec = httptest.NewRecorder()
-
-		ctx.Router.ServeHTTP(rec, req)
-
-		assertStatus(t, rec, http.StatusOK)
+		assertStatus(t, request, http.StatusOK)
 	})
 
 	t.Run("Post_Delete_Authorization", func(t *testing.T) {
@@ -58,47 +40,27 @@ func TestIntegration_CrossComponentAuthorization(t *testing.T) {
 
 		post := testutils.CreatePostWithRepo(t, ctx.Suite.PostRepo, owner.User.ID, "Delete Post", "https://example.com/delete")
 
-		req := httptest.NewRequest("DELETE", fmt.Sprintf("/api/posts/%d", post.ID), nil)
-		req.Header.Set("Authorization", "Bearer "+otherUser.Token)
-		req = testutils.WithUserContext(req, middleware.UserIDKey, otherUser.User.ID)
-		req = testutils.WithURLParams(req, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
-		rec := httptest.NewRecorder()
+		request := makeDeleteRequest(t, ctx.Router, fmt.Sprintf("/api/posts/%d", post.ID), otherUser, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
 
-		ctx.Router.ServeHTTP(rec, req)
+		assertErrorResponse(t, request, http.StatusForbidden)
 
-		assertErrorResponse(t, rec, http.StatusForbidden)
+		request = makeDeleteRequest(t, ctx.Router, fmt.Sprintf("/api/posts/%d", post.ID), owner, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
 
-		req = httptest.NewRequest("DELETE", fmt.Sprintf("/api/posts/%d", post.ID), nil)
-		req.Header.Set("Authorization", "Bearer "+owner.Token)
-		req = testutils.WithUserContext(req, middleware.UserIDKey, owner.User.ID)
-		req = testutils.WithURLParams(req, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
-		rec = httptest.NewRecorder()
-
-		ctx.Router.ServeHTTP(rec, req)
-
-		assertStatus(t, rec, http.StatusOK)
+		assertStatus(t, request, http.StatusOK)
 	})
 
 	t.Run("User_Profile_Access_Authorization", func(t *testing.T) {
 		ctx.Suite.EmailSender.Reset()
-		user1 := createAuthenticatedUser(t, ctx.AuthService, ctx.Suite.UserRepo, "profile_user1", "profile_user1@example.com")
-		user2 := createAuthenticatedUser(t, ctx.AuthService, ctx.Suite.UserRepo, "profile_user2", "profile_user2@example.com")
+		firstUser := createAuthenticatedUser(t, ctx.AuthService, ctx.Suite.UserRepo, "profile_user1", "profile_user1@example.com")
+		secondUser := createAuthenticatedUser(t, ctx.AuthService, ctx.Suite.UserRepo, "profile_user2", "profile_user2@example.com")
 
-		req := httptest.NewRequest("GET", fmt.Sprintf("/api/users/%d", user1.User.ID), nil)
-		req.Header.Set("Authorization", "Bearer "+user2.Token)
-		req = testutils.WithUserContext(req, middleware.UserIDKey, user2.User.ID)
-		req = testutils.WithURLParams(req, map[string]string{"id": fmt.Sprintf("%d", user1.User.ID)})
-		rec := httptest.NewRecorder()
+		request := makeAuthenticatedGetRequest(t, ctx.Router, fmt.Sprintf("/api/users/%d", firstUser.User.ID), secondUser, map[string]string{"id": fmt.Sprintf("%d", firstUser.User.ID)})
 
-		ctx.Router.ServeHTTP(rec, req)
-
-		response := assertJSONResponse(t, rec, http.StatusOK)
-		if response != nil {
-			if data, ok := response["data"].(map[string]any); ok {
-				if userData, ok := data["user"].(map[string]any); ok {
-					if id, ok := userData["id"].(float64); ok && uint(id) != user1.User.ID {
-						t.Errorf("Expected user ID %d, got %.0f", user1.User.ID, id)
-					}
+		response := assertJSONResponse(t, request, http.StatusOK)
+		if data, ok := getDataFromResponse(response); ok {
+			if userData, ok := data["user"].(map[string]any); ok {
+				if id, ok := userData["id"].(float64); ok && uint(id) != firstUser.User.ID {
+					t.Errorf("Expected user ID %d, got %.0f", firstUser.User.ID, id)
 				}
 			}
 		}
@@ -109,24 +71,13 @@ func TestIntegration_CrossComponentAuthorization(t *testing.T) {
 		user := createAuthenticatedUser(t, ctx.AuthService, ctx.Suite.UserRepo, "settings_auth_user", "settings_auth@example.com")
 		otherUser := createAuthenticatedUser(t, ctx.AuthService, ctx.Suite.UserRepo, "settings_auth_other", "settings_auth_other@example.com")
 
-		updateBody := map[string]string{
-			"email": "newemail@example.com",
-		}
-		body, _ := json.Marshal(updateBody)
+		request := makePutRequest(t, ctx.Router, "/api/auth/email", map[string]any{"email": "newemail@example.com"}, otherUser, nil)
 
-		req := httptest.NewRequest("PUT", "/api/auth/email", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", "Bearer "+otherUser.Token)
-		req = testutils.WithUserContext(req, middleware.UserIDKey, otherUser.User.ID)
-		rec := httptest.NewRecorder()
-
-		ctx.Router.ServeHTTP(rec, req)
-
-		response := assertJSONResponse(t, rec, http.StatusOK)
+		response := assertJSONResponse(t, request, http.StatusOK)
 		if response == nil {
 			return
 		}
-		if data, ok := response["data"].(map[string]any); ok {
+		if data, ok := getDataFromResponse(response); ok {
 			if userData, ok := data["user"].(map[string]any); ok {
 				if email, ok := userData["email"].(string); ok && email == "newemail@example.com" {
 					if id, ok := userData["id"].(float64); ok && uint(id) != otherUser.User.ID {
@@ -136,20 +87,9 @@ func TestIntegration_CrossComponentAuthorization(t *testing.T) {
 			}
 		}
 
-		updateBody2 := map[string]string{
-			"email": "anothernewemail@example.com",
-		}
-		body2, _ := json.Marshal(updateBody2)
+		request = makePutRequest(t, ctx.Router, "/api/auth/email", map[string]any{"email": "anothernewemail@example.com"}, user, nil)
 
-		req = httptest.NewRequest("PUT", "/api/auth/email", bytes.NewBuffer(body2))
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", "Bearer "+user.Token)
-		req = testutils.WithUserContext(req, middleware.UserIDKey, user.User.ID)
-		rec = httptest.NewRecorder()
-
-		ctx.Router.ServeHTTP(rec, req)
-
-		assertStatus(t, rec, http.StatusOK)
+		assertStatus(t, request, http.StatusOK)
 	})
 
 	t.Run("Vote_Authorization", func(t *testing.T) {
@@ -159,73 +99,42 @@ func TestIntegration_CrossComponentAuthorization(t *testing.T) {
 
 		post := testutils.CreatePostWithRepo(t, ctx.Suite.PostRepo, postOwner.User.ID, "Vote Auth Post", "https://example.com/vote-auth")
 
-		voteBody := map[string]string{"type": "up"}
-		body, _ := json.Marshal(voteBody)
+		request := makePostRequest(t, ctx.Router, fmt.Sprintf("/api/posts/%d/vote", post.ID), map[string]any{"type": "up"}, user, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
 
-		req := httptest.NewRequest("POST", fmt.Sprintf("/api/posts/%d/vote", post.ID), bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", "Bearer "+user.Token)
-		req = testutils.WithUserContext(req, middleware.UserIDKey, user.User.ID)
-		req = testutils.WithURLParams(req, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
-		rec := httptest.NewRecorder()
+		assertStatus(t, request, http.StatusOK)
 
-		ctx.Router.ServeHTTP(rec, req)
+		request = makePostRequestWithJSON(t, ctx.Router, fmt.Sprintf("/api/posts/%d/vote", post.ID), map[string]any{"type": "up"})
 
-		assertStatus(t, rec, http.StatusOK)
-
-		req = httptest.NewRequest("POST", fmt.Sprintf("/api/posts/%d/vote", post.ID), bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		rec = httptest.NewRecorder()
-
-		ctx.Router.ServeHTTP(rec, req)
-
-		assertErrorResponse(t, rec, http.StatusUnauthorized)
+		assertErrorResponse(t, request, http.StatusUnauthorized)
 	})
 
 	t.Run("Protected_Endpoint_Without_Auth", func(t *testing.T) {
 		ctx.Suite.EmailSender.Reset()
 
-		req := httptest.NewRequest("POST", "/api/posts", bytes.NewBuffer([]byte("{}")))
-		req.Header.Set("Content-Type", "application/json")
-		rec := httptest.NewRecorder()
+		request := makePostRequestWithJSON(t, ctx.Router, "/api/posts", map[string]any{})
 
-		ctx.Router.ServeHTTP(rec, req)
-
-		assertErrorResponse(t, rec, http.StatusUnauthorized)
+		assertErrorResponse(t, request, http.StatusUnauthorized)
 	})
 
 	t.Run("Protected_Endpoint_With_Invalid_Token", func(t *testing.T) {
 		ctx.Suite.EmailSender.Reset()
 
-		req := httptest.NewRequest("POST", "/api/posts", bytes.NewBuffer([]byte("{}")))
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", "Bearer invalid-token")
-		rec := httptest.NewRecorder()
+		request := makeRequest(t, ctx.Router, "POST", "/api/posts", []byte("{}"), map[string]string{"Content-Type": "application/json", "Authorization": "Bearer invalid-token"})
 
-		ctx.Router.ServeHTTP(rec, req)
-
-		assertErrorResponse(t, rec, http.StatusUnauthorized)
+		assertErrorResponse(t, request, http.StatusUnauthorized)
 	})
 
 	t.Run("User_List_Authorization", func(t *testing.T) {
 		ctx.Suite.EmailSender.Reset()
 		user := createAuthenticatedUser(t, ctx.AuthService, ctx.Suite.UserRepo, "list_auth_user", "list_auth@example.com")
 
-		req := httptest.NewRequest("GET", "/api/users", nil)
-		req.Header.Set("Authorization", "Bearer "+user.Token)
-		req = testutils.WithUserContext(req, middleware.UserIDKey, user.User.ID)
-		rec := httptest.NewRecorder()
+		request := makeAuthenticatedGetRequest(t, ctx.Router, "/api/users", user, nil)
 
-		ctx.Router.ServeHTTP(rec, req)
+		assertStatus(t, request, http.StatusOK)
 
-		assertStatus(t, rec, http.StatusOK)
+		request = makeGetRequest(t, ctx.Router, "/api/users")
 
-		req = httptest.NewRequest("GET", "/api/users", nil)
-		rec = httptest.NewRecorder()
-
-		ctx.Router.ServeHTTP(rec, req)
-
-		assertErrorResponse(t, rec, http.StatusUnauthorized)
+		assertErrorResponse(t, request, http.StatusUnauthorized)
 	})
 
 	t.Run("Refresh_Token_Authorization", func(t *testing.T) {
@@ -237,18 +146,9 @@ func TestIntegration_CrossComponentAuthorization(t *testing.T) {
 			t.Fatalf("Failed to login: %v", err)
 		}
 
-		refreshBody := map[string]string{
-			"refresh_token": loginResult.RefreshToken,
-		}
-		body, _ := json.Marshal(refreshBody)
+		request := makePostRequestWithJSON(t, ctx.Router, "/api/auth/refresh", map[string]any{"refresh_token": loginResult.RefreshToken})
 
-		req := httptest.NewRequest("POST", "/api/auth/refresh", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		rec := httptest.NewRecorder()
-
-		ctx.Router.ServeHTTP(rec, req)
-
-		response := assertJSONResponse(t, rec, http.StatusOK)
+		response := assertJSONResponse(t, request, http.StatusOK)
 		if response == nil {
 			return
 		}
@@ -260,17 +160,8 @@ func TestIntegration_CrossComponentAuthorization(t *testing.T) {
 			t.Error("Expected data field in refresh response")
 		}
 
-		refreshBody = map[string]string{
-			"refresh_token": "invalid-refresh-token",
-		}
-		body, _ = json.Marshal(refreshBody)
+		request = makePostRequestWithJSON(t, ctx.Router, "/api/auth/refresh", map[string]any{"refresh_token": "invalid-refresh-token"})
 
-		req = httptest.NewRequest("POST", "/api/auth/refresh", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		rec = httptest.NewRecorder()
-
-		ctx.Router.ServeHTTP(rec, req)
-
-		assertErrorResponse(t, rec, http.StatusUnauthorized)
+		assertErrorResponse(t, request, http.StatusUnauthorized)
 	})
 }
