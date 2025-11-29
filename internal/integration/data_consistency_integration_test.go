@@ -181,15 +181,9 @@ func TestIntegration_DataConsistency(t *testing.T) {
 		firstPost := testutils.CreatePostWithRepo(t, ctx.Suite.PostRepo, user.User.ID, "Post 1", "https://example.com/post1")
 		secondPost := testutils.CreatePostWithRepo(t, ctx.Suite.PostRepo, user.User.ID, "Post 2", "https://example.com/post2")
 
-		request := httptest.NewRequest("GET", fmt.Sprintf("/api/users/%d/posts", user.User.ID), nil)
-		request.Header.Set("Authorization", "Bearer "+user.Token)
-		request = testutils.WithUserContext(request, middleware.UserIDKey, user.User.ID)
-		request = testutils.WithURLParams(request, map[string]string{"id": fmt.Sprintf("%d", user.User.ID)})
-		recorder := httptest.NewRecorder()
+		request := makeAuthenticatedGetRequest(t, ctx.Router, fmt.Sprintf("/api/users/%d/posts", user.User.ID), user, map[string]string{"id": fmt.Sprintf("%d", user.User.ID)})
 
-		ctx.Router.ServeHTTP(recorder, request)
-
-		response := assertJSONResponse(t, recorder, http.StatusOK)
+		response := assertJSONResponse(t, request, http.StatusOK)
 		if response == nil {
 			return
 		}

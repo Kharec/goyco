@@ -152,9 +152,9 @@ func TestIntegration_EndToEndUserJourneys(t *testing.T) {
 
 		if data, ok := getDataFromResponse(votesResponse); ok {
 			if votes, ok := data["votes"].([]any); ok && len(votes) > 0 {
-				unvoteRec := makeDeleteRequest(t, ctx.Router, fmt.Sprintf("/api/posts/%d/vote", post.ID), user, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
+				unvoteRequest := makeDeleteRequest(t, ctx.Router, fmt.Sprintf("/api/posts/%d/vote", post.ID), user, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
 
-				assertStatus(t, unvoteRec, http.StatusOK)
+				assertStatus(t, unvoteRequest, http.StatusOK)
 			}
 		}
 	})

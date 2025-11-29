@@ -1,17 +1,12 @@
 package integration
 
 import (
-	"bytes"
 	"compress/gzip"
-	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
-
-	"goyco/internal/middleware"
-	"goyco/internal/testutils"
 )
 
 func TestIntegration_Compression(t *testing.T) {
@@ -19,11 +14,11 @@ func TestIntegration_Compression(t *testing.T) {
 	router := ctx.Router
 
 	t.Run("Response_Compression_Gzip", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/api/posts", nil)
-		req.Header.Set("Accept-Encoding", "gzip")
+		request := httptest.NewRequest("GET", "/api/posts", nil)
+		request.Header.Set("Accept-Encoding", "gzip")
 		recorder := httptest.NewRecorder()
 
-		router.ServeHTTP(recorder, req)
+		router.ServeHTTP(recorder, request)
 
 		contentEncoding := recorder.Header().Get("Content-Encoding")
 		if contentEncoding != "" && strings.Contains(contentEncoding, "gzip") {
@@ -48,11 +43,11 @@ func TestIntegration_Compression(t *testing.T) {
 	})
 
 	t.Run("Compression_Headers_Present", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/api/posts", nil)
-		req.Header.Set("Accept-Encoding", "gzip, deflate")
+		request := httptest.NewRequest("GET", "/api/posts", nil)
+		request.Header.Set("Accept-Encoding", "gzip, deflate")
 		recorder := httptest.NewRecorder()
 
-		router.ServeHTTP(recorder, req)
+		router.ServeHTTP(recorder, request)
 
 		if recorder.Header().Get("Vary") != "" {
 			assertHeaderContains(t, recorder, "Vary", "Accept-Encoding")
@@ -67,25 +62,19 @@ func TestIntegration_StaticFiles(t *testing.T) {
 	router := ctx.Router
 
 	t.Run("Robots_Txt_Served", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/robots.txt", nil)
-		recorder := httptest.NewRecorder()
+		request := makeGetRequest(t, router, "/robots.txt")
 
-		router.ServeHTTP(recorder, req)
+		assertStatus(t, request, http.StatusOK)
 
-		assertStatus(t, recorder, http.StatusOK)
-
-		if !strings.Contains(recorder.Body.String(), "User-agent") {
+		if !strings.Contains(request.Body.String(), "User-agent") {
 			t.Error("Expected robots.txt content")
 		}
 	})
 
 	t.Run("Static_Files_Security_Headers", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/robots.txt", nil)
-		recorder := httptest.NewRecorder()
+		request := makeGetRequest(t, router, "/robots.txt")
 
-		router.ServeHTTP(recorder, req)
-
-		if recorder.Header().Get("X-Content-Type-Options") == "" {
+		if request.Header().Get("X-Content-Type-Options") == "" {
 			t.Log("Security headers may not be applied to all static files")
 		}
 	})
@@ -101,32 +90,22 @@ func TestIntegration_URLMetadata(t *testing.T) {
 
 		ctx.Suite.TitleFetcher.SetTitle("Fetched Title")
 
-		postBody := map[string]string{
+		postBody := map[string]any{
 			"title":   "Test Post",
 			"url":     "https://example.com/metadata-test",
 			"content": "Test content",
 		}
-		body, _ := json.Marshal(postBody)
-		req := httptest.NewRequest("POST", "/api/posts", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", "Bearer "+user.Token)
-		req = testutils.WithUserContext(req, middleware.UserIDKey, user.User.ID)
-		recorder := httptest.NewRecorder()
+		request := makePostRequest(t, router, "/api/posts", postBody, user, nil)
 
-		router.ServeHTTP(recorder, req)
-
-		assertStatus(t, recorder, http.StatusCreated)
+		assertStatus(t, request, http.StatusCreated)
 	})
 
 	t.Run("URL_Metadata_Endpoint", func(t *testing.T) {
 		ctx.Suite.TitleFetcher.SetTitle("Endpoint Title")
 
-		req := httptest.NewRequest("GET", "/api/posts/title?url=https://example.com/test", nil)
-		recorder := httptest.NewRecorder()
+		request := makeGetRequest(t, router, "/api/posts/title?url=https://example.com/test")
 
-		router.ServeHTTP(recorder, req)
-
-		response := assertJSONResponse(t, recorder, http.StatusOK)
+		response := assertJSONResponse(t, request, http.StatusOK)
 		if response != nil {
 			if data, ok := response["data"].(map[string]any); ok {
 				if _, exists := data["title"]; !exists {

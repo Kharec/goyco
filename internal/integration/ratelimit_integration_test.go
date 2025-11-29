@@ -51,24 +51,24 @@ func TestIntegration_RateLimiting(t *testing.T) {
 		router, _ := setupRateLimitRouter(t, rateLimitConfig)
 
 		for i := 0; i < 2; i++ {
-			req := httptest.NewRequest("POST", "/api/auth/login", bytes.NewBufferString(`{"username":"test","password":"test"}`))
-			req.Header.Set("Content-Type", "application/json")
-			rec := httptest.NewRecorder()
-			router.ServeHTTP(rec, req)
+			request := httptest.NewRequest("POST", "/api/auth/login", bytes.NewBufferString(`{"username":"test","password":"test"}`))
+			request.Header.Set("Content-Type", "application/json")
+			recorder := httptest.NewRecorder()
+			router.ServeHTTP(recorder, request)
 		}
 
-		req := httptest.NewRequest("POST", "/api/auth/login", bytes.NewBufferString(`{"username":"test","password":"test"}`))
-		req.Header.Set("Content-Type", "application/json")
-		rec := httptest.NewRecorder()
+		request := httptest.NewRequest("POST", "/api/auth/login", bytes.NewBufferString(`{"username":"test","password":"test"}`))
+		request.Header.Set("Content-Type", "application/json")
+		recorder := httptest.NewRecorder()
 
-		router.ServeHTTP(rec, req)
+		router.ServeHTTP(recorder, request)
 
-		assertErrorResponse(t, rec, http.StatusTooManyRequests)
+		assertErrorResponse(t, recorder, http.StatusTooManyRequests)
 
-		assertHeader(t, rec, "Retry-After", "")
+		assertHeader(t, recorder, "Retry-After")
 
 		var response map[string]any
-		if err := json.NewDecoder(rec.Body).Decode(&response); err == nil {
+		if err := json.NewDecoder(recorder.Body).Decode(&response); err == nil {
 			if _, exists := response["retry_after"]; !exists {
 				t.Error("Expected retry_after in response")
 			}
@@ -81,17 +81,17 @@ func TestIntegration_RateLimiting(t *testing.T) {
 		router, _ := setupRateLimitRouter(t, rateLimitConfig)
 
 		for i := 0; i < 5; i++ {
-			req := httptest.NewRequest("GET", "/api/posts", nil)
-			rec := httptest.NewRecorder()
-			router.ServeHTTP(rec, req)
+			request := httptest.NewRequest("GET", "/api/posts", nil)
+			recorder := httptest.NewRecorder()
+			router.ServeHTTP(recorder, request)
 		}
 
-		req := httptest.NewRequest("GET", "/api/posts", nil)
-		rec := httptest.NewRecorder()
+		request := httptest.NewRequest("GET", "/api/posts", nil)
+		recorder := httptest.NewRecorder()
 
-		router.ServeHTTP(rec, req)
+		router.ServeHTTP(recorder, request)
 
-		assertErrorResponse(t, rec, http.StatusTooManyRequests)
+		assertErrorResponse(t, recorder, http.StatusTooManyRequests)
 	})
 
 	t.Run("Health_RateLimit_Enforced", func(t *testing.T) {
@@ -100,17 +100,17 @@ func TestIntegration_RateLimiting(t *testing.T) {
 		router, _ := setupRateLimitRouter(t, rateLimitConfig)
 
 		for i := 0; i < 3; i++ {
-			req := httptest.NewRequest("GET", "/health", nil)
-			rec := httptest.NewRecorder()
-			router.ServeHTTP(rec, req)
+			request := httptest.NewRequest("GET", "/health", nil)
+			recorder := httptest.NewRecorder()
+			router.ServeHTTP(recorder, request)
 		}
 
-		req := httptest.NewRequest("GET", "/health", nil)
-		rec := httptest.NewRecorder()
+		request := httptest.NewRequest("GET", "/health", nil)
+		recorder := httptest.NewRecorder()
 
-		router.ServeHTTP(rec, req)
+		router.ServeHTTP(recorder, request)
 
-		assertErrorResponse(t, rec, http.StatusTooManyRequests)
+		assertErrorResponse(t, recorder, http.StatusTooManyRequests)
 	})
 
 	t.Run("Metrics_RateLimit_Enforced", func(t *testing.T) {
@@ -119,17 +119,17 @@ func TestIntegration_RateLimiting(t *testing.T) {
 		router, _ := setupRateLimitRouter(t, rateLimitConfig)
 
 		for i := 0; i < 2; i++ {
-			req := httptest.NewRequest("GET", "/metrics", nil)
-			rec := httptest.NewRecorder()
-			router.ServeHTTP(rec, req)
+			request := httptest.NewRequest("GET", "/metrics", nil)
+			recorder := httptest.NewRecorder()
+			router.ServeHTTP(recorder, request)
 		}
 
-		req := httptest.NewRequest("GET", "/metrics", nil)
-		rec := httptest.NewRecorder()
+		request := httptest.NewRequest("GET", "/metrics", nil)
+		recorder := httptest.NewRecorder()
 
-		router.ServeHTTP(rec, req)
+		router.ServeHTTP(recorder, request)
 
-		assertErrorResponse(t, rec, http.StatusTooManyRequests)
+		assertErrorResponse(t, recorder, http.StatusTooManyRequests)
 	})
 
 	t.Run("RateLimit_Different_Endpoints_Independent", func(t *testing.T) {
@@ -139,17 +139,17 @@ func TestIntegration_RateLimiting(t *testing.T) {
 		router, _ := setupRateLimitRouter(t, rateLimitConfig)
 
 		for i := 0; i < 2; i++ {
-			req := httptest.NewRequest("POST", "/api/auth/login", bytes.NewBufferString(`{"username":"test","password":"test"}`))
-			req.Header.Set("Content-Type", "application/json")
-			rec := httptest.NewRecorder()
-			router.ServeHTTP(rec, req)
+			request := httptest.NewRequest("POST", "/api/auth/login", bytes.NewBufferString(`{"username":"test","password":"test"}`))
+			request.Header.Set("Content-Type", "application/json")
+			recorder := httptest.NewRecorder()
+			router.ServeHTTP(recorder, request)
 		}
 
-		req := httptest.NewRequest("GET", "/api/posts", nil)
-		rec := httptest.NewRecorder()
-		router.ServeHTTP(rec, req)
+		request := httptest.NewRequest("GET", "/api/posts", nil)
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
 
-		assertStatus(t, rec, http.StatusOK)
+		assertStatus(t, recorder, http.StatusOK)
 	})
 
 	t.Run("RateLimit_With_Authentication", func(t *testing.T) {
@@ -166,20 +166,20 @@ func TestIntegration_RateLimiting(t *testing.T) {
 		user := createAuthenticatedUser(t, authService, suite.UserRepo, uniqueTestUsername(t, "ratelimit_auth"), uniqueTestEmail(t, "ratelimit_auth"))
 
 		for i := 0; i < 3; i++ {
-			req := httptest.NewRequest("GET", "/api/auth/me", nil)
-			req.Header.Set("Authorization", "Bearer "+user.Token)
-			req = testutils.WithUserContext(req, middleware.UserIDKey, user.User.ID)
-			rec := httptest.NewRecorder()
-			router.ServeHTTP(rec, req)
+			request := httptest.NewRequest("GET", "/api/auth/me", nil)
+			request.Header.Set("Authorization", "Bearer "+user.Token)
+			request = testutils.WithUserContext(request, middleware.UserIDKey, user.User.ID)
+			recorder := httptest.NewRecorder()
+			router.ServeHTTP(recorder, request)
 		}
 
-		req := httptest.NewRequest("GET", "/api/auth/me", nil)
-		req.Header.Set("Authorization", "Bearer "+user.Token)
-		req = testutils.WithUserContext(req, middleware.UserIDKey, user.User.ID)
-		rec := httptest.NewRecorder()
+		request := httptest.NewRequest("GET", "/api/auth/me", nil)
+		request.Header.Set("Authorization", "Bearer "+user.Token)
+		request = testutils.WithUserContext(request, middleware.UserIDKey, user.User.ID)
+		recorder := httptest.NewRecorder()
 
-		router.ServeHTTP(rec, req)
+		router.ServeHTTP(recorder, request)
 
-		assertErrorResponse(t, rec, http.StatusTooManyRequests)
+		assertErrorResponse(t, recorder, http.StatusTooManyRequests)
 	})
 }

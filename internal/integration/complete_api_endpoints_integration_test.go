@@ -290,10 +290,10 @@ func TestIntegration_CompleteAPIEndpoints(t *testing.T) {
 				}
 			}
 
-			rec2 := makeGetRequest(t, ctx.Router, "/api/posts/search?q=Searchable&limit=1&offset=1")
+			secondRequest := makeGetRequest(t, ctx.Router, "/api/posts/search?q=Searchable&limit=1&offset=1")
 
-			response2 := assertJSONResponse(t, rec2, http.StatusOK)
-			if data, ok := getDataFromResponse(response2); ok {
+			secondResponse := assertJSONResponse(t, secondRequest, http.StatusOK)
+			if data, ok := getDataFromResponse(secondResponse); ok {
 				if posts, ok := data["posts"].([]any); ok {
 					if len(posts) > 1 {
 						t.Errorf("Expected at most 1 post with limit=1 and offset=1, got %d", len(posts))

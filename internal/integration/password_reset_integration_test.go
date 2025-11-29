@@ -1,8 +1,6 @@
 package integration
 
 import (
-	"bytes"
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -32,17 +30,12 @@ func TestIntegration_PasswordReset_CompleteFlow(t *testing.T) {
 			t.Fatalf("Failed to create user: %v", err)
 		}
 
-		reqBody := map[string]string{
+		reqBody := map[string]any{
 			"username_or_email": "reset_user",
 		}
-		body, _ := json.Marshal(reqBody)
-		req := httptest.NewRequest("POST", "/api/auth/forgot-password", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		rec := httptest.NewRecorder()
+		request := makePostRequestWithJSON(t, router, "/api/auth/forgot-password", reqBody)
 
-		router.ServeHTTP(rec, req)
-
-		response := assertJSONResponse(t, rec, http.StatusOK)
+		response := assertJSONResponse(t, request, http.StatusOK)
 		if response != nil {
 			if success, ok := response["success"].(bool); !ok || !success {
 				t.Error("Expected success=true")
@@ -77,18 +70,13 @@ func TestIntegration_PasswordReset_CompleteFlow(t *testing.T) {
 			t.Fatal("Expected password reset token")
 		}
 
-		reqBody := map[string]string{
+		reqBody := map[string]any{
 			"token":        resetToken,
 			"new_password": "NewPassword123!",
 		}
-		body, _ := json.Marshal(reqBody)
-		req := httptest.NewRequest("POST", "/api/auth/reset-password", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		rec := httptest.NewRecorder()
+		request := makePostRequestWithJSON(t, router, "/api/auth/reset-password", reqBody)
 
-		router.ServeHTTP(rec, req)
-
-		assertStatus(t, rec, http.StatusOK)
+		assertStatus(t, request, http.StatusOK)
 
 		loginResult, err := ctx.AuthService.Login("reset_complete_user", "NewPassword123!")
 		if err != nil {
@@ -120,14 +108,14 @@ func TestIntegration_PasswordReset_CompleteFlow(t *testing.T) {
 		reqBody := url.Values{}
 		reqBody.Set("username_or_email", "page_reset_user")
 		reqBody.Set("csrf_token", csrfToken)
-		req := httptest.NewRequest("POST", "/forgot-password", strings.NewReader(reqBody.Encode()))
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		req.AddCookie(&http.Cookie{Name: "csrf_token", Value: csrfToken})
-		rec := httptest.NewRecorder()
+		request := httptest.NewRequest("POST", "/forgot-password", strings.NewReader(reqBody.Encode()))
+		request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		request.AddCookie(&http.Cookie{Name: "csrf_token", Value: csrfToken})
+		recorder := httptest.NewRecorder()
 
-		pageRouter.ServeHTTP(rec, req)
+		pageRouter.ServeHTTP(recorder, request)
 
-		assertStatusRange(t, rec, http.StatusOK, http.StatusSeeOther)
+		assertStatusRange(t, recorder, http.StatusOK, http.StatusSeeOther)
 
 		resetToken := pageCtx.Suite.EmailSender.PasswordResetToken()
 		if resetToken == "" {
@@ -166,33 +154,23 @@ func TestIntegration_PasswordReset_CompleteFlow(t *testing.T) {
 			t.Fatalf("Failed to update user: %v", err)
 		}
 
-		reqBody := map[string]string{
+		reqBody := map[string]any{
 			"token":        resetToken,
 			"new_password": "NewPassword123!",
 		}
-		body, _ := json.Marshal(reqBody)
-		req := httptest.NewRequest("POST", "/api/auth/reset-password", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		rec := httptest.NewRecorder()
+		request := makePostRequestWithJSON(t, router, "/api/auth/reset-password", reqBody)
 
-		router.ServeHTTP(rec, req)
-
-		assertErrorResponse(t, rec, http.StatusBadRequest)
+		assertErrorResponse(t, request, http.StatusBadRequest)
 	})
 
 	t.Run("PasswordReset_InvalidToken", func(t *testing.T) {
-		reqBody := map[string]string{
+		reqBody := map[string]any{
 			"token":        "invalid-token",
 			"new_password": "NewPassword123!",
 		}
-		body, _ := json.Marshal(reqBody)
-		req := httptest.NewRequest("POST", "/api/auth/reset-password", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		rec := httptest.NewRecorder()
+		request := makePostRequestWithJSON(t, router, "/api/auth/reset-password", reqBody)
 
-		router.ServeHTTP(rec, req)
-
-		assertErrorResponse(t, rec, http.StatusBadRequest)
+		assertErrorResponse(t, request, http.StatusBadRequest)
 	})
 
 	t.Run("PasswordReset_WeakPassword", func(t *testing.T) {
@@ -214,18 +192,13 @@ func TestIntegration_PasswordReset_CompleteFlow(t *testing.T) {
 
 		resetToken := ctx.Suite.EmailSender.PasswordResetToken()
 
-		reqBody := map[string]string{
+		reqBody := map[string]any{
 			"token":        resetToken,
 			"new_password": "123",
 		}
-		body, _ := json.Marshal(reqBody)
-		req := httptest.NewRequest("POST", "/api/auth/reset-password", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		rec := httptest.NewRecorder()
+		request := makePostRequestWithJSON(t, router, "/api/auth/reset-password", reqBody)
 
-		router.ServeHTTP(rec, req)
-
-		assertErrorResponse(t, rec, http.StatusBadRequest)
+		assertErrorResponse(t, request, http.StatusBadRequest)
 	})
 
 	t.Run("PasswordReset_EmailIntegration", func(t *testing.T) {
@@ -243,17 +216,12 @@ func TestIntegration_PasswordReset_CompleteFlow(t *testing.T) {
 			t.Fatalf("Failed to create user: %v", err)
 		}
 
-		reqBody := map[string]string{
+		reqBody := map[string]any{
 			"username_or_email": "email_reset@example.com",
 		}
-		body, _ := json.Marshal(reqBody)
-		req := httptest.NewRequest("POST", "/api/auth/forgot-password", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		rec := httptest.NewRecorder()
+		request := makePostRequestWithJSON(t, freshCtx.Router, "/api/auth/forgot-password", reqBody)
 
-		freshCtx.Router.ServeHTTP(rec, req)
-
-		assertStatus(t, rec, http.StatusOK)
+		assertStatus(t, request, http.StatusOK)
 
 		resetToken := freshCtx.Suite.EmailSender.PasswordResetToken()
 		if resetToken == "" {

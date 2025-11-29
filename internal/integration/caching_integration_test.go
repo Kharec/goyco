@@ -53,25 +53,25 @@ func TestIntegration_Caching(t *testing.T) {
 	router := ctx.Router
 
 	t.Run("Cache_Hit_On_Repeated_Requests", func(t *testing.T) {
-		req1 := httptest.NewRequest("GET", "/api/posts", nil)
-		rec1 := httptest.NewRecorder()
-		router.ServeHTTP(rec1, req1)
+		firstRequest := httptest.NewRequest("GET", "/api/posts", nil)
+		firstRecorder := httptest.NewRecorder()
+		router.ServeHTTP(firstRecorder, firstRequest)
 
 		time.Sleep(10 * time.Millisecond)
 
-		req2 := httptest.NewRequest("GET", "/api/posts", nil)
-		rec2 := httptest.NewRecorder()
-		router.ServeHTTP(rec2, req2)
+		secondRequest := httptest.NewRequest("GET", "/api/posts", nil)
+		secondRecorder := httptest.NewRecorder()
+		router.ServeHTTP(secondRecorder, secondRequest)
 
-		if rec1.Code != rec2.Code {
+		if firstRecorder.Code != secondRecorder.Code {
 			t.Error("Cached responses should have same status code")
 		}
 
-		if rec1.Body.String() != rec2.Body.String() {
+		if firstRecorder.Body.String() != secondRecorder.Body.String() {
 			t.Error("Cached responses should have same body")
 		}
 
-		if rec2.Header().Get("X-Cache") != "HIT" {
+		if secondRecorder.Header().Get("X-Cache") != "HIT" {
 			t.Log("Cache may not be enabled for this path or response may not be cacheable")
 		}
 	})
@@ -80,9 +80,9 @@ func TestIntegration_Caching(t *testing.T) {
 		ctx.Suite.EmailSender.Reset()
 		user := createUserWithCleanup(t, ctx, "cache_post_user", "cache_post@example.com")
 
-		req1 := httptest.NewRequest("GET", "/api/posts", nil)
-		rec1 := httptest.NewRecorder()
-		router.ServeHTTP(rec1, req1)
+		firstRequest := httptest.NewRequest("GET", "/api/posts", nil)
+		firstRecorder := httptest.NewRecorder()
+		router.ServeHTTP(firstRecorder, firstRequest)
 
 		time.Sleep(10 * time.Millisecond)
 
@@ -92,12 +92,12 @@ func TestIntegration_Caching(t *testing.T) {
 			"content": "Test content",
 		}
 		body, _ := json.Marshal(postBody)
-		req2 := httptest.NewRequest("POST", "/api/posts", bytes.NewBuffer(body))
-		req2.Header.Set("Content-Type", "application/json")
-		req2.Header.Set("Authorization", "Bearer "+user.Token)
-		req2 = testutils.WithUserContext(req2, middleware.UserIDKey, user.User.ID)
-		rec2 := httptest.NewRecorder()
-		router.ServeHTTP(rec2, req2)
+		secondRequest := httptest.NewRequest("POST", "/api/posts", bytes.NewBuffer(body))
+		secondRequest.Header.Set("Content-Type", "application/json")
+		secondRequest.Header.Set("Authorization", "Bearer "+user.Token)
+		secondRequest = testutils.WithUserContext(secondRequest, middleware.UserIDKey, user.User.ID)
+		secondRecorder := httptest.NewRecorder()
+		router.ServeHTTP(secondRecorder, secondRequest)
 
 		time.Sleep(10 * time.Millisecond)
 
@@ -105,15 +105,15 @@ func TestIntegration_Caching(t *testing.T) {
 		rec3 := httptest.NewRecorder()
 		router.ServeHTTP(rec3, req3)
 
-		if rec1.Body.String() == rec3.Body.String() && rec1.Code == http.StatusOK && rec3.Code == http.StatusOK {
+		if firstRecorder.Body.String() == rec3.Body.String() && firstRecorder.Code == http.StatusOK && rec3.Code == http.StatusOK {
 			t.Log("Cache invalidation may not be working or cache may not be enabled")
 		}
 	})
 
 	t.Run("Cache_Headers_Present", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/api/posts", nil)
+		request := httptest.NewRequest("GET", "/api/posts", nil)
 		recorder := httptest.NewRecorder()
-		router.ServeHTTP(recorder, req)
+		router.ServeHTTP(recorder, request)
 
 		if recorder.Header().Get("Cache-Control") == "" && recorder.Header().Get("X-Cache") == "" {
 			t.Log("Cache headers may not be present for all responses")
@@ -126,18 +126,18 @@ func TestIntegration_Caching(t *testing.T) {
 
 		post := testutils.CreatePostWithRepo(t, ctx.Suite.PostRepo, user.User.ID, "Cache Delete Post", "https://example.com/cache-delete")
 
-		req1 := httptest.NewRequest("GET", "/api/posts", nil)
-		rec1 := httptest.NewRecorder()
-		router.ServeHTTP(rec1, req1)
+		firstRequest := httptest.NewRequest("GET", "/api/posts", nil)
+		firstRecorder := httptest.NewRecorder()
+		router.ServeHTTP(firstRecorder, firstRequest)
 
 		time.Sleep(10 * time.Millisecond)
 
-		req2 := httptest.NewRequest("DELETE", "/api/posts/"+fmt.Sprintf("%d", post.ID), nil)
-		req2.Header.Set("Authorization", "Bearer "+user.Token)
-		req2 = testutils.WithUserContext(req2, middleware.UserIDKey, user.User.ID)
-		req2 = testutils.WithURLParams(req2, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
-		rec2 := httptest.NewRecorder()
-		router.ServeHTTP(rec2, req2)
+		secondRequest := httptest.NewRequest("DELETE", "/api/posts/"+fmt.Sprintf("%d", post.ID), nil)
+		secondRequest.Header.Set("Authorization", "Bearer "+user.Token)
+		secondRequest = testutils.WithUserContext(secondRequest, middleware.UserIDKey, user.User.ID)
+		secondRequest = testutils.WithURLParams(secondRequest, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
+		secondRecorder := httptest.NewRecorder()
+		router.ServeHTTP(secondRecorder, secondRequest)
 
 		time.Sleep(10 * time.Millisecond)
 
@@ -145,7 +145,7 @@ func TestIntegration_Caching(t *testing.T) {
 		rec3 := httptest.NewRecorder()
 		router.ServeHTTP(rec3, req3)
 
-		if rec1.Body.String() == rec3.Body.String() && rec1.Code == http.StatusOK && rec3.Code == http.StatusOK {
+		if firstRecorder.Body.String() == rec3.Body.String() && firstRecorder.Code == http.StatusOK && rec3.Code == http.StatusOK {
 			t.Log("Cache invalidation may not be working or cache may not be enabled")
 		}
 	})

@@ -1,14 +1,10 @@
 package integration
 
 import (
-	"bytes"
-	"encoding/json"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"goyco/internal/database"
-	"goyco/internal/middleware"
 	"goyco/internal/testutils"
 )
 
@@ -19,19 +15,14 @@ func TestIntegration_EmailService(t *testing.T) {
 	t.Run("Registration_Email_Sent", func(t *testing.T) {
 		ctx.Suite.EmailSender.Reset()
 
-		reqBody := map[string]string{
+		reqBody := map[string]any{
 			"username": "email_reg_user",
 			"email":    "email_reg@example.com",
 			"password": "SecurePass123!",
 		}
-		body, _ := json.Marshal(reqBody)
-		req := httptest.NewRequest("POST", "/api/auth/register", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		rec := httptest.NewRecorder()
+		request := makePostRequestWithJSON(t, router, "/api/auth/register", reqBody)
 
-		router.ServeHTTP(rec, req)
-
-		assertStatus(t, rec, http.StatusCreated)
+		assertStatus(t, request, http.StatusCreated)
 
 		token := ctx.Suite.EmailSender.VerificationToken()
 		if token == "" {
@@ -52,15 +43,10 @@ func TestIntegration_EmailService(t *testing.T) {
 			t.Fatalf("Failed to create user: %v", err)
 		}
 
-		reqBody := map[string]string{
+		reqBody := map[string]any{
 			"username_or_email": "email_reset_user",
 		}
-		body, _ := json.Marshal(reqBody)
-		req := httptest.NewRequest("POST", "/api/auth/forgot-password", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		rec := httptest.NewRecorder()
-
-		router.ServeHTTP(rec, req)
+		makePostRequestWithJSON(t, router, "/api/auth/forgot-password", reqBody)
 
 		token := ctx.Suite.EmailSender.PasswordResetToken()
 		if token == "" {
@@ -72,17 +58,9 @@ func TestIntegration_EmailService(t *testing.T) {
 		ctx.Suite.EmailSender.Reset()
 		user := createAuthenticatedUser(t, ctx.AuthService, ctx.Suite.UserRepo, "email_del_user", "email_del@example.com")
 
-		reqBody := map[string]string{}
-		body, _ := json.Marshal(reqBody)
-		req := httptest.NewRequest("DELETE", "/api/auth/account", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", "Bearer "+user.Token)
-		req = testutils.WithUserContext(req, middleware.UserIDKey, user.User.ID)
-		rec := httptest.NewRecorder()
+		request := makeDeleteRequest(t, router, "/api/auth/account", user, nil)
 
-		router.ServeHTTP(rec, req)
-
-		assertStatus(t, rec, http.StatusOK)
+		assertStatus(t, request, http.StatusOK)
 
 		token := ctx.Suite.EmailSender.DeletionToken()
 		if token == "" {
@@ -94,17 +72,10 @@ func TestIntegration_EmailService(t *testing.T) {
 		ctx.Suite.EmailSender.Reset()
 		user := createAuthenticatedUser(t, ctx.AuthService, ctx.Suite.UserRepo, "email_change_user", "email_change@example.com")
 
-		reqBody := map[string]string{
+		reqBody := map[string]any{
 			"email": "newemail@example.com",
 		}
-		body, _ := json.Marshal(reqBody)
-		req := httptest.NewRequest("PUT", "/api/auth/email", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", "Bearer "+user.Token)
-		req = testutils.WithUserContext(req, middleware.UserIDKey, user.User.ID)
-		rec := httptest.NewRecorder()
-
-		router.ServeHTTP(rec, req)
+		makePutRequest(t, router, "/api/auth/email", reqBody, user, nil)
 
 		token := ctx.Suite.EmailSender.VerificationToken()
 		if token == "" {
@@ -115,17 +86,12 @@ func TestIntegration_EmailService(t *testing.T) {
 	t.Run("Email_Template_Content", func(t *testing.T) {
 		ctx.Suite.EmailSender.Reset()
 
-		reqBody := map[string]string{
+		reqBody := map[string]any{
 			"username": "template_user",
 			"email":    "template@example.com",
 			"password": "SecurePass123!",
 		}
-		body, _ := json.Marshal(reqBody)
-		req := httptest.NewRequest("POST", "/api/auth/register", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		rec := httptest.NewRecorder()
-
-		router.ServeHTTP(rec, req)
+		makePostRequestWithJSON(t, router, "/api/auth/register", reqBody)
 
 		token := ctx.Suite.EmailSender.VerificationToken()
 		if token == "" {
