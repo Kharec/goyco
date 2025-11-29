@@ -15,31 +15,31 @@ func TestIntegration_CSRF_Protection(t *testing.T) {
 	router := ctx.Router
 
 	t.Run("CSRF_Blocks_Form_Without_Token", func(t *testing.T) {
-		reqBody := url.Values{}
-		reqBody.Set("username", "testuser")
-		reqBody.Set("email", "test@example.com")
-		reqBody.Set("password", "SecurePass123!")
+		requestBody := url.Values{}
+		requestBody.Set("username", "testuser")
+		requestBody.Set("email", "test@example.com")
+		requestBody.Set("password", "SecurePass123!")
 
-		req := httptest.NewRequest("POST", "/register", strings.NewReader(reqBody.Encode()))
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		rec := httptest.NewRecorder()
+		request := httptest.NewRequest("POST", "/register", strings.NewReader(requestBody.Encode()))
+		request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		recorder := httptest.NewRecorder()
 
-		router.ServeHTTP(rec, req)
+		router.ServeHTTP(recorder, request)
 
-		if rec.Code != http.StatusForbidden {
-			t.Errorf("Expected status 403, got %d. Body: %s", rec.Code, rec.Body.String())
+		if recorder.Code != http.StatusForbidden {
+			t.Errorf("Expected status 403, got %d. Body: %s", recorder.Code, recorder.Body.String())
 		}
-		if !strings.Contains(rec.Body.String(), "Invalid CSRF token") {
+		if !strings.Contains(recorder.Body.String(), "Invalid CSRF token") {
 			t.Error("Expected CSRF error message")
 		}
 	})
 
 	t.Run("CSRF_Allows_Form_With_Valid_Token", func(t *testing.T) {
-		getReq := httptest.NewRequest("GET", "/register", nil)
-		getRec := httptest.NewRecorder()
-		router.ServeHTTP(getRec, getReq)
+		getRequest := httptest.NewRequest("GET", "/register", nil)
+		getRecorder := httptest.NewRecorder()
+		router.ServeHTTP(getRecorder, getRequest)
 
-		cookies := getRec.Result().Cookies()
+		cookies := getRecorder.Result().Cookies()
 		var csrfCookie *http.Cookie
 		for _, cookie := range cookies {
 			if cookie.Name == "csrf_token" {
@@ -54,48 +54,48 @@ func TestIntegration_CSRF_Protection(t *testing.T) {
 
 		csrfToken := csrfCookie.Value
 
-		reqBody := url.Values{}
-		reqBody.Set("username", "csrf_user")
-		reqBody.Set("email", "csrf@example.com")
-		reqBody.Set("password", "SecurePass123!")
-		reqBody.Set("csrf_token", csrfToken)
+		requestBody := url.Values{}
+		requestBody.Set("username", "csrf_user")
+		requestBody.Set("email", "csrf@example.com")
+		requestBody.Set("password", "SecurePass123!")
+		requestBody.Set("csrf_token", csrfToken)
 
-		req := httptest.NewRequest("POST", "/register", strings.NewReader(reqBody.Encode()))
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		req.AddCookie(csrfCookie)
-		rec := httptest.NewRecorder()
+		request := httptest.NewRequest("POST", "/register", strings.NewReader(requestBody.Encode()))
+		request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		request.AddCookie(csrfCookie)
+		recorder := httptest.NewRecorder()
 
-		router.ServeHTTP(rec, req)
+		router.ServeHTTP(recorder, request)
 
-		if rec.Code == http.StatusForbidden {
+		if recorder.Code == http.StatusForbidden {
 			t.Error("Expected form submission with valid CSRF token to succeed")
 		}
 	})
 
 	t.Run("CSRF_Allows_API_Requests", func(t *testing.T) {
-		reqBody := map[string]string{
+		requestBody := map[string]string{
 			"username": "api_user",
 			"email":    "api@example.com",
 			"password": "SecurePass123!",
 		}
-		body, _ := json.Marshal(reqBody)
-		req := httptest.NewRequest("POST", "/api/auth/register", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		rec := httptest.NewRecorder()
+		body, _ := json.Marshal(requestBody)
+		request := httptest.NewRequest("POST", "/api/auth/register", bytes.NewBuffer(body))
+		request.Header.Set("Content-Type", "application/json")
+		recorder := httptest.NewRecorder()
 
-		router.ServeHTTP(rec, req)
+		router.ServeHTTP(recorder, request)
 
-		if rec.Code == http.StatusForbidden {
+		if recorder.Code == http.StatusForbidden {
 			t.Error("Expected API requests to bypass CSRF protection")
 		}
 	})
 
 	t.Run("CSRF_Blocks_Mismatched_Token", func(t *testing.T) {
-		getReq := httptest.NewRequest("GET", "/register", nil)
-		getRec := httptest.NewRecorder()
-		router.ServeHTTP(getRec, getReq)
+		getRequest := httptest.NewRequest("GET", "/register", nil)
+		getRecorder := httptest.NewRecorder()
+		router.ServeHTTP(getRecorder, getRequest)
 
-		cookies := getRec.Result().Cookies()
+		cookies := getRecorder.Result().Cookies()
 		var csrfCookie *http.Cookie
 		for _, cookie := range cookies {
 			if cookie.Name == "csrf_token" {
@@ -108,44 +108,44 @@ func TestIntegration_CSRF_Protection(t *testing.T) {
 			t.Fatal("Expected CSRF cookie to be set")
 		}
 
-		reqBody := url.Values{}
-		reqBody.Set("username", "mismatch_user")
-		reqBody.Set("email", "mismatch@example.com")
-		reqBody.Set("password", "SecurePass123!")
-		reqBody.Set("csrf_token", "wrong-token")
+		requestBody := url.Values{}
+		requestBody.Set("username", "mismatch_user")
+		requestBody.Set("email", "mismatch@example.com")
+		requestBody.Set("password", "SecurePass123!")
+		requestBody.Set("csrf_token", "wrong-token")
 
-		req := httptest.NewRequest("POST", "/register", strings.NewReader(reqBody.Encode()))
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		req.AddCookie(csrfCookie)
-		rec := httptest.NewRecorder()
+		request := httptest.NewRequest("POST", "/register", strings.NewReader(requestBody.Encode()))
+		request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		request.AddCookie(csrfCookie)
+		recorder := httptest.NewRecorder()
 
-		router.ServeHTTP(rec, req)
+		router.ServeHTTP(recorder, request)
 
-		if rec.Code != http.StatusForbidden {
-			t.Errorf("Expected status 403, got %d. Body: %s", rec.Code, rec.Body.String())
+		if recorder.Code != http.StatusForbidden {
+			t.Errorf("Expected status 403, got %d. Body: %s", recorder.Code, recorder.Body.String())
 		}
-		if !strings.Contains(rec.Body.String(), "Invalid CSRF token") {
+		if !strings.Contains(recorder.Body.String(), "Invalid CSRF token") {
 			t.Error("Expected CSRF error message")
 		}
 	})
 
 	t.Run("CSRF_Allows_GET_Requests", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/register", nil)
-		rec := httptest.NewRecorder()
+		request := httptest.NewRequest("GET", "/register", nil)
+		recorder := httptest.NewRecorder()
 
-		router.ServeHTTP(rec, req)
+		router.ServeHTTP(recorder, request)
 
-		if rec.Code == http.StatusForbidden {
+		if recorder.Code == http.StatusForbidden {
 			t.Error("Expected GET requests to bypass CSRF protection")
 		}
 	})
 
 	t.Run("CSRF_Token_In_Header", func(t *testing.T) {
-		getReq := httptest.NewRequest("GET", "/register", nil)
-		getRec := httptest.NewRecorder()
-		router.ServeHTTP(getRec, getReq)
+		getRequest := httptest.NewRequest("GET", "/register", nil)
+		getRecorder := httptest.NewRecorder()
+		router.ServeHTTP(getRecorder, getRequest)
 
-		cookies := getRec.Result().Cookies()
+		cookies := getRecorder.Result().Cookies()
 		var csrfCookie *http.Cookie
 		for _, cookie := range cookies {
 			if cookie.Name == "csrf_token" {
@@ -160,20 +160,20 @@ func TestIntegration_CSRF_Protection(t *testing.T) {
 
 		csrfToken := csrfCookie.Value
 
-		reqBody := url.Values{}
-		reqBody.Set("username", "header_user")
-		reqBody.Set("email", "header@example.com")
-		reqBody.Set("password", "SecurePass123!")
+		requestBody := url.Values{}
+		requestBody.Set("username", "header_user")
+		requestBody.Set("email", "header@example.com")
+		requestBody.Set("password", "SecurePass123!")
 
-		req := httptest.NewRequest("POST", "/register", strings.NewReader(reqBody.Encode()))
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		req.Header.Set("X-CSRF-Token", csrfToken)
-		req.AddCookie(csrfCookie)
-		rec := httptest.NewRecorder()
+		request := httptest.NewRequest("POST", "/register", strings.NewReader(requestBody.Encode()))
+		request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		request.Header.Set("X-CSRF-Token", csrfToken)
+		request.AddCookie(csrfCookie)
+		recorder := httptest.NewRecorder()
 
-		router.ServeHTTP(rec, req)
+		router.ServeHTTP(recorder, request)
 
-		if rec.Code == http.StatusForbidden {
+		if recorder.Code == http.StatusForbidden {
 			t.Error("Expected CSRF token in header to be accepted")
 		}
 	})
@@ -182,12 +182,12 @@ func TestIntegration_CSRF_Protection(t *testing.T) {
 		ctx.Suite.EmailSender.Reset()
 		user := createUserWithCleanup(t, ctx, "csrf_form_user", "csrf_form@example.com")
 
-		getReq := httptest.NewRequest("GET", "/posts/new", nil)
-		getReq.AddCookie(&http.Cookie{Name: "auth_token", Value: user.Token})
-		getRec := httptest.NewRecorder()
-		router.ServeHTTP(getRec, getReq)
+		getRequest := httptest.NewRequest("GET", "/posts/new", nil)
+		getRequest.AddCookie(&http.Cookie{Name: "auth_token", Value: user.Token})
+		getRecorder := httptest.NewRecorder()
+		router.ServeHTTP(getRecorder, getRequest)
 
-		cookies := getRec.Result().Cookies()
+		cookies := getRecorder.Result().Cookies()
 		var csrfCookie *http.Cookie
 		for _, cookie := range cookies {
 			if cookie.Name == "csrf_token" {
@@ -202,21 +202,21 @@ func TestIntegration_CSRF_Protection(t *testing.T) {
 
 		csrfToken := csrfCookie.Value
 
-		reqBody := url.Values{}
-		reqBody.Set("title", "CSRF Test Post")
-		reqBody.Set("url", "https://example.com/csrf-test")
-		reqBody.Set("content", "Test content")
-		reqBody.Set("csrf_token", csrfToken)
+		requestBody := url.Values{}
+		requestBody.Set("title", "CSRF Test Post")
+		requestBody.Set("url", "https://example.com/csrf-test")
+		requestBody.Set("content", "Test content")
+		requestBody.Set("csrf_token", csrfToken)
 
-		req := httptest.NewRequest("POST", "/posts", strings.NewReader(reqBody.Encode()))
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		req.AddCookie(&http.Cookie{Name: "auth_token", Value: user.Token})
-		req.AddCookie(csrfCookie)
-		rec := httptest.NewRecorder()
+		request := httptest.NewRequest("POST", "/posts", strings.NewReader(requestBody.Encode()))
+		request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		request.AddCookie(&http.Cookie{Name: "auth_token", Value: user.Token})
+		request.AddCookie(csrfCookie)
+		recorder := httptest.NewRecorder()
 
-		router.ServeHTTP(rec, req)
+		router.ServeHTTP(recorder, request)
 
-		if rec.Code == http.StatusForbidden {
+		if recorder.Code == http.StatusForbidden {
 			t.Error("Expected post creation with valid CSRF token to succeed")
 		}
 	})
