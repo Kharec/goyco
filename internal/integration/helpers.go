@@ -377,15 +377,11 @@ func assertCookieCleared(t *testing.T, recorder *httptest.ResponseRecorder, name
 	}
 }
 
-func assertHeader(t *testing.T, recorder *httptest.ResponseRecorder, name, expectedValue string) {
+func assertHeader(t *testing.T, recorder *httptest.ResponseRecorder, name string) {
 	t.Helper()
 	actualValue := recorder.Header().Get(name)
-	if expectedValue == "" {
-		if actualValue == "" {
-			t.Errorf("Expected header %s to be present", name)
-		}
-	} else if actualValue != expectedValue {
-		t.Errorf("Expected header %s=%s, got %s", name, expectedValue, actualValue)
+	if actualValue == "" {
+		t.Errorf("Expected header %s to be present", name)
 	}
 }
 
