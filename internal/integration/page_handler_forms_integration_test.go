@@ -22,26 +22,26 @@ func TestIntegration_PageHandlerFormWorkflows(t *testing.T) {
 		ctx.Suite.EmailSender.Reset()
 		user := createAuthenticatedUser(t, authService, ctx.Suite.UserRepo, "settings_email_user", "settings_email@example.com")
 
-		getReq := httptest.NewRequest("GET", "/settings", nil)
-		getReq.AddCookie(&http.Cookie{Name: "auth_token", Value: user.Token})
-		getRec := httptest.NewRecorder()
-		router.ServeHTTP(getRec, getReq)
+		getRequest := httptest.NewRequest("GET", "/settings", nil)
+		getRequest.AddCookie(&http.Cookie{Name: "auth_token", Value: user.Token})
+		getRecorder := httptest.NewRecorder()
+		router.ServeHTTP(getRecorder, getRequest)
 
 		csrfToken := getCSRFToken(t, router, "/settings", &http.Cookie{Name: "auth_token", Value: user.Token})
 
-		reqBody := url.Values{}
-		reqBody.Set("email", "newemail@example.com")
-		reqBody.Set("csrf_token", csrfToken)
+		requestBody := url.Values{}
+		requestBody.Set("email", "newemail@example.com")
+		requestBody.Set("csrf_token", csrfToken)
 
-		req := httptest.NewRequest("POST", "/settings/email", strings.NewReader(reqBody.Encode()))
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		req.AddCookie(&http.Cookie{Name: "auth_token", Value: user.Token})
-		req.AddCookie(&http.Cookie{Name: "csrf_token", Value: csrfToken})
-		rec := httptest.NewRecorder()
+		request := httptest.NewRequest("POST", "/settings/email", strings.NewReader(requestBody.Encode()))
+		request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		request.AddCookie(&http.Cookie{Name: "auth_token", Value: user.Token})
+		request.AddCookie(&http.Cookie{Name: "csrf_token", Value: csrfToken})
+		recorder := httptest.NewRecorder()
 
-		router.ServeHTTP(rec, req)
+		router.ServeHTTP(recorder, request)
 
-		assertStatusRange(t, rec, http.StatusOK, http.StatusSeeOther)
+		assertStatusRange(t, recorder, http.StatusOK, http.StatusSeeOther)
 	})
 
 	t.Run("Settings_Username_Update_Form", func(t *testing.T) {
@@ -51,19 +51,19 @@ func TestIntegration_PageHandlerFormWorkflows(t *testing.T) {
 
 		csrfToken := getCSRFToken(t, router, "/settings", &http.Cookie{Name: "auth_token", Value: user.Token})
 
-		reqBody := url.Values{}
-		reqBody.Set("username", "new_username")
-		reqBody.Set("csrf_token", csrfToken)
+		requestBody := url.Values{}
+		requestBody.Set("username", "new_username")
+		requestBody.Set("csrf_token", csrfToken)
 
-		req := httptest.NewRequest("POST", "/settings/username", strings.NewReader(reqBody.Encode()))
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		req.AddCookie(&http.Cookie{Name: "auth_token", Value: user.Token})
-		req.AddCookie(&http.Cookie{Name: "csrf_token", Value: csrfToken})
-		rec := httptest.NewRecorder()
+		request := httptest.NewRequest("POST", "/settings/username", strings.NewReader(requestBody.Encode()))
+		request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		request.AddCookie(&http.Cookie{Name: "auth_token", Value: user.Token})
+		request.AddCookie(&http.Cookie{Name: "csrf_token", Value: csrfToken})
+		recorder := httptest.NewRecorder()
 
-		router.ServeHTTP(rec, req)
+		router.ServeHTTP(recorder, request)
 
-		assertStatusRange(t, rec, http.StatusOK, http.StatusSeeOther)
+		assertStatusRange(t, recorder, http.StatusOK, http.StatusSeeOther)
 	})
 
 	t.Run("Settings_Password_Update_Form", func(t *testing.T) {
@@ -74,20 +74,20 @@ func TestIntegration_PageHandlerFormWorkflows(t *testing.T) {
 
 		csrfToken := getCSRFToken(t, freshCtx.Router, "/settings", &http.Cookie{Name: "auth_token", Value: user.Token})
 
-		reqBody := url.Values{}
-		reqBody.Set("current_password", "SecurePass123!")
-		reqBody.Set("new_password", "NewSecurePass123!")
-		reqBody.Set("csrf_token", csrfToken)
+		requestBody := url.Values{}
+		requestBody.Set("current_password", "SecurePass123!")
+		requestBody.Set("new_password", "NewSecurePass123!")
+		requestBody.Set("csrf_token", csrfToken)
 
-		req := httptest.NewRequest("POST", "/settings/password", strings.NewReader(reqBody.Encode()))
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		req.AddCookie(&http.Cookie{Name: "auth_token", Value: user.Token})
-		req.AddCookie(&http.Cookie{Name: "csrf_token", Value: csrfToken})
-		rec := httptest.NewRecorder()
+		request := httptest.NewRequest("POST", "/settings/password", strings.NewReader(requestBody.Encode()))
+		request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		request.AddCookie(&http.Cookie{Name: "auth_token", Value: user.Token})
+		request.AddCookie(&http.Cookie{Name: "csrf_token", Value: csrfToken})
+		recorder := httptest.NewRecorder()
 
-		freshCtx.Router.ServeHTTP(rec, req)
+		freshCtx.Router.ServeHTTP(recorder, request)
 
-		assertStatusRange(t, rec, http.StatusOK, http.StatusSeeOther)
+		assertStatusRange(t, recorder, http.StatusOK, http.StatusSeeOther)
 	})
 
 	t.Run("Logout_Page_Handler", func(t *testing.T) {
@@ -98,19 +98,19 @@ func TestIntegration_PageHandlerFormWorkflows(t *testing.T) {
 
 		csrfToken := getCSRFToken(t, freshCtx.Router, "/settings", &http.Cookie{Name: "auth_token", Value: user.Token})
 
-		reqBody := url.Values{}
-		reqBody.Set("csrf_token", csrfToken)
+		requestBody := url.Values{}
+		requestBody.Set("csrf_token", csrfToken)
 
-		req := httptest.NewRequest("POST", "/logout", strings.NewReader(reqBody.Encode()))
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		req.AddCookie(&http.Cookie{Name: "auth_token", Value: user.Token})
-		req.AddCookie(&http.Cookie{Name: "csrf_token", Value: csrfToken})
-		rec := httptest.NewRecorder()
+		request := httptest.NewRequest("POST", "/logout", strings.NewReader(requestBody.Encode()))
+		request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		request.AddCookie(&http.Cookie{Name: "auth_token", Value: user.Token})
+		request.AddCookie(&http.Cookie{Name: "csrf_token", Value: csrfToken})
+		recorder := httptest.NewRecorder()
 
-		freshCtx.Router.ServeHTTP(rec, req)
+		freshCtx.Router.ServeHTTP(recorder, request)
 
-		assertStatus(t, rec, http.StatusSeeOther)
-		assertCookieCleared(t, rec, "auth_token")
+		assertStatus(t, recorder, http.StatusSeeOther)
+		assertCookieCleared(t, recorder, "auth_token")
 	})
 
 	t.Run("Resend_Verification_Page_Handler", func(t *testing.T) {
@@ -120,18 +120,18 @@ func TestIntegration_PageHandlerFormWorkflows(t *testing.T) {
 
 		csrfToken := getCSRFToken(t, freshCtx.Router, "/resend-verification")
 
-		reqBody := url.Values{}
-		reqBody.Set("email", "resend_page@example.com")
-		reqBody.Set("csrf_token", csrfToken)
+		requestBody := url.Values{}
+		requestBody.Set("email", "resend_page@example.com")
+		requestBody.Set("csrf_token", csrfToken)
 
-		req := httptest.NewRequest("POST", "/resend-verification", strings.NewReader(reqBody.Encode()))
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		req.AddCookie(&http.Cookie{Name: "csrf_token", Value: csrfToken})
-		rec := httptest.NewRecorder()
+		request := httptest.NewRequest("POST", "/resend-verification", strings.NewReader(requestBody.Encode()))
+		request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		request.AddCookie(&http.Cookie{Name: "csrf_token", Value: csrfToken})
+		recorder := httptest.NewRecorder()
 
-		freshCtx.Router.ServeHTTP(rec, req)
+		freshCtx.Router.ServeHTTP(recorder, request)
 
-		assertStatusRange(t, rec, http.StatusOK, http.StatusSeeOther)
+		assertStatusRange(t, recorder, http.StatusOK, http.StatusSeeOther)
 	})
 
 	t.Run("Post_Vote_Page_Handler", func(t *testing.T) {
@@ -142,26 +142,26 @@ func TestIntegration_PageHandlerFormWorkflows(t *testing.T) {
 
 		post := testutils.CreatePostWithRepo(t, freshCtx.Suite.PostRepo, user.User.ID, "Vote Page Test", "https://example.com/vote-page")
 
-		getReq := httptest.NewRequest("GET", fmt.Sprintf("/posts/%d", post.ID), nil)
-		getRec := httptest.NewRecorder()
-		freshCtx.Router.ServeHTTP(getRec, getReq)
+		getRequest := httptest.NewRequest("GET", fmt.Sprintf("/posts/%d", post.ID), nil)
+		getRecorder := httptest.NewRecorder()
+		freshCtx.Router.ServeHTTP(getRecorder, getRequest)
 
 		csrfToken := getCSRFToken(t, freshCtx.Router, fmt.Sprintf("/posts/%d", post.ID))
 
-		reqBody := url.Values{}
-		reqBody.Set("action", "up")
-		reqBody.Set("csrf_token", csrfToken)
+		requestBody := url.Values{}
+		requestBody.Set("action", "up")
+		requestBody.Set("csrf_token", csrfToken)
 
-		req := httptest.NewRequest("POST", fmt.Sprintf("/posts/%d/vote", post.ID), strings.NewReader(reqBody.Encode()))
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		req.AddCookie(&http.Cookie{Name: "auth_token", Value: user.Token})
-		req.AddCookie(&http.Cookie{Name: "csrf_token", Value: csrfToken})
-		req = testutils.WithURLParams(req, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
-		rec := httptest.NewRecorder()
+		request := httptest.NewRequest("POST", fmt.Sprintf("/posts/%d/vote", post.ID), strings.NewReader(requestBody.Encode()))
+		request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		request.AddCookie(&http.Cookie{Name: "auth_token", Value: user.Token})
+		request.AddCookie(&http.Cookie{Name: "csrf_token", Value: csrfToken})
+		request = testutils.WithURLParams(request, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
+		recorder := httptest.NewRecorder()
 
-		freshCtx.Router.ServeHTTP(rec, req)
+		freshCtx.Router.ServeHTTP(recorder, request)
 
-		assertStatusRange(t, rec, http.StatusOK, http.StatusSeeOther)
+		assertStatusRange(t, recorder, http.StatusOK, http.StatusSeeOther)
 	})
 
 	t.Run("Login_Page_Handler_Workflow", func(t *testing.T) {
@@ -172,20 +172,20 @@ func TestIntegration_PageHandlerFormWorkflows(t *testing.T) {
 
 		csrfToken := getCSRFToken(t, freshCtx.Router, "/login")
 
-		reqBody := url.Values{}
-		reqBody.Set("username", "login_page_user")
-		reqBody.Set("password", "SecurePass123!")
-		reqBody.Set("csrf_token", csrfToken)
+		requestBody := url.Values{}
+		requestBody.Set("username", "login_page_user")
+		requestBody.Set("password", "SecurePass123!")
+		requestBody.Set("csrf_token", csrfToken)
 
-		req := httptest.NewRequest("POST", "/login", strings.NewReader(reqBody.Encode()))
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		req.AddCookie(&http.Cookie{Name: "csrf_token", Value: csrfToken})
-		rec := httptest.NewRecorder()
+		request := httptest.NewRequest("POST", "/login", strings.NewReader(requestBody.Encode()))
+		request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		request.AddCookie(&http.Cookie{Name: "csrf_token", Value: csrfToken})
+		recorder := httptest.NewRecorder()
 
-		freshCtx.Router.ServeHTTP(rec, req)
+		freshCtx.Router.ServeHTTP(recorder, request)
 
-		assertStatus(t, rec, http.StatusSeeOther)
-		assertCookie(t, rec, "auth_token", "")
+		assertStatus(t, recorder, http.StatusSeeOther)
+		assertCookie(t, recorder, "auth_token", "")
 	})
 
 	t.Run("Email_Confirmation_Page_Handler", func(t *testing.T) {
@@ -198,11 +198,11 @@ func TestIntegration_PageHandlerFormWorkflows(t *testing.T) {
 			token = "test-token"
 		}
 
-		req := httptest.NewRequest("GET", "/confirm?token="+url.QueryEscape(token), nil)
-		rec := httptest.NewRecorder()
+		request := httptest.NewRequest("GET", "/confirm?token="+url.QueryEscape(token), nil)
+		recorder := httptest.NewRecorder()
 
-		router.ServeHTTP(rec, req)
+		router.ServeHTTP(recorder, request)
 
-		assertStatusRange(t, rec, http.StatusOK, http.StatusSeeOther)
+		assertStatusRange(t, recorder, http.StatusOK, http.StatusSeeOther)
 	})
 }

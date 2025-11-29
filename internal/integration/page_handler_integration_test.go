@@ -16,63 +16,62 @@ func TestIntegration_PageHandler(t *testing.T) {
 	router := ctx.Router
 
 	t.Run("Home_Page_Renders", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/", nil)
-		rec := httptest.NewRecorder()
+		request := httptest.NewRequest("GET", "/", nil)
+		recorder := httptest.NewRecorder()
 
-		router.ServeHTTP(rec, req)
+		router.ServeHTTP(recorder, request)
 
-		assertStatus(t, rec, http.StatusOK)
+		assertStatus(t, recorder, http.StatusOK)
 
-		if !strings.Contains(rec.Body.String(), "<html") {
+		if !strings.Contains(recorder.Body.String(), "<html") {
 			t.Error("Expected HTML content")
 		}
 	})
 
 	t.Run("Login_Form_Renders", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/login", nil)
-		rec := httptest.NewRecorder()
+		request := httptest.NewRequest("GET", "/login", nil)
+		recorder := httptest.NewRecorder()
 
-		router.ServeHTTP(rec, req)
+		router.ServeHTTP(recorder, request)
 
-		assertStatus(t, rec, http.StatusOK)
+		assertStatus(t, recorder, http.StatusOK)
 
-		body := rec.Body.String()
+		body := recorder.Body.String()
 		if !strings.Contains(body, "login") && !strings.Contains(body, "Login") {
 			t.Error("Expected login form content")
 		}
 	})
 
 	t.Run("Register_Form_Renders", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/register", nil)
-		rec := httptest.NewRecorder()
+		request := httptest.NewRequest("GET", "/register", nil)
+		recorder := httptest.NewRecorder()
 
-		router.ServeHTTP(rec, req)
+		router.ServeHTTP(recorder, request)
+		assertStatus(t, recorder, http.StatusOK)
 
-		assertStatus(t, rec, http.StatusOK)
-
-		body := rec.Body.String()
+		body := recorder.Body.String()
 		if !strings.Contains(body, "register") && !strings.Contains(body, "Register") {
 			t.Error("Expected register form content")
 		}
 	})
 
 	t.Run("PageHandler_With_CSRF_Token", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/register", nil)
-		rec := httptest.NewRecorder()
+		request := httptest.NewRequest("GET", "/register", nil)
+		recorder := httptest.NewRecorder()
 
-		router.ServeHTTP(rec, req)
+		router.ServeHTTP(recorder, request)
 
-		assertCookie(t, rec, "csrf_token", "")
+		assertCookie(t, recorder, "csrf_token", "")
 	})
 
 	t.Run("PageHandler_Form_Submission", func(t *testing.T) {
 		ctx.Suite.EmailSender.Reset()
 
-		getReq := httptest.NewRequest("GET", "/register", nil)
-		getRec := httptest.NewRecorder()
-		router.ServeHTTP(getRec, getReq)
+		getRequest := httptest.NewRequest("GET", "/register", nil)
+		getRecorder := httptest.NewRecorder()
+		router.ServeHTTP(getRecorder, getRequest)
 
-		cookies := getRec.Result().Cookies()
+		cookies := getRecorder.Result().Cookies()
 		var csrfCookie *http.Cookie
 		for _, cookie := range cookies {
 			if cookie.Name == "csrf_token" {
@@ -85,33 +84,33 @@ func TestIntegration_PageHandler(t *testing.T) {
 			t.Fatal("Expected CSRF cookie")
 		}
 
-		reqBody := url.Values{}
-		reqBody.Set("username", "page_form_user")
-		reqBody.Set("email", "page_form@example.com")
-		reqBody.Set("password", "SecurePass123!")
-		reqBody.Set("csrf_token", csrfCookie.Value)
+		requestBody := url.Values{}
+		requestBody.Set("username", "page_form_user")
+		requestBody.Set("email", "page_form@example.com")
+		requestBody.Set("password", "SecurePass123!")
+		requestBody.Set("csrf_token", csrfCookie.Value)
 
-		req := httptest.NewRequest("POST", "/register", strings.NewReader(reqBody.Encode()))
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		req.AddCookie(csrfCookie)
-		rec := httptest.NewRecorder()
+		request := httptest.NewRequest("POST", "/register", strings.NewReader(requestBody.Encode()))
+		request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		request.AddCookie(csrfCookie)
+		recorder := httptest.NewRecorder()
 
-		router.ServeHTTP(rec, req)
+		router.ServeHTTP(recorder, request)
 
-		assertStatusRange(t, rec, http.StatusOK, http.StatusSeeOther)
+		assertStatusRange(t, recorder, http.StatusOK, http.StatusSeeOther)
 	})
 
 	t.Run("PageHandler_Authenticated_Access", func(t *testing.T) {
 		ctx.Suite.EmailSender.Reset()
 		user := createUserWithCleanup(t, ctx, "page_auth_user", "page_auth@example.com")
 
-		req := httptest.NewRequest("GET", "/settings", nil)
-		req.AddCookie(&http.Cookie{Name: "auth_token", Value: user.Token})
-		rec := httptest.NewRecorder()
+		request := httptest.NewRequest("GET", "/settings", nil)
+		request.AddCookie(&http.Cookie{Name: "auth_token", Value: user.Token})
+		recorder := httptest.NewRecorder()
 
-		router.ServeHTTP(rec, req)
+		router.ServeHTTP(recorder, request)
 
-		assertStatus(t, rec, http.StatusOK)
+		assertStatus(t, recorder, http.StatusOK)
 	})
 
 	t.Run("PageHandler_Post_Display", func(t *testing.T) {
@@ -120,34 +119,34 @@ func TestIntegration_PageHandler(t *testing.T) {
 
 		post := testutils.CreatePostWithRepo(t, ctx.Suite.PostRepo, user.User.ID, "Page Test Post", "https://example.com/page-test")
 
-		req := httptest.NewRequest("GET", "/posts/"+fmt.Sprintf("%d", post.ID), nil)
-		rec := httptest.NewRecorder()
+		request := httptest.NewRequest("GET", "/posts/"+fmt.Sprintf("%d", post.ID), nil)
+		recorder := httptest.NewRecorder()
 
-		router.ServeHTTP(rec, req)
+		router.ServeHTTP(recorder, request)
 
-		assertStatus(t, rec, http.StatusOK)
+		assertStatus(t, recorder, http.StatusOK)
 
-		body := rec.Body.String()
+		body := recorder.Body.String()
 		if !strings.Contains(body, "Page Test Post") {
 			t.Error("Expected post title in page")
 		}
 	})
 
 	t.Run("PageHandler_Search_Page", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/search?q=test", nil)
-		rec := httptest.NewRecorder()
+		request := httptest.NewRequest("GET", "/search?q=test", nil)
+		recorder := httptest.NewRecorder()
 
-		router.ServeHTTP(rec, req)
+		router.ServeHTTP(recorder, request)
 
-		assertStatus(t, rec, http.StatusOK)
+		assertStatus(t, recorder, http.StatusOK)
 	})
 
 	t.Run("PageHandler_Error_Handling", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/nonexistent", nil)
-		rec := httptest.NewRecorder()
+		request := httptest.NewRequest("GET", "/nonexistent", nil)
+		recorder := httptest.NewRecorder()
 
-		router.ServeHTTP(rec, req)
+		router.ServeHTTP(recorder, request)
 
-		assertStatus(t, rec, http.StatusNotFound)
+		assertStatus(t, recorder, http.StatusNotFound)
 	})
 }
