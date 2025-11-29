@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -282,14 +283,14 @@ func setupPageHandlerTestContext(t *testing.T) *testContext {
 
 func getCSRFToken(t *testing.T, router http.Handler, path string, cookies ...*http.Cookie) string {
 	t.Helper()
-	req := httptest.NewRequest("GET", path, nil)
+	request := httptest.NewRequest("GET", path, nil)
 	for _, cookie := range cookies {
-		req.AddCookie(cookie)
+		request.AddCookie(cookie)
 	}
-	rec := httptest.NewRecorder()
-	router.ServeHTTP(rec, req)
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, request)
 
-	cookieList := rec.Result().Cookies()
+	cookieList := recorder.Result().Cookies()
 	for _, cookie := range cookieList {
 		if cookie.Name == "csrf_token" {
 			return cookie.Value
@@ -299,32 +300,32 @@ func getCSRFToken(t *testing.T, router http.Handler, path string, cookies ...*ht
 	return ""
 }
 
-func assertJSONResponse(t *testing.T, rec *httptest.ResponseRecorder, expectedStatus int) map[string]any {
+func assertJSONResponse(t *testing.T, recorder *httptest.ResponseRecorder, expectedStatus int) map[string]any {
 	t.Helper()
-	if rec.Code != expectedStatus {
-		t.Errorf("Expected status %d, got %d. Body: %s", expectedStatus, rec.Code, rec.Body.String())
+	if recorder.Code != expectedStatus {
+		t.Errorf("Expected status %d, got %d. Body: %s", expectedStatus, recorder.Code, recorder.Body.String())
 		return nil
 	}
 
 	var response map[string]any
-	if err := json.NewDecoder(rec.Body).Decode(&response); err != nil {
-		t.Fatalf("Failed to decode response: %v. Body: %s", err, rec.Body.String())
+	if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
+		t.Fatalf("Failed to decode response: %v. Body: %s", err, recorder.Body.String())
 		return nil
 	}
 
 	return response
 }
 
-func assertErrorResponse(t *testing.T, rec *httptest.ResponseRecorder, expectedStatus int) {
+func assertErrorResponse(t *testing.T, recorder *httptest.ResponseRecorder, expectedStatus int) {
 	t.Helper()
-	if rec.Code != expectedStatus {
-		t.Errorf("Expected status %d, got %d. Body: %s", expectedStatus, rec.Code, rec.Body.String())
+	if recorder.Code != expectedStatus {
+		t.Errorf("Expected status %d, got %d. Body: %s", expectedStatus, recorder.Code, recorder.Body.String())
 		return
 	}
 
 	var response map[string]any
-	if err := json.NewDecoder(rec.Body).Decode(&response); err != nil {
-		t.Fatalf("Failed to decode error response: %v. Body: %s", err, rec.Body.String())
+	if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
+		t.Fatalf("Failed to decode error response: %v. Body: %s", err, recorder.Body.String())
 		return
 	}
 
@@ -335,23 +336,23 @@ func assertErrorResponse(t *testing.T, rec *httptest.ResponseRecorder, expectedS
 	}
 }
 
-func assertStatus(t *testing.T, rec *httptest.ResponseRecorder, expectedStatus int) {
+func assertStatus(t *testing.T, recorder *httptest.ResponseRecorder, expectedStatus int) {
 	t.Helper()
-	if rec.Code != expectedStatus {
-		t.Errorf("Expected status %d, got %d. Body: %s", expectedStatus, rec.Code, rec.Body.String())
+	if recorder.Code != expectedStatus {
+		t.Errorf("Expected status %d, got %d. Body: %s", expectedStatus, recorder.Code, recorder.Body.String())
 	}
 }
 
-func assertStatusRange(t *testing.T, rec *httptest.ResponseRecorder, minStatus, maxStatus int) {
+func assertStatusRange(t *testing.T, recorder *httptest.ResponseRecorder, minStatus, maxStatus int) {
 	t.Helper()
-	if rec.Code < minStatus || rec.Code > maxStatus {
-		t.Errorf("Expected status between %d and %d, got %d. Body: %s", minStatus, maxStatus, rec.Code, rec.Body.String())
+	if recorder.Code < minStatus || recorder.Code > maxStatus {
+		t.Errorf("Expected status between %d and %d, got %d. Body: %s", minStatus, maxStatus, recorder.Code, recorder.Body.String())
 	}
 }
 
-func assertCookie(t *testing.T, rec *httptest.ResponseRecorder, name, expectedValue string) {
+func assertCookie(t *testing.T, recorder *httptest.ResponseRecorder, name, expectedValue string) {
 	t.Helper()
-	cookies := rec.Result().Cookies()
+	cookies := recorder.Result().Cookies()
 	for _, cookie := range cookies {
 		if cookie.Name == name {
 			if expectedValue != "" && cookie.Value != expectedValue {
@@ -363,9 +364,9 @@ func assertCookie(t *testing.T, rec *httptest.ResponseRecorder, name, expectedVa
 	t.Errorf("Expected cookie %s not found", name)
 }
 
-func assertCookieCleared(t *testing.T, rec *httptest.ResponseRecorder, name string) {
+func assertCookieCleared(t *testing.T, recorder *httptest.ResponseRecorder, name string) {
 	t.Helper()
-	cookies := rec.Result().Cookies()
+	cookies := recorder.Result().Cookies()
 	for _, cookie := range cookies {
 		if cookie.Name == name {
 			if cookie.Value != "" {
@@ -376,9 +377,9 @@ func assertCookieCleared(t *testing.T, rec *httptest.ResponseRecorder, name stri
 	}
 }
 
-func assertHeader(t *testing.T, rec *httptest.ResponseRecorder, name, expectedValue string) {
+func assertHeader(t *testing.T, recorder *httptest.ResponseRecorder, name, expectedValue string) {
 	t.Helper()
-	actualValue := rec.Header().Get(name)
+	actualValue := recorder.Header().Get(name)
 	if expectedValue == "" {
 		if actualValue == "" {
 			t.Errorf("Expected header %s to be present", name)
@@ -388,9 +389,9 @@ func assertHeader(t *testing.T, rec *httptest.ResponseRecorder, name, expectedVa
 	}
 }
 
-func assertHeaderContains(t *testing.T, rec *httptest.ResponseRecorder, name, substring string) {
+func assertHeaderContains(t *testing.T, recorder *httptest.ResponseRecorder, name, substring string) {
 	t.Helper()
-	actualValue := rec.Header().Get(name)
+	actualValue := recorder.Header().Get(name)
 	if !strings.Contains(actualValue, substring) {
 		t.Errorf("Expected header %s to contain %s, got %s", name, substring, actualValue)
 	}
@@ -449,4 +450,84 @@ func createUserWithCleanup(t *testing.T, ctx *testContext, username, email strin
 		}
 	})
 	return user
+}
+
+func makeRequest(t *testing.T, router http.Handler, method, path string, body []byte, headers map[string]string) *httptest.ResponseRecorder {
+	t.Helper()
+	var requestBody *bytes.Buffer
+	if body != nil {
+		requestBody = bytes.NewBuffer(body)
+	} else {
+		requestBody = bytes.NewBuffer(nil)
+	}
+	request := httptest.NewRequest(method, path, requestBody)
+	for key, value := range headers {
+		request.Header.Set(key, value)
+	}
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, request)
+	return recorder
+}
+
+func makeAuthenticatedRequest(t *testing.T, router http.Handler, method, path string, body []byte, user *authenticatedUser, urlParams map[string]string) *httptest.ResponseRecorder {
+	t.Helper()
+	var requestBody *bytes.Buffer
+	if body != nil {
+		requestBody = bytes.NewBuffer(body)
+	} else {
+		requestBody = bytes.NewBuffer(nil)
+	}
+	request := httptest.NewRequest(method, path, requestBody)
+	request.Header.Set("Authorization", "Bearer "+user.Token)
+	if body != nil {
+		request.Header.Set("Content-Type", "application/json")
+	}
+	request = testutils.WithUserContext(request, middleware.UserIDKey, user.User.ID)
+	if urlParams != nil {
+		request = testutils.WithURLParams(request, urlParams)
+	}
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, request)
+	return recorder
+}
+
+func makeGetRequest(t *testing.T, router http.Handler, path string) *httptest.ResponseRecorder {
+	t.Helper()
+	return makeRequest(t, router, "GET", path, nil, nil)
+}
+
+func makeAuthenticatedGetRequest(t *testing.T, router http.Handler, path string, user *authenticatedUser, urlParams map[string]string) *httptest.ResponseRecorder {
+	t.Helper()
+	return makeAuthenticatedRequest(t, router, "GET", path, nil, user, urlParams)
+}
+
+func makePostRequest(t *testing.T, router http.Handler, path string, body map[string]any, user *authenticatedUser, urlParams map[string]string) *httptest.ResponseRecorder {
+	t.Helper()
+	bodyBytes, _ := json.Marshal(body)
+	return makeAuthenticatedRequest(t, router, "POST", path, bodyBytes, user, urlParams)
+}
+
+func makePutRequest(t *testing.T, router http.Handler, path string, body map[string]any, user *authenticatedUser, urlParams map[string]string) *httptest.ResponseRecorder {
+	t.Helper()
+	bodyBytes, _ := json.Marshal(body)
+	return makeAuthenticatedRequest(t, router, "PUT", path, bodyBytes, user, urlParams)
+}
+
+func makeDeleteRequest(t *testing.T, router http.Handler, path string, user *authenticatedUser, urlParams map[string]string) *httptest.ResponseRecorder {
+	t.Helper()
+	return makeAuthenticatedRequest(t, router, "DELETE", path, nil, user, urlParams)
+}
+
+func makePostRequestWithJSON(t *testing.T, router http.Handler, path string, body map[string]any) *httptest.ResponseRecorder {
+	t.Helper()
+	bodyBytes, _ := json.Marshal(body)
+	return makeRequest(t, router, "POST", path, bodyBytes, map[string]string{"Content-Type": "application/json"})
+}
+
+func getDataFromResponse(response map[string]any) (map[string]any, bool) {
+	if response == nil {
+		return nil, false
+	}
+	data, ok := response["data"].(map[string]any)
+	return data, ok
 }
