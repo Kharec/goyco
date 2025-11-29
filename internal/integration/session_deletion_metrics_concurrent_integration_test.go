@@ -21,60 +21,60 @@ func TestIntegration_SessionManagement(t *testing.T) {
 		ctx.Suite.EmailSender.Reset()
 		user := createAuthenticatedUser(t, ctx.AuthService, ctx.Suite.UserRepo, "session_pass_user", "session_pass@example.com")
 
-		req1 := httptest.NewRequest("GET", "/api/auth/me", nil)
-		req1.Header.Set("Authorization", "Bearer "+user.Token)
-		req1 = testutils.WithUserContext(req1, middleware.UserIDKey, user.User.ID)
-		rec1 := httptest.NewRecorder()
-		router.ServeHTTP(rec1, req1)
+		firstRequest := httptest.NewRequest("GET", "/api/auth/me", nil)
+		firstRequest.Header.Set("Authorization", "Bearer "+user.Token)
+		firstRequest = testutils.WithUserContext(firstRequest, middleware.UserIDKey, user.User.ID)
+		firstRecorder := httptest.NewRecorder()
+		router.ServeHTTP(firstRecorder, firstRequest)
 
-		assertStatus(t, rec1, http.StatusOK)
+		assertStatus(t, firstRecorder, http.StatusOK)
 
-		reqBody := map[string]string{
+		requestBody := map[string]string{
 			"current_password": "SecurePass123!",
 			"new_password":     "NewSecurePass123!",
 		}
-		body, _ := json.Marshal(reqBody)
-		req2 := httptest.NewRequest("PUT", "/api/auth/password", bytes.NewBuffer(body))
-		req2.Header.Set("Content-Type", "application/json")
-		req2.Header.Set("Authorization", "Bearer "+user.Token)
-		req2 = testutils.WithUserContext(req2, middleware.UserIDKey, user.User.ID)
-		rec2 := httptest.NewRecorder()
-		router.ServeHTTP(rec2, req2)
+		body, _ := json.Marshal(requestBody)
+		secondRequest := httptest.NewRequest("PUT", "/api/auth/password", bytes.NewBuffer(body))
+		secondRequest.Header.Set("Content-Type", "application/json")
+		secondRequest.Header.Set("Authorization", "Bearer "+user.Token)
+		secondRequest = testutils.WithUserContext(secondRequest, middleware.UserIDKey, user.User.ID)
+		secondRecorder := httptest.NewRecorder()
+		router.ServeHTTP(secondRecorder, secondRequest)
 
-		assertStatus(t, rec2, http.StatusOK)
+		assertStatus(t, secondRecorder, http.StatusOK)
 
-		req3 := httptest.NewRequest("GET", "/api/auth/me", nil)
-		req3.Header.Set("Authorization", "Bearer "+user.Token)
-		req3 = testutils.WithUserContext(req3, middleware.UserIDKey, user.User.ID)
-		rec3 := httptest.NewRecorder()
-		router.ServeHTTP(rec3, req3)
+		thirdRequest := httptest.NewRequest("GET", "/api/auth/me", nil)
+		thirdRequest.Header.Set("Authorization", "Bearer "+user.Token)
+		thirdRequest = testutils.WithUserContext(thirdRequest, middleware.UserIDKey, user.User.ID)
+		thirdRecorder := httptest.NewRecorder()
+		router.ServeHTTP(thirdRecorder, thirdRequest)
 
-		assertErrorResponse(t, rec3, http.StatusUnauthorized)
+		assertErrorResponse(t, thirdRecorder, http.StatusUnauthorized)
 	})
 
 	t.Run("Session_Invalidation_On_Account_Lock", func(t *testing.T) {
 		ctx.Suite.EmailSender.Reset()
 		user := createAuthenticatedUser(t, ctx.AuthService, ctx.Suite.UserRepo, "session_lock_user", "session_lock@example.com")
 
-		req1 := httptest.NewRequest("GET", "/api/auth/me", nil)
-		req1.Header.Set("Authorization", "Bearer "+user.Token)
-		req1 = testutils.WithUserContext(req1, middleware.UserIDKey, user.User.ID)
-		rec1 := httptest.NewRecorder()
-		router.ServeHTTP(rec1, req1)
+		firstRequest := httptest.NewRequest("GET", "/api/auth/me", nil)
+		firstRequest.Header.Set("Authorization", "Bearer "+user.Token)
+		firstRequest = testutils.WithUserContext(firstRequest, middleware.UserIDKey, user.User.ID)
+		firstRecorder := httptest.NewRecorder()
+		router.ServeHTTP(firstRecorder, firstRequest)
 
-		assertStatus(t, rec1, http.StatusOK)
+		assertStatus(t, firstRecorder, http.StatusOK)
 
 		if err := ctx.Suite.UserRepo.Lock(user.User.ID); err != nil {
 			t.Fatalf("Failed to lock user: %v", err)
 		}
 
-		req2 := httptest.NewRequest("GET", "/api/auth/me", nil)
-		req2.Header.Set("Authorization", "Bearer "+user.Token)
-		req2 = testutils.WithUserContext(req2, middleware.UserIDKey, user.User.ID)
-		rec2 := httptest.NewRecorder()
-		router.ServeHTTP(rec2, req2)
+		secondRequest := httptest.NewRequest("GET", "/api/auth/me", nil)
+		secondRequest.Header.Set("Authorization", "Bearer "+user.Token)
+		secondRequest = testutils.WithUserContext(secondRequest, middleware.UserIDKey, user.User.ID)
+		secondRecorder := httptest.NewRecorder()
+		router.ServeHTTP(secondRecorder, secondRequest)
 
-		assertErrorResponse(t, rec2, http.StatusUnauthorized)
+		assertErrorResponse(t, secondRecorder, http.StatusUnauthorized)
 	})
 
 	t.Run("Refresh_Token_Revocation", func(t *testing.T) {
@@ -90,48 +90,48 @@ func TestIntegration_SessionManagement(t *testing.T) {
 			t.Fatal("Expected refresh token")
 		}
 
-		reqBody := map[string]string{
+		requestBody := map[string]string{
 			"refresh_token": loginResult.RefreshToken,
 		}
-		body, _ := json.Marshal(reqBody)
-		req := httptest.NewRequest("POST", "/api/auth/refresh", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		rec := httptest.NewRecorder()
-		router.ServeHTTP(rec, req)
+		body, _ := json.Marshal(requestBody)
+		request := httptest.NewRequest("POST", "/api/auth/refresh", bytes.NewBuffer(body))
+		request.Header.Set("Content-Type", "application/json")
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
 
-		assertStatus(t, rec, http.StatusOK)
+		assertStatus(t, recorder, http.StatusOK)
 
 		if err := ctx.AuthService.RevokeRefreshToken(loginResult.RefreshToken); err != nil {
 			t.Fatalf("Failed to revoke token: %v", err)
 		}
 
-		req2 := httptest.NewRequest("POST", "/api/auth/refresh", bytes.NewBuffer(body))
-		req2.Header.Set("Content-Type", "application/json")
-		rec2 := httptest.NewRecorder()
-		router.ServeHTTP(rec2, req2)
+		secondRequest := httptest.NewRequest("POST", "/api/auth/refresh", bytes.NewBuffer(body))
+		secondRequest.Header.Set("Content-Type", "application/json")
+		secondRecorder := httptest.NewRecorder()
+		router.ServeHTTP(secondRecorder, secondRequest)
 
-		assertErrorResponse(t, rec2, http.StatusUnauthorized)
+		assertErrorResponse(t, secondRecorder, http.StatusUnauthorized)
 	})
 
 	t.Run("Multiple_Sessions_Independent", func(t *testing.T) {
 		ctx.Suite.EmailSender.Reset()
-		user1 := createAuthenticatedUser(t, ctx.AuthService, ctx.Suite.UserRepo, "multi_session_user1", "multi_session1@example.com")
-		user2 := createAuthenticatedUser(t, ctx.AuthService, ctx.Suite.UserRepo, "multi_session_user2", "multi_session2@example.com")
+		firstUser := createAuthenticatedUser(t, ctx.AuthService, ctx.Suite.UserRepo, "multi_session_user1", "multi_session1@example.com")
+		secondUser := createAuthenticatedUser(t, ctx.AuthService, ctx.Suite.UserRepo, "multi_session_user2", "multi_session2@example.com")
 
-		req1 := httptest.NewRequest("GET", "/api/auth/me", nil)
-		req1.Header.Set("Authorization", "Bearer "+user1.Token)
-		req1 = testutils.WithUserContext(req1, middleware.UserIDKey, user1.User.ID)
-		rec1 := httptest.NewRecorder()
-		router.ServeHTTP(rec1, req1)
+		firstRequest := httptest.NewRequest("GET", "/api/auth/me", nil)
+		firstRequest.Header.Set("Authorization", "Bearer "+firstUser.Token)
+		firstRequest = testutils.WithUserContext(firstRequest, middleware.UserIDKey, firstUser.User.ID)
+		firstRecorder := httptest.NewRecorder()
+		router.ServeHTTP(firstRecorder, firstRequest)
 
-		req2 := httptest.NewRequest("GET", "/api/auth/me", nil)
-		req2.Header.Set("Authorization", "Bearer "+user2.Token)
-		req2 = testutils.WithUserContext(req2, middleware.UserIDKey, user2.User.ID)
-		rec2 := httptest.NewRecorder()
-		router.ServeHTTP(rec2, req2)
+		secondRequest := httptest.NewRequest("GET", "/api/auth/me", nil)
+		secondRequest.Header.Set("Authorization", "Bearer "+secondUser.Token)
+		secondRequest = testutils.WithUserContext(secondRequest, middleware.UserIDKey, secondUser.User.ID)
+		secondRecorder := httptest.NewRecorder()
+		router.ServeHTTP(secondRecorder, secondRequest)
 
-		assertStatus(t, rec1, http.StatusOK)
-		assertStatus(t, rec2, http.StatusOK)
+		assertStatus(t, firstRecorder, http.StatusOK)
+		assertStatus(t, secondRecorder, http.StatusOK)
 	})
 }
 
@@ -144,17 +144,17 @@ func TestIntegration_AccountDeletion(t *testing.T) {
 		user := createAuthenticatedUser(t, ctx.AuthService, ctx.Suite.UserRepo, "del_flow_user", "del_flow@example.com")
 		post := testutils.CreatePostWithRepo(t, ctx.Suite.PostRepo, user.User.ID, "Test Post", "https://example.com")
 
-		reqBody := map[string]string{}
-		body, _ := json.Marshal(reqBody)
-		req := httptest.NewRequest("DELETE", "/api/auth/account", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", "Bearer "+user.Token)
-		req = testutils.WithUserContext(req, middleware.UserIDKey, user.User.ID)
-		rec := httptest.NewRecorder()
+		requestBody := map[string]string{}
+		body, _ := json.Marshal(requestBody)
+		request := httptest.NewRequest("DELETE", "/api/auth/account", bytes.NewBuffer(body))
+		request.Header.Set("Content-Type", "application/json")
+		request.Header.Set("Authorization", "Bearer "+user.Token)
+		request = testutils.WithUserContext(request, middleware.UserIDKey, user.User.ID)
+		recorder := httptest.NewRecorder()
 
-		router.ServeHTTP(rec, req)
+		router.ServeHTTP(recorder, request)
 
-		response := assertJSONResponse(t, rec, http.StatusOK)
+		response := assertJSONResponse(t, recorder, http.StatusOK)
 		if response == nil {
 			return
 		}
@@ -171,13 +171,13 @@ func TestIntegration_AccountDeletion(t *testing.T) {
 			"token": deletionToken,
 		}
 		confirmBodyBytes, _ := json.Marshal(confirmBody)
-		confirmReq := httptest.NewRequest("POST", "/api/auth/account/confirm", bytes.NewBuffer(confirmBodyBytes))
-		confirmReq.Header.Set("Content-Type", "application/json")
-		confirmRec := httptest.NewRecorder()
+		confirmRequest := httptest.NewRequest("POST", "/api/auth/account/confirm", bytes.NewBuffer(confirmBodyBytes))
+		confirmRequest.Header.Set("Content-Type", "application/json")
+		confirmRecorder := httptest.NewRecorder()
 
-		router.ServeHTTP(confirmRec, confirmReq)
+		router.ServeHTTP(confirmRecorder, confirmRequest)
 
-		confirmResponse := assertJSONResponse(t, confirmRec, http.StatusOK)
+		confirmResponse := assertJSONResponse(t, confirmRecorder, http.StatusOK)
 		if confirmResponse == nil {
 			return
 		}
@@ -209,17 +209,17 @@ func TestIntegration_AccountDeletion(t *testing.T) {
 		user := createAuthenticatedUser(t, ctx.AuthService, ctx.Suite.UserRepo, "del_posts_user", "del_posts@example.com")
 		post := testutils.CreatePostWithRepo(t, ctx.Suite.PostRepo, user.User.ID, "Deletion Post", "https://example.com/deletion")
 
-		reqBody := map[string]string{}
-		body, _ := json.Marshal(reqBody)
-		req := httptest.NewRequest("DELETE", "/api/auth/account", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", "Bearer "+user.Token)
-		req = testutils.WithUserContext(req, middleware.UserIDKey, user.User.ID)
-		rec := httptest.NewRecorder()
+		requestBody := map[string]string{}
+		body, _ := json.Marshal(requestBody)
+		request := httptest.NewRequest("DELETE", "/api/auth/account", bytes.NewBuffer(body))
+		request.Header.Set("Content-Type", "application/json")
+		request.Header.Set("Authorization", "Bearer "+user.Token)
+		request = testutils.WithUserContext(request, middleware.UserIDKey, user.User.ID)
+		recorder := httptest.NewRecorder()
 
-		router.ServeHTTP(rec, req)
+		router.ServeHTTP(recorder, request)
 
-		response := assertJSONResponse(t, rec, http.StatusOK)
+		response := assertJSONResponse(t, recorder, http.StatusOK)
 		if response == nil {
 			return
 		}
@@ -237,13 +237,13 @@ func TestIntegration_AccountDeletion(t *testing.T) {
 			"delete_posts": true,
 		}
 		confirmBodyBytes, _ := json.Marshal(confirmBody)
-		confirmReq := httptest.NewRequest("POST", "/api/auth/account/confirm", bytes.NewBuffer(confirmBodyBytes))
-		confirmReq.Header.Set("Content-Type", "application/json")
-		confirmRec := httptest.NewRecorder()
+		confirmRequest := httptest.NewRequest("POST", "/api/auth/account/confirm", bytes.NewBuffer(confirmBodyBytes))
+		confirmRequest.Header.Set("Content-Type", "application/json")
+		confirmRecorder := httptest.NewRecorder()
 
-		router.ServeHTTP(confirmRec, confirmReq)
+		router.ServeHTTP(confirmRecorder, confirmRequest)
 
-		confirmResponse := assertJSONResponse(t, confirmRec, http.StatusOK)
+		confirmResponse := assertJSONResponse(t, confirmRecorder, http.StatusOK)
 		if confirmResponse == nil {
 			return
 		}
@@ -275,12 +275,12 @@ func TestIntegration_MetricsCollection(t *testing.T) {
 	router := ctx.Router
 
 	t.Run("Metrics_Endpoint_Returns_Data", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/metrics", nil)
-		rec := httptest.NewRecorder()
+		request := httptest.NewRequest("GET", "/metrics", nil)
+		recorder := httptest.NewRecorder()
 
-		router.ServeHTTP(rec, req)
+		router.ServeHTTP(recorder, request)
 
-		response := assertJSONResponse(t, rec, http.StatusOK)
+		response := assertJSONResponse(t, recorder, http.StatusOK)
 		if response != nil {
 			if data, ok := response["data"].(map[string]any); ok {
 				if _, exists := data["database"]; !exists {
@@ -294,13 +294,13 @@ func TestIntegration_MetricsCollection(t *testing.T) {
 		ctx.Suite.EmailSender.Reset()
 		createAuthenticatedUser(t, ctx.AuthService, ctx.Suite.UserRepo, "metrics_user", "metrics@example.com")
 
-		req := httptest.NewRequest("GET", "/metrics", nil)
-		rec := httptest.NewRecorder()
+		request := httptest.NewRequest("GET", "/metrics", nil)
+		recorder := httptest.NewRecorder()
 
-		router.ServeHTTP(rec, req)
+		router.ServeHTTP(recorder, request)
 
 		var response map[string]any
-		if err := json.NewDecoder(rec.Body).Decode(&response); err == nil {
+		if err := json.NewDecoder(recorder.Body).Decode(&response); err == nil {
 			if data, ok := response["data"].(map[string]any); ok {
 				if dbData, exists := data["database"].(map[string]any); exists {
 					if _, hasQueries := dbData["total_queries"]; !hasQueries {
@@ -323,7 +323,7 @@ func TestIntegration_ConcurrentRequests(t *testing.T) {
 		var wg sync.WaitGroup
 		errors := make(chan error, 10)
 
-		for i := 0; i < 10; i++ {
+		for idx := range 10 {
 			wg.Add(1)
 			go func(index int) {
 				defer wg.Done()
@@ -334,18 +334,18 @@ func TestIntegration_ConcurrentRequests(t *testing.T) {
 					"content": "Concurrent test content",
 				}
 				body, _ := json.Marshal(postBody)
-				req := httptest.NewRequest("POST", "/api/posts", bytes.NewBuffer(body))
-				req.Header.Set("Content-Type", "application/json")
-				req.Header.Set("Authorization", "Bearer "+user.Token)
-				req = testutils.WithUserContext(req, middleware.UserIDKey, user.User.ID)
-				rec := httptest.NewRecorder()
+				request := httptest.NewRequest("POST", "/api/posts", bytes.NewBuffer(body))
+				request.Header.Set("Content-Type", "application/json")
+				request.Header.Set("Authorization", "Bearer "+user.Token)
+				request = testutils.WithUserContext(request, middleware.UserIDKey, user.User.ID)
+				recorder := httptest.NewRecorder()
 
-				router.ServeHTTP(rec, req)
+				router.ServeHTTP(recorder, request)
 
-				if rec.Code != http.StatusCreated {
-					errors <- fmt.Errorf("Post %d failed with status %d", index, rec.Code)
+				if recorder.Code != http.StatusCreated {
+					errors <- fmt.Errorf("Post %d failed with status %d", index, recorder.Code)
 				}
-			}(i)
+			}(idx)
 		}
 
 		wg.Wait()
@@ -370,28 +370,26 @@ func TestIntegration_ConcurrentRequests(t *testing.T) {
 		var wg sync.WaitGroup
 		errors := make(chan error, 5)
 
-		for i := 0; i < 5; i++ {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+		for range 5 {
+			wg.Go(func() {
 
 				voteBody := map[string]string{
 					"type": "up",
 				}
 				body, _ := json.Marshal(voteBody)
-				req := httptest.NewRequest("POST", fmt.Sprintf("/api/posts/%d/vote", post.ID), bytes.NewBuffer(body))
-				req.Header.Set("Content-Type", "application/json")
-				req.Header.Set("Authorization", "Bearer "+user.Token)
-				req = testutils.WithUserContext(req, middleware.UserIDKey, user.User.ID)
-				req = testutils.WithURLParams(req, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
-				rec := httptest.NewRecorder()
+				request := httptest.NewRequest("POST", fmt.Sprintf("/api/posts/%d/vote", post.ID), bytes.NewBuffer(body))
+				request.Header.Set("Content-Type", "application/json")
+				request.Header.Set("Authorization", "Bearer "+user.Token)
+				request = testutils.WithUserContext(request, middleware.UserIDKey, user.User.ID)
+				request = testutils.WithURLParams(request, map[string]string{"id": fmt.Sprintf("%d", post.ID)})
+				recorder := httptest.NewRecorder()
 
-				router.ServeHTTP(rec, req)
+				router.ServeHTTP(recorder, request)
 
-				if rec.Code != http.StatusOK {
-					errors <- fmt.Errorf("Vote failed with status %d", rec.Code)
+				if recorder.Code != http.StatusOK {
+					errors <- fmt.Errorf("Vote failed with status %d", recorder.Code)
 				}
-			}()
+			})
 		}
 
 		wg.Wait()
@@ -411,20 +409,18 @@ func TestIntegration_ConcurrentRequests(t *testing.T) {
 		var wg sync.WaitGroup
 		errors := make(chan error, 20)
 
-		for i := 0; i < 20; i++ {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+		for range 20 {
+			wg.Go(func() {
 
-				req := httptest.NewRequest("GET", "/api/posts", nil)
-				rec := httptest.NewRecorder()
+				request := httptest.NewRequest("GET", "/api/posts", nil)
+				recorder := httptest.NewRecorder()
 
-				router.ServeHTTP(rec, req)
+				router.ServeHTTP(recorder, request)
 
-				if rec.Code != http.StatusOK {
-					errors <- fmt.Errorf("Read failed with status %d", rec.Code)
+				if recorder.Code != http.StatusOK {
+					errors <- fmt.Errorf("Read failed with status %d", recorder.Code)
 				}
-			}()
+			})
 		}
 
 		wg.Wait()
