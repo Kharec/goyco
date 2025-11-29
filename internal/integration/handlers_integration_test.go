@@ -87,11 +87,11 @@ func TestIntegration_Handlers(t *testing.T) {
 			t.Errorf("Expected status 400 for weak password, got %d", weakResponse.Code)
 		}
 
-		weakErrorResp := assertJSONResponse(t, weakResponse, http.StatusBadRequest)
-		if success, _ := weakErrorResp["success"].(bool); success {
+		weakErrorResponse := assertJSONResponse(t, weakResponse, http.StatusBadRequest)
+		if success, _ := weakErrorResponse["success"].(bool); success {
 			t.Error("Expected error response to have success=false")
 		}
-		if errorMsg, ok := weakErrorResp["error"].(string); !ok || errorMsg == "" {
+		if errorMsg, ok := weakErrorResponse["error"].(string); !ok || errorMsg == "" {
 			t.Error("Expected error response to contain validation error message")
 		}
 
@@ -189,11 +189,11 @@ func TestIntegration_Handlers(t *testing.T) {
 			"url":     "not-a-url",
 			"content": "Invalid post",
 		}, user, nil)
-		postValidationErrorResp := assertJSONResponse(t, invalidResponse, http.StatusBadRequest)
-		if success, _ := postValidationErrorResp["success"].(bool); success {
+		postValidationErrorResponse := assertJSONResponse(t, invalidResponse, http.StatusBadRequest)
+		if success, _ := postValidationErrorResponse["success"].(bool); success {
 			t.Error("Expected error response to have success=false")
 		}
-		if errorMsg, ok := postValidationErrorResp["error"].(string); !ok || errorMsg == "" {
+		if errorMsg, ok := postValidationErrorResponse["error"].(string); !ok || errorMsg == "" {
 			t.Error("Expected error response to contain validation error message")
 		}
 	})
