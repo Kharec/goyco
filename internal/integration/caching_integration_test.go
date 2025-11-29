@@ -112,10 +112,10 @@ func TestIntegration_Caching(t *testing.T) {
 
 	t.Run("Cache_Headers_Present", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/api/posts", nil)
-		rec := httptest.NewRecorder()
-		router.ServeHTTP(rec, req)
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, req)
 
-		if rec.Header().Get("Cache-Control") == "" && rec.Header().Get("X-Cache") == "" {
+		if recorder.Header().Get("Cache-Control") == "" && recorder.Header().Get("X-Cache") == "" {
 			t.Log("Cache headers may not be present for all responses")
 		}
 	})
