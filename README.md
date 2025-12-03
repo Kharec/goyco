@@ -441,21 +441,6 @@ This will regenerate the swagger documentation and update the `docs/swagger.json
 - [ ] kubernetes deployment
 - [ ] store configuration in the database
 
-## Contributing
-
-Feedbacks are welcome!
-
-But as it's a personal gitea and you cannot create accounts, feel free to contact me at <sandro@cazzaniga.fr> to get one.
-
-Once you have it, follow the usual workflow:
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Ensure all tests pass
-6. Submit a pull request
-
 ## License
 
 This project is licensed under the GNU General Public License v3.0 or later (GPLv3+). See the [LICENSE](LICENSE) file for details.
