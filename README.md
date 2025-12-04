@@ -437,7 +437,7 @@ This will regenerate the swagger documentation and update the `docs/swagger.json
 - [ ] add right management within the app
 - [ ] add an admin backoffice to manage rights, users, content and settings
 - [ ] add a way to run read-only communities
-- [ ] maybe use a css framework instead of raw css
+- [ ] migrate raw CSS to UnoCSS
 - [ ] kubernetes deployment
 - [ ] store configuration in the database
 
