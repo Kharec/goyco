@@ -11,7 +11,7 @@ ARG TARGETARCH=amd64
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags="-s -w" -o /out/goyco ./cmd/goyco
 
 # building the application image
-FROM alpine:3.22
+FROM alpine:3.23
 RUN addgroup -S goyco && adduser -S -G goyco goyco \
   && apk add --no-cache ca-certificates tzdata
 WORKDIR /app
