@@ -47,7 +47,7 @@ func TestSeedCommand(t *testing.T) {
 	var seedUser *database.User
 	regularUserCount := 0
 	for i := range users {
-		if strings.HasPrefix(users[i].Username, "seed_admin_") {
+		if users[i].Username == "seed_admin" {
 			seedUserCount++
 			seedUser = &users[i]
 		} else if strings.HasPrefix(users[i].Username, "user_") {
@@ -63,12 +63,12 @@ func TestSeedCommand(t *testing.T) {
 		t.Fatal("Expected seed user to be created")
 	}
 
-	if !strings.HasPrefix(seedUser.Username, "seed_admin_") {
-		t.Errorf("Expected username to start with 'seed_admin_', got '%s'", seedUser.Username)
+	if seedUser.Username != "seed_admin" {
+		t.Errorf("Expected username to be 'seed_admin', got '%s'", seedUser.Username)
 	}
 
-	if !strings.HasPrefix(seedUser.Email, "seed_admin_") || !strings.HasSuffix(seedUser.Email, "@goyco.local") {
-		t.Errorf("Expected email to start with 'seed_admin_' and end with '@goyco.local', got '%s'", seedUser.Email)
+	if seedUser.Email != "seed_admin@goyco.local" {
+		t.Errorf("Expected email to be 'seed_admin@goyco.local', got '%s'", seedUser.Email)
 	}
 
 	if !seedUser.EmailVerified {
@@ -302,13 +302,13 @@ func TestSeedCommandIdempotency(t *testing.T) {
 
 		seedUserCount := 0
 		for _, user := range users {
-			if strings.HasPrefix(user.Username, "seed_admin_") {
+			if user.Username == "seed_admin" {
 				seedUserCount++
 			}
 		}
 
-		if seedUserCount < 1 {
-			t.Errorf("Expected at least 1 seed user, got %d", seedUserCount)
+		if seedUserCount != 1 {
+			t.Errorf("Expected exactly 1 seed user, got %d", seedUserCount)
 		}
 	})
 
@@ -387,7 +387,7 @@ func TestSeedCommandIdempotency(t *testing.T) {
 
 func findSeedUser(users []database.User) *database.User {
 	for i := range users {
-		if strings.HasPrefix(users[i].Username, "seed_admin_") {
+		if users[i].Username == "seed_admin" {
 			return &users[i]
 		}
 	}
@@ -475,4 +475,59 @@ func TestSeedCommandTransactionRollback(t *testing.T) {
 			t.Errorf("Expected at least %d posts after commit, got %d", expectedPosts, finalPostCount)
 		}
 	})
+}
+
+func TestEnsureSeedUser(t *testing.T) {
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	if err != nil {
+		t.Fatalf("Failed to connect to database: %v", err)
+	}
+
+	if err := db.AutoMigrate(&database.User{}); err != nil {
+		t.Fatalf("Failed to migrate database: %v", err)
+	}
+
+	userRepo := repositories.NewUserRepository(db)
+	passwordHash := "test_password_hash"
+
+	firstUser, err := ensureSeedUser(userRepo, passwordHash)
+	if err != nil {
+		t.Fatalf("Failed to create seed user: %v", err)
+	}
+
+	if firstUser.Username != "seed_admin" || firstUser.Email != "seed_admin@goyco.local" || firstUser.Password != passwordHash || !firstUser.EmailVerified {
+		t.Errorf("Invalid seed user: username=%s, email=%s, password matches=%v, emailVerified=%v",
+			firstUser.Username, firstUser.Email, firstUser.Password == passwordHash, firstUser.EmailVerified)
+	}
+
+	secondUser, err := ensureSeedUser(userRepo, "different_password_hash")
+	if err != nil {
+		t.Fatalf("Failed to reuse seed user: %v", err)
+	}
+
+	if firstUser.ID != secondUser.ID {
+		t.Errorf("Expected same user to be reused (ID %d), got different user (ID %d)", firstUser.ID, secondUser.ID)
+	}
+
+	for i := 0; i < 3; i++ {
+		if _, err := ensureSeedUser(userRepo, passwordHash); err != nil {
+			t.Fatalf("Call %d failed: %v", i+1, err)
+		}
+	}
+
+	users, err := userRepo.GetAll(100, 0)
+	if err != nil {
+		t.Fatalf("Failed to get users: %v", err)
+	}
+
+	seedUserCount := 0
+	for _, user := range users {
+		if user.Username == "seed_admin" {
+			seedUserCount++
+		}
+	}
+
+	if seedUserCount != 1 {
+		t.Errorf("Expected exactly 1 seed user, got %d", seedUserCount)
+	}
 }
