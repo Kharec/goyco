@@ -2,43 +2,73 @@ package templates
 
 import (
 	"html/template"
-	"io/fs"
 	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestTemplateParsing(t *testing.T) {
-	templateDir := "./"
+func templateFuncMap() template.FuncMap {
+	return template.FuncMap{
+		"formatTime": func(t time.Time) string {
+			if t.IsZero() {
+				return ""
+			}
+			return t.Format("02 Jan 2006 15:04")
+		},
+		"truncate": func(s string, length int) string {
+			if len(s) <= length {
+				return s
+			}
+			if length <= 3 {
+				return s[:length]
+			}
+			return s[:length-3] + "..."
+		},
+		"substr": func(s string, start, length int) string {
+			if start >= len(s) {
+				return ""
+			}
+			end := start + length
+			if end > len(s) {
+				end = len(s)
+			}
+			return s[start:end]
+		},
+		"upper": strings.ToUpper,
+	}
+}
 
-	var templateFiles []string
-	err := filepath.WalkDir(templateDir, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if !d.IsDir() && filepath.Ext(path) == ".gohtml" {
-			templateFiles = append(templateFiles, path)
-		}
-		return nil
-	})
+func TestTemplateParsing(t *testing.T) {
+	layoutPath := filepath.Join(".", "base.gohtml")
+	require.FileExists(t, layoutPath, "base layout is required for all templates")
+
+	partials, err := filepath.Glob(filepath.Join(".", "partials", "*.gohtml"))
 	require.NoError(t, err)
 
-	tmpl := template.New("test")
+	pages, err := filepath.Glob(filepath.Join(".", "*.gohtml"))
+	require.NoError(t, err)
+	require.NotEmpty(t, pages, "no page templates found")
 
-	tmpl = tmpl.Funcs(template.FuncMap{
-		"formatTime": func(any) string { return "2024-01-01" },
-		"eq":         func(a, b any) bool { return a == b },
-		"ne":         func(a, b any) bool { return a != b },
-		"len":        func(s any) int { return 0 },
-		"range":      func(s any) any { return s },
-	})
+	for _, page := range pages {
+		if filepath.Base(page) == "base.gohtml" {
+			continue
+		}
 
-	for _, file := range templateFiles {
-		t.Run(file, func(t *testing.T) {
-			_, err := tmpl.ParseFiles(file)
-			assert.NoError(t, err, "Template %s should parse without errors", file)
+		page := page
+		t.Run(filepath.Base(page), func(t *testing.T) {
+			t.Parallel()
+
+			files := append([]string{layoutPath}, partials...)
+			files = append(files, page)
+
+			tmpl, err := template.New(filepath.Base(page)).Funcs(templateFuncMap()).ParseFiles(files...)
+			require.NoError(t, err)
+			require.NotNil(t, tmpl.Lookup("layout"), "layout template should be available")
+			require.NotNil(t, tmpl.Lookup("content"), "content block should be defined by page templates")
 		})
 	}
 }
