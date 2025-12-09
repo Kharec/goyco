@@ -35,17 +35,6 @@ func initSeedRand() {
 	})
 }
 
-func generateRandomIdentifier() string {
-	initSeedRand()
-	const length = 12
-	const chars = "abcdefghijklmnopqrstuvwxyz0123456789"
-	identifier := make([]byte, length)
-	for i := range identifier {
-		identifier[i] = chars[seedRandSource.Intn(len(chars))]
-	}
-	return string(identifier)
-}
-
 func HandleSeedCommand(cfg *config.Config, name string, args []string) error {
 	fs := newFlagSet(name, printSeedUsage)
 	if err := parseCommand(fs, args, name); err != nil {
