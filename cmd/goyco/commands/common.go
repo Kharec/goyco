@@ -8,9 +8,10 @@ import (
 	"os"
 	"sync"
 
-	"gorm.io/gorm"
 	"goyco/internal/config"
 	"goyco/internal/database"
+
+	"gorm.io/gorm"
 )
 
 var ErrHelpRequested = errors.New("help requested")
@@ -116,26 +117,6 @@ func outputJSON(v interface{}) error {
 	encoder := json.NewEncoder(os.Stdout)
 	encoder.SetIndent("", "  ")
 	return encoder.Encode(v)
-}
-
-func outputMessage(message string, args ...interface{}) {
-	if IsJSONOutput() {
-		outputJSON(map[string]interface{}{
-			"message": fmt.Sprintf(message, args...),
-		})
-	} else {
-		fmt.Printf(message+"\n", args...)
-	}
-}
-
-func outputError(message string, args ...interface{}) {
-	if IsJSONOutput() {
-		outputJSON(map[string]interface{}{
-			"error": fmt.Sprintf(message, args...),
-		})
-	} else {
-		fmt.Fprintf(os.Stderr, message+"\n", args...)
-	}
 }
 
 func outputWarning(message string, args ...interface{}) {
