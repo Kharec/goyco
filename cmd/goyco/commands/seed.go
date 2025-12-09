@@ -236,44 +236,28 @@ func seedDatabase(userRepo repositories.UserRepository, postRepo repositories.Po
 	return nil
 }
 
-func findExistingSeedUser(userRepo repositories.UserRepository) (*database.User, error) {
-	user, err := userRepo.GetByUsernamePrefix("seed_admin_")
-	if err != nil {
-		return nil, fmt.Errorf("no existing seed user found")
-	}
-	return user, nil
-}
+const (
+	seedUsername = "seed_admin"
+	seedEmail    = "seed_admin@goyco.local"
+)
 
 func ensureSeedUser(userRepo repositories.UserRepository, passwordHash string) (*database.User, error) {
-	existingUser, err := findExistingSeedUser(userRepo)
-	if err == nil && existingUser != nil {
-		return existingUser, nil
-	}
-
-	randomID := generateRandomIdentifier()
-	seedUsername := fmt.Sprintf("seed_admin_%s", randomID)
-	seedEmail := fmt.Sprintf("seed_admin_%s@goyco.local", randomID)
-
-	const maxRetries = 10
-	for range maxRetries {
-		user := &database.User{
-			Username:      seedUsername,
-			Email:         seedEmail,
-			Password:      passwordHash,
-			EmailVerified: true,
-		}
-
-		if err := userRepo.Create(user); err != nil {
-			randomID = generateRandomIdentifier()
-			seedUsername = fmt.Sprintf("seed_admin_%s", randomID)
-			seedEmail = fmt.Sprintf("seed_admin_%s@goyco.local", randomID)
-			continue
-		}
-
+	if user, err := userRepo.GetByUsername(seedUsername); err == nil {
 		return user, nil
 	}
 
-	return nil, fmt.Errorf("failed to create seed user after %d attempts", maxRetries)
+	user := &database.User{
+		Username:      seedUsername,
+		Email:         seedEmail,
+		Password:      passwordHash,
+		EmailVerified: true,
+	}
+
+	if err := userRepo.Create(user); err != nil {
+		return nil, fmt.Errorf("failed to create seed user: %w", err)
+	}
+
+	return user, nil
 }
 
 func getVoteCounts(voteRepo repositories.VoteRepository, postID uint) (int, int, error) {
