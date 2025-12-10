@@ -261,6 +261,7 @@ func processItemsInParallelNoResult[T any](
 ) error {
 	count := len(items)
 	errors := make(chan error, count)
+	completions := make(chan struct{}, count)
 
 	semaphore := make(chan struct{}, maxWorkers)
 	var wg sync.WaitGroup
@@ -288,20 +289,45 @@ func processItemsInParallelNoResult[T any](
 				return
 			}
 
-			if progress != nil {
-				progress.Update(index + 1)
-			}
+			completions <- struct{}{}
 		}(i, item)
 	}
 
 	go func() {
 		wg.Wait()
 		close(errors)
+		close(completions)
 	}()
 
-	for err := range errors {
-		if err != nil {
+	completed := 0
+	firstError := make(chan error, 1)
+
+	go func() {
+		for err := range errors {
+			if err != nil {
+				select {
+				case firstError <- err:
+				default:
+				}
+				return
+			}
+		}
+	}()
+
+	for completed < count {
+		select {
+		case _, ok := <-completions:
+			if !ok {
+				return nil
+			}
+			completed++
+			if progress != nil {
+				progress.Update(completed)
+			}
+		case err := <-firstError:
 			return err
+		case <-ctx.Done():
+			return fmt.Errorf("timeout: %w", ctx.Err())
 		}
 	}
 
