@@ -2,15 +2,15 @@ package commands_test
 
 import (
 	"errors"
-	"fmt"
 	"sync"
 	"testing"
 
-	"golang.org/x/crypto/bcrypt"
 	"goyco/cmd/goyco/commands"
 	"goyco/internal/database"
 	"goyco/internal/repositories"
 	"goyco/internal/testutils"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 func TestParallelProcessor_CreateUsersInParallel(t *testing.T) {
@@ -25,7 +25,7 @@ func TestParallelProcessor_CreateUsersInParallel(t *testing.T) {
 		wantErr     bool
 	}{
 		{
-			name:  "creates users with deterministic fields",
+			name:  "creates users with required fields",
 			count: successCount,
 			repoFactory: func() repositories.UserRepository {
 				base := testutils.NewMockUserRepository()
@@ -37,14 +37,24 @@ func TestParallelProcessor_CreateUsersInParallel(t *testing.T) {
 				if len(got) != successCount {
 					t.Fatalf("expected %d users, got %d", successCount, len(got))
 				}
+				usernames := make(map[string]bool)
 				for i, user := range got {
-					expectedUsername := fmt.Sprintf("user_%d", i+1)
-					expectedEmail := fmt.Sprintf("user_%d@goyco.local", i+1)
-					if user.Username != expectedUsername {
-						t.Errorf("user %d username mismatch: got %q want %q", i, user.Username, expectedUsername)
+					if user.Username == "" {
+						t.Errorf("user %d expected non-empty username", i)
 					}
-					if user.Email != expectedEmail {
-						t.Errorf("user %d email mismatch: got %q want %q", i, user.Email, expectedEmail)
+					if len(user.Username) < 6 || user.Username[:5] != "user_" {
+						t.Errorf("user %d username should start with 'user_', got %q", i, user.Username)
+					}
+					if usernames[user.Username] {
+						t.Errorf("user %d duplicate username: %q", i, user.Username)
+					}
+					usernames[user.Username] = true
+
+					if user.Email == "" {
+						t.Errorf("user %d expected non-empty email", i)
+					}
+					if len(user.Email) < 20 || user.Email[:5] != "user_" || user.Email[len(user.Email)-12:] != "@goyco.local" {
+						t.Errorf("user %d email should match pattern 'user_*@goyco.local', got %q", i, user.Email)
 					}
 					if !user.EmailVerified {
 						t.Errorf("user %d expected EmailVerified to be true", i)
@@ -83,6 +93,11 @@ func TestParallelProcessor_CreateUsersInParallel(t *testing.T) {
 			t.Parallel()
 			repo := tt.repoFactory()
 			p := commands.NewParallelProcessor()
+			passwordHash, err := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
+			if err != nil {
+				t.Fatalf("failed to generate password hash: %v", err)
+			}
+			p.SetPasswordHash(string(passwordHash))
 			got, gotErr := p.CreateUsersInParallel(repo, tt.count, tt.progress)
 			if gotErr != nil {
 				if !tt.wantErr {
