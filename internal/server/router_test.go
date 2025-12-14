@@ -513,3 +513,109 @@ func TestRouterMiddlewareIntegration(t *testing.T) {
 		t.Error("Router should return a status code")
 	}
 }
+
+func TestAllRoutesExist(t *testing.T) {
+	authHandler, postHandler, voteHandler, userHandler, apiHandler, authService := setupTestHandlers()
+
+	router := NewRouter(RouterConfig{
+		APIHandler:      apiHandler,
+		AuthHandler:     authHandler,
+		PostHandler:     postHandler,
+		VoteHandler:     voteHandler,
+		UserHandler:     userHandler,
+		AuthService:     authService,
+		RateLimitConfig: defaultRateLimitConfig(),
+	})
+
+	publicRoutes := []struct {
+		method      string
+		path        string
+		description string
+	}{
+		{http.MethodGet, "/api", "API info"},
+		{http.MethodGet, "/health", "Health check"},
+		{http.MethodGet, "/metrics", "Metrics"},
+		{http.MethodGet, "/robots.txt", "Robots.txt"},
+		{http.MethodGet, "/api/posts", "Get posts"},
+		{http.MethodGet, "/api/posts/search", "Search posts"},
+		{http.MethodGet, "/api/posts/title", "Fetch title from URL"},
+		{http.MethodGet, "/api/posts/1", "Get post by ID"},
+		{http.MethodPost, "/api/auth/register", "Register"},
+		{http.MethodPost, "/api/auth/login", "Login"},
+		{http.MethodPost, "/api/auth/refresh", "Refresh token"},
+		{http.MethodGet, "/api/auth/confirm", "Confirm email"},
+		{http.MethodPost, "/api/auth/resend-verification", "Resend verification"},
+		{http.MethodPost, "/api/auth/forgot-password", "Forgot password"},
+		{http.MethodPost, "/api/auth/reset-password", "Reset password"},
+		{http.MethodPost, "/api/auth/account/confirm", "Confirm account deletion"},
+	}
+
+	protectedRoutes := []struct {
+		method      string
+		path        string
+		description string
+	}{
+		{http.MethodGet, "/api/auth/me", "Get current user"},
+		{http.MethodPost, "/api/auth/logout", "Logout"},
+		{http.MethodPost, "/api/auth/revoke", "Revoke token"},
+		{http.MethodPost, "/api/auth/revoke-all", "Revoke all tokens"},
+		{http.MethodPut, "/api/auth/email", "Update email"},
+		{http.MethodPut, "/api/auth/username", "Update username"},
+		{http.MethodPut, "/api/auth/password", "Update password"},
+		{http.MethodDelete, "/api/auth/account", "Delete account"},
+		{http.MethodPost, "/api/posts", "Create post"},
+		{http.MethodPut, "/api/posts/1", "Update post"},
+		{http.MethodDelete, "/api/posts/1", "Delete post"},
+		{http.MethodPost, "/api/posts/1/vote", "Cast vote"},
+		{http.MethodDelete, "/api/posts/1/vote", "Remove vote"},
+		{http.MethodGet, "/api/posts/1/vote", "Get user vote"},
+		{http.MethodGet, "/api/posts/1/votes", "Get post votes"},
+		{http.MethodGet, "/api/users", "Get users"},
+		{http.MethodPost, "/api/users", "Create user"},
+		{http.MethodGet, "/api/users/1", "Get user by ID"},
+		{http.MethodGet, "/api/users/1/posts", "Get user posts"},
+	}
+
+	for _, route := range publicRoutes {
+		t.Run(route.description+" "+route.method+" "+route.path, func(t *testing.T) {
+			invalidMethod := http.MethodPatch
+			if route.method == http.MethodGet {
+				invalidMethod = http.MethodDelete
+			} else if route.method == http.MethodPost {
+				invalidMethod = http.MethodGet
+			}
+			request := httptest.NewRequest(invalidMethod, route.path, nil)
+			recorder := httptest.NewRecorder()
+
+			router.ServeHTTP(recorder, request)
+
+			routeExists := recorder.Code == http.StatusMethodNotAllowed || recorder.Code != http.StatusNotFound
+
+			if !routeExists {
+				request = httptest.NewRequest(route.method, route.path, nil)
+				recorder = httptest.NewRecorder()
+				router.ServeHTTP(recorder, request)
+
+				if recorder.Code == http.StatusNotFound {
+					t.Errorf("Route %s %s should exist, got 404", route.method, route.path)
+				}
+			}
+		})
+	}
+
+	for _, route := range protectedRoutes {
+		t.Run(route.description+" "+route.method+" "+route.path, func(t *testing.T) {
+			request := httptest.NewRequest(route.method, route.path, nil)
+			recorder := httptest.NewRecorder()
+
+			router.ServeHTTP(recorder, request)
+
+			if recorder.Code == http.StatusNotFound {
+				t.Errorf("Route %s %s should exist, got 404", route.method, route.path)
+			}
+			if recorder.Code != http.StatusUnauthorized {
+				t.Errorf("Protected route %s %s should return 401 without auth, got %d", route.method, route.path, recorder.Code)
+			}
+		})
+	}
+}
