@@ -3,6 +3,7 @@ package server
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"goyco/internal/config"
@@ -618,4 +619,128 @@ func TestAllRoutesExist(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRouteParameters(t *testing.T) {
+	authHandler, postHandler, voteHandler, userHandler, apiHandler, authService := setupTestHandlers()
+
+	router := NewRouter(RouterConfig{
+		APIHandler:      apiHandler,
+		AuthHandler:     authHandler,
+		PostHandler:     postHandler,
+		VoteHandler:     voteHandler,
+		UserHandler:     userHandler,
+		AuthService:     authService,
+		RateLimitConfig: defaultRateLimitConfig(),
+	})
+
+	testCases := []struct {
+		name        string
+		method      string
+		pathPattern string
+		testIDs     []string
+		isProtected bool
+	}{
+		{
+			name:        "Get post by ID",
+			method:      http.MethodGet,
+			pathPattern: "/api/posts/{id}",
+			testIDs:     []string{"1", "42", "999", "12345"},
+			isProtected: false,
+		},
+		{
+			name:        "Update post by ID",
+			method:      http.MethodPut,
+			pathPattern: "/api/posts/{id}",
+			testIDs:     []string{"1", "42", "999"},
+			isProtected: true,
+		},
+		{
+			name:        "Delete post by ID",
+			method:      http.MethodDelete,
+			pathPattern: "/api/posts/{id}",
+			testIDs:     []string{"1", "42", "999"},
+			isProtected: true,
+		},
+		{
+			name:        "Get user by ID",
+			method:      http.MethodGet,
+			pathPattern: "/api/users/{id}",
+			testIDs:     []string{"1", "42", "999", "12345"},
+			isProtected: true,
+		},
+		{
+			name:        "Get user posts by user ID",
+			method:      http.MethodGet,
+			pathPattern: "/api/users/{id}/posts",
+			testIDs:     []string{"1", "42", "999", "12345"},
+			isProtected: true,
+		},
+		{
+			name:        "Cast vote for post ID",
+			method:      http.MethodPost,
+			pathPattern: "/api/posts/{id}/vote",
+			testIDs:     []string{"1", "42", "999"},
+			isProtected: true,
+		},
+		{
+			name:        "Remove vote for post ID",
+			method:      http.MethodDelete,
+			pathPattern: "/api/posts/{id}/vote",
+			testIDs:     []string{"1", "42", "999"},
+			isProtected: true,
+		},
+		{
+			name:        "Get user vote for post ID",
+			method:      http.MethodGet,
+			pathPattern: "/api/posts/{id}/vote",
+			testIDs:     []string{"1", "42", "999", "12345"},
+			isProtected: true,
+		},
+		{
+			name:        "Get post votes by post ID",
+			method:      http.MethodGet,
+			pathPattern: "/api/posts/{id}/votes",
+			testIDs:     []string{"1", "42", "999", "12345"},
+			isProtected: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			for _, id := range tc.testIDs {
+				path := replaceID(tc.pathPattern, id)
+				t.Run("ID_"+id, func(t *testing.T) {
+					request := httptest.NewRequest(http.MethodPatch, path, nil)
+					recorder := httptest.NewRecorder()
+					router.ServeHTTP(recorder, request)
+
+					routeExists := recorder.Code == http.StatusMethodNotAllowed
+
+					request = httptest.NewRequest(tc.method, path, nil)
+					recorder = httptest.NewRecorder()
+					router.ServeHTTP(recorder, request)
+
+					if !routeExists && recorder.Code == http.StatusNotFound {
+						t.Errorf("Route %s %s should exist with ID %s, got 404", tc.method, path, id)
+						return
+					}
+
+					if tc.isProtected {
+						if recorder.Code != http.StatusUnauthorized {
+							t.Errorf("Protected route %s %s should return 401 without auth, got %d", tc.method, path, recorder.Code)
+						}
+					} else {
+						if !routeExists && recorder.Code == http.StatusNotFound {
+							t.Errorf("Public route %s %s should exist, got 404", tc.method, path)
+						}
+					}
+				})
+			}
+		})
+	}
+}
+
+func replaceID(pattern, id string) string {
+	return strings.Replace(pattern, "{id}", id, 1)
 }
