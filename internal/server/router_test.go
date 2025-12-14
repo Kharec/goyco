@@ -158,7 +158,16 @@ func TestProtectedRoutesRequireAuth(t *testing.T) {
 		path   string
 	}{
 		{http.MethodGet, "/api/auth/me"},
+		{http.MethodPost, "/api/auth/logout"},
+		{http.MethodPost, "/api/auth/revoke"},
+		{http.MethodPost, "/api/auth/revoke-all"},
+		{http.MethodPut, "/api/auth/email"},
+		{http.MethodPut, "/api/auth/username"},
+		{http.MethodPut, "/api/auth/password"},
+		{http.MethodDelete, "/api/auth/account"},
 		{http.MethodPost, "/api/posts"},
+		{http.MethodPut, "/api/posts/1"},
+		{http.MethodDelete, "/api/posts/1"},
 		{http.MethodPost, "/api/posts/1/vote"},
 		{http.MethodDelete, "/api/posts/1/vote"},
 		{http.MethodGet, "/api/posts/1/vote"},
