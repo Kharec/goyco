@@ -2,21 +2,21 @@
 # helper script to setup a postgres database on deb based systems
 
 if [ "$EUID" -ne 0 ]; then
-    echo "Please run as root"
-    exit 1
+  echo "Please run as root"
+  exit 1
 fi
 
 read -s "Do you want to install PostgreSQL 18? [y/N] " INSTALL_PG
 if [ "$INSTALL_PG" != "y" ]; then
-    echo "PostgreSQL 18 will not be installed"
-    exit 0
+  echo "PostgreSQL 18 will not be installed"
+  exit 0
 fi
 
 read -s -p "Enter password for PostgreSQL user 'goyco': " GOYCO_PWD
 echo
 
 apt-get update
-apt-get install -y postgresql-18 
+apt-get install -y postgresql-18
 
 systemctl enable --now postgresql
 
@@ -44,5 +44,3 @@ GRANT ALL PRIVILEGES ON DATABASE goyco TO goyco;
 EOF
 
 echo "PostgreSQL 18 installed, database 'goyco' and user 'goyco' set up."
-
-
