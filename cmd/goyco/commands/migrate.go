@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"os"
 
-	"gorm.io/gorm"
 	"goyco/internal/config"
 	"goyco/internal/database"
+
+	"gorm.io/gorm"
 )
 
 func HandleMigrateCommand(cfg *config.Config, name string, args []string) error {
@@ -37,7 +38,7 @@ func runMigrateCommand(db *gorm.DB) error {
 		return fmt.Errorf("run migrations: %w", err)
 	}
 	if IsJSONOutput() {
-		outputJSON(map[string]interface{}{
+		outputJSON(map[string]any{
 			"action": "migrations_applied",
 			"status": "success",
 		})
