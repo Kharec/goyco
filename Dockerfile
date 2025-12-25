@@ -13,7 +13,7 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags="-s -w
 # building the application image
 FROM alpine:3.23
 RUN addgroup -S goyco && adduser -S -G goyco goyco \
-  && apk add --no-cache ca-certificates tzdata
+  && apk add --no-cache ca-certificates curl tzdata
 WORKDIR /app
 COPY --from=go-builder /out/goyco ./goyco
 COPY --from=go-builder /src/internal/static ./internal/static
