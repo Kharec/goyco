@@ -22,6 +22,8 @@ services:
       SMTP_FROM: ${SMTP_FROM:?SMTP_FROM is required}
       APP_BASE_URL: ${APP_BASE_URL:-http://127.0.0.1:8080}
       ADMIN_EMAIL: ${ADMIN_EMAIL:?ADMIN_EMAIL is required}
+      LOG_DIR: ${LOG_DIR:-/app/log}
+      PID_DIR: ${PID_DIR:-/app/run}
     ports:
       - "8080:8080"
     healthcheck:
