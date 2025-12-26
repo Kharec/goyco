@@ -364,14 +364,27 @@ func TestStaticFileRoute(t *testing.T) {
 	cfg.StaticDir = "../../internal/static/"
 	router := createTestRouter(cfg)
 
-	request := httptest.NewRequest(http.MethodGet, "/static/css/main.css", nil)
-	recorder := httptest.NewRecorder()
+	t.Run("existing file should return 200", func(t *testing.T) {
+		request := httptest.NewRequest(http.MethodGet, "/static/css/main.css", nil)
+		recorder := httptest.NewRecorder()
 
-	router.ServeHTTP(recorder, request)
+		router.ServeHTTP(recorder, request)
 
-	if recorder.Code != http.StatusNotFound && recorder.Code != http.StatusOK {
-		t.Errorf("Expected status 200 or 404 for static files, got %d", recorder.Code)
-	}
+		if recorder.Code != http.StatusOK {
+			t.Errorf("Expected status 200 for existing static file, got %d", recorder.Code)
+		}
+	})
+
+	t.Run("non-existent file should return 404", func(t *testing.T) {
+		request := httptest.NewRequest(http.MethodGet, "/static/css/nonexistent.css", nil)
+		recorder := httptest.NewRecorder()
+
+		router.ServeHTTP(recorder, request)
+
+		if recorder.Code != http.StatusNotFound {
+			t.Errorf("Expected status 404 for non-existent static file, got %d", recorder.Code)
+		}
+	})
 }
 
 func TestRouterConfiguration(t *testing.T) {
