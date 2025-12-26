@@ -93,11 +93,6 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	username := security.SanitizeUsername(req.Username)
 	password := strings.TrimSpace(req.Password)
 
-	if err := validation.ValidatePassword(password); err != nil {
-		SendErrorResponse(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
 	result, err := h.authService.Login(username, password)
 	if !HandleServiceError(w, err, "Authentication failed", http.StatusInternalServerError) {
 		return
