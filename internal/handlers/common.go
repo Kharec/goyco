@@ -93,7 +93,7 @@ func SetVoteCookie(w http.ResponseWriter, r *http.Request, postID uint, voteType
 		Path:     "/",
 		MaxAge:   SecondsPerDay * CookieMaxAgeDays,
 		HttpOnly: true,
-		Secure:   IsHTTPS(r),
+		Secure:   middleware.IsHTTPS(r),
 		SameSite: http.SameSiteLaxMode,
 	}
 
@@ -119,26 +119,6 @@ func ClearVoteCookie(w http.ResponseWriter, postID uint) {
 		HttpOnly: true,
 	}
 	http.SetCookie(w, cookie)
-}
-
-func IsHTTPS(r *http.Request) bool {
-	if r.TLS != nil {
-		return true
-	}
-
-	if proto := r.Header.Get("X-Forwarded-Proto"); proto == "https" {
-		return true
-	}
-
-	if proto := r.Header.Get("X-Forwarded-Ssl"); proto == "on" {
-		return true
-	}
-
-	if proto := r.Header.Get("X-Forwarded-Scheme"); proto == "https" {
-		return true
-	}
-
-	return false
 }
 
 func SanitizeUser(user *database.User) dto.SanitizedUserDTO {
