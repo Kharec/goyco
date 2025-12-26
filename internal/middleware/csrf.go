@@ -37,19 +37,11 @@ func SetCSRFToken(w http.ResponseWriter, r *http.Request, token string) {
 }
 
 func GetCSRFToken(r *http.Request) string {
-	if token := strings.TrimSpace(r.FormValue(CSRFTokenFormName)); token != "" {
-		return token
+	token := strings.TrimSpace(r.FormValue(CSRFTokenFormName))
+	if token == "" {
+		token = strings.TrimSpace(r.Header.Get(CSRFTokenHeaderName))
 	}
-
-	if token := strings.TrimSpace(r.Header.Get(CSRFTokenHeaderName)); token != "" {
-		return token
-	}
-
-	if cookie, err := r.Cookie(CSRFTokenCookieName); err == nil {
-		return strings.TrimSpace(cookie.Value)
-	}
-
-	return ""
+	return token
 }
 
 func ValidateCSRFToken(r *http.Request) bool {
