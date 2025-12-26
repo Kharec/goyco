@@ -112,8 +112,11 @@ func CacheMiddleware(cache Cache, config *CacheConfig) func(http.Handler) http.H
 
 			if entry, err := cache.Get(cacheKey); err == nil {
 				for key, values := range entry.Headers {
-					for _, value := range values {
-						w.Header().Add(key, value)
+					if len(values) > 0 {
+						w.Header().Set(key, values[0])
+						for i := 1; i < len(values); i++ {
+							w.Header().Add(key, values[i])
+						}
 					}
 				}
 				w.Header().Set("X-Cache", "HIT")
@@ -155,6 +158,11 @@ type responseCapturer struct {
 
 func (rc *responseCapturer) WriteHeader(code int) {
 	rc.statusCode = code
+	for key, values := range rc.headers {
+		for _, value := range values {
+			rc.ResponseWriter.Header().Add(key, value)
+		}
+	}
 	rc.ResponseWriter.WriteHeader(code)
 }
 
