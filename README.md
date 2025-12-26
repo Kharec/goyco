@@ -169,15 +169,6 @@ server {
 }
 ```
 
-### Application Settings
-
-```bash
-APP_BASE_URL=https://goyco.example.com # assuming you are using a reverse proxy
-ADMIN_EMAIL=admin@example.com
-TITLE=Goyco # will be displayed in the web interface, choose wisely
-DEBUG=false
-```
-
 ## API Documentation
 
 The API is fully documented with Swagger.
