@@ -174,4 +174,28 @@ func TestIntegration_CSRF_Protection(t *testing.T) {
 			t.Error("Expected post creation with valid CSRF token to succeed")
 		}
 	})
+
+	t.Run("CSRF_Blocks_Request_With_Only_Cookie", func(t *testing.T) {
+		csrfCookie := getCSRFToken(t, "/register")
+
+		requestBody := url.Values{}
+		requestBody.Set("username", "cookie_only_user")
+		requestBody.Set("email", "cookie_only@example.com")
+		requestBody.Set("password", "SecurePass123!")
+
+		request := httptest.NewRequest("POST", "/register", strings.NewReader(requestBody.Encode()))
+		request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		request.AddCookie(csrfCookie)
+
+		recorder := httptest.NewRecorder()
+
+		router.ServeHTTP(recorder, request)
+
+		if recorder.Code != http.StatusForbidden {
+			t.Errorf("Expected status 403 for request with only cookie (no form/header token), got %d. Body: %s", recorder.Code, recorder.Body.String())
+		}
+		if !strings.Contains(recorder.Body.String(), "Invalid CSRF token") {
+			t.Error("Expected CSRF error message")
+		}
+	})
 }
