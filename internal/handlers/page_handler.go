@@ -502,7 +502,7 @@ func (h *PageHandler) Login(w http.ResponseWriter, r *http.Request) {
 		Path:     "/",
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
-		Secure:   IsHTTPS(r),
+		Secure:   middleware.IsHTTPS(r),
 		Expires:  time.Now().Add(24 * time.Hour),
 	}
 	http.SetCookie(w, cookie)
@@ -1327,7 +1327,7 @@ func (h *PageHandler) clearAuthCookie(w http.ResponseWriter, r *http.Request) {
 		Value:    "",
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   IsHTTPS(r),
+		Secure:   middleware.IsHTTPS(r),
 		Expires:  time.Unix(0, 0),
 		MaxAge:   -1,
 		SameSite: http.SameSiteLaxMode,
@@ -1587,7 +1587,7 @@ func (h *PageHandler) getTemplate(name string) (*template.Template, error) {
 
 func HSTSMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if IsHTTPS(r) {
+		if middleware.IsHTTPS(r) {
 			w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
 		}
 		next.ServeHTTP(w, r)
