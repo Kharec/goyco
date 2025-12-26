@@ -94,6 +94,23 @@ func TestCSRFTokenValidationMissingCookie(t *testing.T) {
 	}
 }
 
+func TestCSRFTokenValidationOnlyCookie(t *testing.T) {
+	token, err := CSRFToken()
+	if err != nil {
+		t.Fatalf("Failed to generate CSRF token: %v", err)
+	}
+
+	request := httptest.NewRequest("POST", "/test", nil)
+	request.AddCookie(&http.Cookie{
+		Name:  CSRFTokenCookieName,
+		Value: token,
+	})
+
+	if ValidateCSRFToken(request) {
+		t.Error("Request with only cookie (no form/header token) should fail validation")
+	}
+}
+
 func TestCSRFTokenValidationHeader(t *testing.T) {
 	token, err := CSRFToken()
 	if err != nil {
