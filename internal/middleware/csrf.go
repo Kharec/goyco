@@ -29,7 +29,7 @@ func SetCSRFToken(w http.ResponseWriter, r *http.Request, token string) {
 		Value:    token,
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   isHTTPS(r),
+		Secure:   IsHTTPS(r),
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   3600,
 	}
@@ -86,7 +86,7 @@ func CSRFMiddleware() func(http.Handler) http.Handler {
 	}
 }
 
-func isHTTPS(r *http.Request) bool {
+func IsHTTPS(r *http.Request) bool {
 	if r.TLS != nil {
 		return true
 	}
