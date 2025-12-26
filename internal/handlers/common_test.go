@@ -188,7 +188,7 @@ func TestIsHTTPS(t *testing.T) {
 				t.Skip("Cannot test TLS with httptest.NewRequest")
 			}
 
-			result := IsHTTPS(req)
+			result := middleware.IsHTTPS(req)
 			if result != tt.expected {
 				t.Errorf("Expected %v, got %v", tt.expected, result)
 			}
