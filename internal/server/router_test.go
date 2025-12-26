@@ -824,6 +824,9 @@ func TestQueryParameters(t *testing.T) {
 				if recorder.Code == http.StatusNotFound {
 					t.Errorf("Route %s %s should exist with query parameters, got 404", tc.method, fullPath)
 				}
+				if recorder.Code >= http.StatusInternalServerError {
+					t.Errorf("Route %s %s should not return server error (5xx), got %d", tc.method, fullPath, recorder.Code)
+				}
 			}
 		})
 	}
