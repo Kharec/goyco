@@ -127,9 +127,19 @@ SMTP_PASSWORD=your-password
 SMTP_FROM=noreply@example.com
 ```
 
-Be sure to check `.env.example` for more details.
+### Application Settings
 
-Don't underestimate RATE_LIMIT parameters. You might want to set them to higher values if you are running a production environment.
+```bash
+APP_BASE_URL=https://goyco.example.com
+ADMIN_EMAIL=admin@example.com
+TITLE=Goyco
+DEBUG=false
+BCRYPT_COST=10
+```
+
+And also CLI configuration (for json output), rate limiting configuration, etc. Be sure to check `.env.example` for more details.
+
+**Warning**: Don't underestimate RATE_LIMIT parameters. You might want to set them to higher values if you are running a production environment.
 
 ### Reverse Proxy Configuration
 
