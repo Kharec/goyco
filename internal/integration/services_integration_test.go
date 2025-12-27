@@ -818,15 +818,7 @@ func setupDeletionTokenForTest(t *testing.T, emailSender *testutils.MockEmailSen
 		t.Fatalf("Cannot delete user %d", userID)
 	}
 
-	req := &database.AccountDeletionRequest{
-		UserID:    userID,
-		TokenHash: hashedToken,
-		ExpiresAt: time.Now().Add(24 * time.Hour),
-	}
-
-	if err := deletionRepo.Create(req); err != nil {
-		t.Fatalf("Failed to create account deletion request: %v", err)
-	}
+	testutils.CreateAccountDeletionRequestWithRepo(t, deletionRepo, userID, hashedToken, time.Now().Add(24*time.Hour))
 
 	return deletionToken
 }
