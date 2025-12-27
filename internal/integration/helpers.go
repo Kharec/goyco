@@ -398,7 +398,11 @@ type authenticatedUser struct {
 	Token string
 }
 
-func createAuthenticatedUser(t *testing.T, authService *services.AuthFacade, userRepo repositories.UserRepository, username, email string) *authenticatedUser {
+type authServiceInterface interface {
+	Login(username, password string) (*services.AuthResult, error)
+}
+
+func createAuthenticatedUser(t *testing.T, authService authServiceInterface, userRepo repositories.UserRepository, username, email string) *authenticatedUser {
 	t.Helper()
 
 	password := "SecurePass123!"
@@ -427,6 +431,11 @@ func createAuthenticatedUser(t *testing.T, authService *services.AuthFacade, use
 		User:  loginResult.User,
 		Token: loginResult.AccessToken,
 	}
+}
+
+func createAuthenticatedUserOnly(t *testing.T, authService authServiceInterface, userRepo repositories.UserRepository, username, email string) *database.User {
+	t.Helper()
+	return createAuthenticatedUser(t, authService, userRepo, username, email).User
 }
 
 func uniqueTestUsername(t *testing.T, prefix string) string {
