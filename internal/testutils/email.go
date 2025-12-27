@@ -10,9 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/joho/godotenv"
 	"goyco/internal/config"
 	"goyco/internal/database"
+
+	"github.com/joho/godotenv"
 )
 
 type TestEmailServer struct {
@@ -47,95 +48,95 @@ func NewTestEmailServer() (*TestEmailServer, error) {
 		closed:   false,
 	}
 
-	addr := listener.Addr().(*net.TCPAddr)
-	server.port = addr.Port
+	address := listener.Addr().(*net.TCPAddr)
+	server.port = address.Port
 
 	go server.serve()
 
 	return server, nil
 }
 
-func (s *TestEmailServer) serve() {
+func (server *TestEmailServer) serve() {
 	for {
-		if s.closed {
+		if server.closed {
 			return
 		}
 
-		conn, err := s.listener.Accept()
+		connection, err := server.listener.Accept()
 		if err != nil {
-			if !s.closed {
+			if !server.closed {
 			}
 			return
 		}
-		go s.handleConnection(conn)
+		go server.handleConnection(connection)
 	}
 }
 
-func (s *TestEmailServer) handleConnection(conn net.Conn) {
-	defer conn.Close()
+func (server *TestEmailServer) handleConnection(connection net.Conn) {
+	defer connection.Close()
 
-	conn.Write([]byte("220 Test SMTP server ready\r\n"))
+	connection.Write([]byte("220 Test SMTP server ready\r\n"))
 
 	buffer := make([]byte, 1024)
 	for {
-		n, err := conn.Read(buffer)
+		n, err := connection.Read(buffer)
 		if err != nil {
 			return
 		}
 
 		command := strings.TrimSpace(string(buffer[:n]))
 
-		if s.delay > 0 {
-			time.Sleep(s.delay)
+		if server.delay > 0 {
+			time.Sleep(server.delay)
 		}
 
 		switch {
 		case strings.HasPrefix(command, "EHLO"), strings.HasPrefix(command, "HELO"):
-			conn.Write([]byte("250-Hello\r\n250-AUTH PLAIN LOGIN\r\n250 OK\r\n"))
+			connection.Write([]byte("250-Hello\r\n250-AUTH PLAIN LOGIN\r\n250 OK\r\n"))
 		case strings.HasPrefix(command, "AUTH PLAIN"):
-			conn.Write([]byte("235 Authentication successful\r\n"))
+			connection.Write([]byte("235 Authentication successful\r\n"))
 		case strings.HasPrefix(command, "AUTH LOGIN"):
-			conn.Write([]byte("334 VXNlcm5hbWU6\r\n"))
-			if _, err := conn.Read(buffer); err != nil {
+			connection.Write([]byte("334 VXNlcm5hbWU6\r\n"))
+			if _, err := connection.Read(buffer); err != nil {
 				return
 			}
-			conn.Write([]byte("334 UGFzc3dvcmQ6\r\n"))
-			if _, err := conn.Read(buffer); err != nil {
+			connection.Write([]byte("334 UGFzc3dvcmQ6\r\n"))
+			if _, err := connection.Read(buffer); err != nil {
 				return
 			}
-			conn.Write([]byte("235 Authentication successful\r\n"))
+			connection.Write([]byte("235 Authentication successful\r\n"))
 		case strings.HasPrefix(command, "AUTH"):
-			conn.Write([]byte("504 Unrecognized authentication type\r\n"))
+			connection.Write([]byte("504 Unrecognized authentication type\r\n"))
 		case strings.HasPrefix(command, "MAIL FROM"):
-			if s.shouldFail {
-				conn.Write([]byte("550 Mail from failed\r\n"))
+			if server.shouldFail {
+				connection.Write([]byte("550 Mail from failed\r\n"))
 				return
 			}
-			conn.Write([]byte("250 OK\r\n"))
+			connection.Write([]byte("250 OK\r\n"))
 		case strings.HasPrefix(command, "RCPT TO"):
-			if s.shouldFail {
-				conn.Write([]byte("550 Rcpt to failed\r\n"))
+			if server.shouldFail {
+				connection.Write([]byte("550 Rcpt to failed\r\n"))
 				return
 			}
-			conn.Write([]byte("250 OK\r\n"))
+			connection.Write([]byte("250 OK\r\n"))
 		case command == "DATA":
-			conn.Write([]byte("354 Start mail input; end with <CRLF>.<CRLF>\r\n"))
-			s.readEmailData(conn)
+			connection.Write([]byte("354 Start mail input; end with <CRLF>.<CRLF>\r\n"))
+			server.readEmailData(connection)
 		case command == "QUIT":
-			conn.Write([]byte("221 Bye\r\n"))
+			connection.Write([]byte("221 Bye\r\n"))
 			return
 		default:
-			conn.Write([]byte("500 Unknown command\r\n"))
+			connection.Write([]byte("500 Unknown command\r\n"))
 		}
 	}
 }
 
-func (s *TestEmailServer) readEmailData(conn net.Conn) {
+func (server *TestEmailServer) readEmailData(connection net.Conn) {
 	var emailData strings.Builder
 	buffer := make([]byte, 1024)
 
 	for {
-		n, err := conn.Read(buffer)
+		n, err := connection.Read(buffer)
 		if err != nil {
 			return
 		}
@@ -147,15 +148,15 @@ func (s *TestEmailServer) readEmailData(conn net.Conn) {
 		}
 	}
 
-	email := s.parseEmail(emailData.String())
-	s.mu.Lock()
-	s.emails = append(s.emails, email)
-	s.mu.Unlock()
+	email := server.parseEmail(emailData.String())
+	server.mu.Lock()
+	server.emails = append(server.emails, email)
+	server.mu.Unlock()
 
-	conn.Write([]byte("250 OK\r\n"))
+	connection.Write([]byte("250 OK\r\n"))
 }
 
-func (s *TestEmailServer) parseEmail(data string) TestEmail {
+func (server *TestEmailServer) parseEmail(data string) TestEmail {
 	lines := strings.Split(data, "\r\n")
 	email := TestEmail{
 		Headers: make(map[string]string),
@@ -180,9 +181,9 @@ func (s *TestEmailServer) parseEmail(data string) TestEmail {
 				}
 			}
 		} else if line == "" {
-			bodyStart := strings.Index(data, "\r\n\r\n")
-			if bodyStart != -1 {
-				email.Body = data[bodyStart+4:]
+			_, after, ok := strings.Cut(data, "\r\n\r\n")
+			if ok {
+				email.Body = after
 				email.Body = strings.TrimSuffix(email.Body, "\r\n.\r\n")
 			}
 			break
@@ -192,56 +193,56 @@ func (s *TestEmailServer) parseEmail(data string) TestEmail {
 	return email
 }
 
-func (s *TestEmailServer) Close() error {
-	s.closed = true
-	return s.listener.Close()
+func (server *TestEmailServer) Close() error {
+	server.closed = true
+	return server.listener.Close()
 }
 
-func (s *TestEmailServer) GetPort() int {
-	return s.port
+func (server *TestEmailServer) GetPort() int {
+	return server.port
 }
 
-func (s *TestEmailServer) GetEmails() []TestEmail {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.emails
+func (server *TestEmailServer) GetEmails() []TestEmail {
+	server.mu.RLock()
+	defer server.mu.RUnlock()
+	return server.emails
 }
 
-func (s *TestEmailServer) ClearEmails() {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.emails = make([]TestEmail, 0)
+func (server *TestEmailServer) ClearEmails() {
+	server.mu.Lock()
+	defer server.mu.Unlock()
+	server.emails = make([]TestEmail, 0)
 }
 
-func (s *TestEmailServer) SetShouldFail(shouldFail bool) {
-	s.shouldFail = shouldFail
+func (server *TestEmailServer) SetShouldFail(shouldFail bool) {
+	server.shouldFail = shouldFail
 }
 
-func (s *TestEmailServer) SetDelay(delay time.Duration) {
-	s.delay = delay
+func (server *TestEmailServer) SetDelay(delay time.Duration) {
+	server.delay = delay
 }
 
-func (s *TestEmailServer) GetEmailCount() int {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return len(s.emails)
+func (server *TestEmailServer) GetEmailCount() int {
+	server.mu.RLock()
+	defer server.mu.RUnlock()
+	return len(server.emails)
 }
 
-func (s *TestEmailServer) GetLastEmail() *TestEmail {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	if len(s.emails) == 0 {
+func (server *TestEmailServer) GetLastEmail() *TestEmail {
+	server.mu.RLock()
+	defer server.mu.RUnlock()
+	if len(server.emails) == 0 {
 		return nil
 	}
-	return &s.emails[len(s.emails)-1]
+	return &server.emails[len(server.emails)-1]
 }
 
-func (s *TestEmailServer) WaitForEmails(count int, timeout time.Duration) bool {
+func (server *TestEmailServer) WaitForEmails(count int, timeout time.Duration) bool {
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
-		s.mu.RLock()
-		emailCount := len(s.emails)
-		s.mu.RUnlock()
+		server.mu.RLock()
+		emailCount := len(server.emails)
+		server.mu.RUnlock()
 		if emailCount >= count {
 			return true
 		}
@@ -338,33 +339,33 @@ func NewTestEmailBuilder() *TestEmailBuilder {
 	}
 }
 
-func (b *TestEmailBuilder) From(from string) *TestEmailBuilder {
-	b.email.From = from
-	return b
+func (builder *TestEmailBuilder) From(from string) *TestEmailBuilder {
+	builder.email.From = from
+	return builder
 }
 
-func (b *TestEmailBuilder) To(to string) *TestEmailBuilder {
-	b.email.To = []string{to}
-	return b
+func (builder *TestEmailBuilder) To(to string) *TestEmailBuilder {
+	builder.email.To = []string{to}
+	return builder
 }
 
-func (b *TestEmailBuilder) Subject(subject string) *TestEmailBuilder {
-	b.email.Subject = subject
-	return b
+func (builder *TestEmailBuilder) Subject(subject string) *TestEmailBuilder {
+	builder.email.Subject = subject
+	return builder
 }
 
-func (b *TestEmailBuilder) Body(body string) *TestEmailBuilder {
-	b.email.Body = body
-	return b
+func (builder *TestEmailBuilder) Body(body string) *TestEmailBuilder {
+	builder.email.Body = body
+	return builder
 }
 
-func (b *TestEmailBuilder) Header(key, value string) *TestEmailBuilder {
-	b.email.Headers[key] = value
-	return b
+func (builder *TestEmailBuilder) Header(key, value string) *TestEmailBuilder {
+	builder.email.Headers[key] = value
+	return builder
 }
 
-func (b *TestEmailBuilder) Build() *TestEmail {
-	return b.email
+func (builder *TestEmailBuilder) Build() *TestEmail {
+	return builder.email
 }
 
 type TestEmailMatcher struct{}
@@ -418,9 +419,9 @@ func (m *TestEmailMatcher) MatchEmail(email *TestEmail, criteria map[string]any)
 }
 
 func (m *TestEmailMatcher) FindEmail(emails []TestEmail, criteria map[string]any) *TestEmail {
-	for i := range emails {
-		if m.MatchEmail(&emails[i], criteria) {
-			return &emails[i]
+	for idx := range emails {
+		if m.MatchEmail(&emails[idx], criteria) {
+			return &emails[idx]
 		}
 	}
 	return nil
@@ -428,8 +429,8 @@ func (m *TestEmailMatcher) FindEmail(emails []TestEmail, criteria map[string]any
 
 func (m *TestEmailMatcher) CountMatchingEmails(emails []TestEmail, criteria map[string]any) int {
 	count := 0
-	for i := range emails {
-		if m.MatchEmail(&emails[i], criteria) {
+	for idx := range emails {
+		if m.MatchEmail(&emails[idx], criteria) {
 			count++
 		}
 	}
@@ -515,11 +516,11 @@ func GetSMTPSenderFromEnv(t *testing.T) *SMTPSender {
 	}
 
 	address := net.JoinHostPort(sender.Host, strconv.Itoa(sender.Port))
-	connexion, err := net.DialTimeout("tcp", address, 3*time.Second)
+	connection, err := net.DialTimeout("tcp", address, 3*time.Second)
 	if err != nil {
 		t.Skipf("Skipping SMTP integration tests: unable to reach %s: %v", address, err)
 	}
-	connexion.Close()
+	connection.Close()
 
 	return sender
 }
