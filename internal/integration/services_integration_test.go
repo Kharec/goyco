@@ -313,7 +313,7 @@ func TestIntegration_Services(t *testing.T) {
 
 	t.Run("Vote_Service_Complete_Workflow", func(t *testing.T) {
 		emailSender.Reset()
-		user := createTestUserWithAuth(authService, emailSender, suite.UserRepo, "vote_user", "vote@example.com")
+		user := createAuthenticatedUserOnly(t, authService, suite.UserRepo, "vote_user", "vote@example.com")
 		post := testutils.CreatePostWithRepo(t, postRepo, user.ID, "Vote Test Post", "https://example.com/vote-test")
 
 		voteRequest := services.VoteRequest{
@@ -383,7 +383,7 @@ func TestIntegration_Services(t *testing.T) {
 		emailSender.Reset()
 		users := make([]*database.User, 5)
 		for i := range 5 {
-			users[i] = createTestUserWithAuth(authService, emailSender, suite.UserRepo, fmt.Sprintf("concurrent_user_%d", i), fmt.Sprintf("concurrent%d@example.com", i))
+			users[i] = createAuthenticatedUserOnly(t, authService, suite.UserRepo, fmt.Sprintf("concurrent_user_%d", i), fmt.Sprintf("concurrent%d@example.com", i))
 		}
 
 		post := testutils.CreatePostWithRepo(t, postRepo, users[0].ID, "Concurrent Vote Post", "https://example.com/concurrent-vote")
@@ -450,7 +450,7 @@ func TestIntegration_Services(t *testing.T) {
 
 	t.Run("Error_Handling_Invalid_Operations", func(t *testing.T) {
 		emailSender.Reset()
-		user := createTestUserWithAuth(authService, emailSender, suite.UserRepo, "error_user", "error@example.com")
+		user := createAuthenticatedUserOnly(t, authService, suite.UserRepo, "error_user", "error@example.com")
 		voteRequest := services.VoteRequest{
 			UserID: user.ID,
 			PostID: 99999,
@@ -485,13 +485,13 @@ func TestIntegration_Services(t *testing.T) {
 
 	t.Run("Data_Consistency_Cross_Services", func(t *testing.T) {
 		emailSender.Reset()
-		user := createTestUserWithAuth(authService, emailSender, suite.UserRepo, "consistency_user", "consistency@example.com")
+		user := createAuthenticatedUserOnly(t, authService, suite.UserRepo, "consistency_user", "consistency@example.com")
 
 		post := testutils.CreatePostWithRepo(t, postRepo, user.ID, "Consistency Test Post", "https://example.com/consistency")
 
 		voters := make([]*database.User, 3)
 		for i := range 3 {
-			voters[i] = createTestUserWithAuth(authService, emailSender, suite.UserRepo, fmt.Sprintf("voter_%d", i), fmt.Sprintf("voter%d@example.com", i))
+			voters[i] = createAuthenticatedUserOnly(t, authService, suite.UserRepo, fmt.Sprintf("voter_%d", i), fmt.Sprintf("voter%d@example.com", i))
 		}
 
 		for i, voter := range voters {
@@ -586,7 +586,7 @@ func TestIntegration_Services(t *testing.T) {
 
 	t.Run("Refresh_Token_Complete_Workflow", func(t *testing.T) {
 		emailSender.Reset()
-		user := createTestUserWithAuth(authService, emailSender, suite.UserRepo, "refresh_user", "refresh@example.com")
+		user := createAuthenticatedUserOnly(t, authService, suite.UserRepo, "refresh_user", "refresh@example.com")
 
 		loginResult, err := authService.Login("refresh_user", "SecurePass123!")
 		if err != nil {
@@ -622,7 +622,7 @@ func TestIntegration_Services(t *testing.T) {
 
 	t.Run("Refresh_Token_Expiration", func(t *testing.T) {
 		emailSender.Reset()
-		createTestUserWithAuth(authService, emailSender, suite.UserRepo, "expire_user", "expire@example.com")
+		createAuthenticatedUserOnly(t, authService, suite.UserRepo, "expire_user", "expire@example.com")
 
 		loginResult, err := authService.Login("expire_user", "SecurePass123!")
 		if err != nil {
@@ -647,7 +647,7 @@ func TestIntegration_Services(t *testing.T) {
 
 	t.Run("Refresh_Token_Revocation", func(t *testing.T) {
 		emailSender.Reset()
-		createTestUserWithAuth(authService, emailSender, suite.UserRepo, "revoke_user", "revoke@example.com")
+		createAuthenticatedUserOnly(t, authService, suite.UserRepo, "revoke_user", "revoke@example.com")
 
 		loginResult, err := authService.Login("revoke_user", "SecurePass123!")
 		if err != nil {
@@ -667,7 +667,7 @@ func TestIntegration_Services(t *testing.T) {
 
 	t.Run("Refresh_Token_Multiple_Tokens", func(t *testing.T) {
 		emailSender.Reset()
-		user := createTestUserWithAuth(authService, emailSender, suite.UserRepo, "multi_token_user", "multi@example.com")
+		user := createAuthenticatedUserOnly(t, authService, suite.UserRepo, "multi_token_user", "multi@example.com")
 
 		login1, err := authService.Login("multi_token_user", "SecurePass123!")
 		if err != nil {
@@ -714,7 +714,7 @@ func TestIntegration_Services(t *testing.T) {
 
 	t.Run("Refresh_Token_Revoke_All", func(t *testing.T) {
 		emailSender.Reset()
-		user := createTestUserWithAuth(authService, emailSender, suite.UserRepo, "revoke_all_user", "revoke_all@example.com")
+		user := createAuthenticatedUserOnly(t, authService, suite.UserRepo, "revoke_all_user", "revoke_all@example.com")
 
 		login1, err := authService.Login("revoke_all_user", "SecurePass123!")
 		if err != nil {
@@ -742,44 +742,6 @@ func TestIntegration_Services(t *testing.T) {
 		}
 	})
 
-}
-
-func createTestUserWithAuth(authService interface {
-	Register(username, email, password string) (*services.RegistrationResult, error)
-	ConfirmEmail(token string) (*database.User, error)
-}, emailSender interface {
-	Reset()
-	VerificationToken() string
-}, userRepo repositories.UserRepository, username, email string) *database.User {
-	emailSender.Reset()
-
-	_, err := authService.Register(username, email, "SecurePass123!")
-	if err != nil {
-		panic(fmt.Sprintf("Failed to register user: %v", err))
-	}
-
-	verificationToken := emailSender.VerificationToken()
-	if verificationToken == "" {
-		panic("Failed to capture verification token during test setup")
-	}
-
-	hashedToken := testutils.HashVerificationToken(verificationToken)
-
-	user, err := userRepo.GetByUsername(username)
-	if err != nil {
-		panic(fmt.Sprintf("Failed to get user: %v", err))
-	}
-	user.EmailVerificationToken = hashedToken
-	if err := userRepo.Update(user); err != nil {
-		panic(fmt.Sprintf("Failed to update user with hashed token: %v", err))
-	}
-
-	confirmResult, err := authService.ConfirmEmail(verificationToken)
-	if err != nil {
-		panic(fmt.Sprintf("Failed to confirm email: %v", err))
-	}
-
-	return confirmResult
 }
 
 func setupVerificationTokenForTest(t *testing.T, emailSender *testutils.MockEmailSender, userRepo repositories.UserRepository, username string) string {
