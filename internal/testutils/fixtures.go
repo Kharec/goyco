@@ -6,9 +6,10 @@ import (
 	"math/big"
 	"testing"
 
+	"goyco/internal/database"
+
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
-	"goyco/internal/database"
 )
 
 type TestConfig struct {
@@ -364,89 +365,4 @@ func CleanupTestData(t *testing.T, db *gorm.DB) {
 	if err := db.Exec("DELETE FROM users").Error; err != nil {
 		t.Logf("Warning: Failed to clean up users: %v", err)
 	}
-}
-
-func AssertUserExists(t *testing.T, db *gorm.DB, userID uint) {
-	t.Helper()
-
-	var count int64
-	if err := db.Model(&database.User{}).Where("id = ?", userID).Count(&count).Error; err != nil {
-		t.Fatalf("Failed to check user existence: %v", err)
-	}
-
-	if count == 0 {
-		t.Errorf("Expected user with ID %d to exist", userID)
-	}
-}
-
-func AssertUserNotExists(t *testing.T, db *gorm.DB, userID uint) {
-	t.Helper()
-
-	var count int64
-	if err := db.Model(&database.User{}).Where("id = ?", userID).Count(&count).Error; err != nil {
-		t.Fatalf("Failed to check user existence: %v", err)
-	}
-
-	if count > 0 {
-		t.Errorf("Expected user with ID %d to not exist", userID)
-	}
-}
-
-func AssertPostExists(t *testing.T, db *gorm.DB, postID uint) {
-	t.Helper()
-
-	var count int64
-	if err := db.Model(&database.Post{}).Where("id = ?", postID).Count(&count).Error; err != nil {
-		t.Fatalf("Failed to check post existence: %v", err)
-	}
-
-	if count == 0 {
-		t.Errorf("Expected post with ID %d to exist", postID)
-	}
-}
-
-func AssertVoteExists(t *testing.T, db *gorm.DB, userID, postID uint) {
-	t.Helper()
-
-	var count int64
-	if err := db.Model(&database.Vote{}).Where("user_id = ? AND post_id = ?", userID, postID).Count(&count).Error; err != nil {
-		t.Fatalf("Failed to check vote existence: %v", err)
-	}
-
-	if count == 0 {
-		t.Errorf("Expected vote for user %d and post %d to exist", userID, postID)
-	}
-}
-
-func GetUserCount(t *testing.T, db *gorm.DB) int64 {
-	t.Helper()
-
-	var count int64
-	if err := db.Model(&database.User{}).Count(&count).Error; err != nil {
-		t.Fatalf("Failed to get user count: %v", err)
-	}
-
-	return count
-}
-
-func GetPostCount(t *testing.T, db *gorm.DB) int64 {
-	t.Helper()
-
-	var count int64
-	if err := db.Model(&database.Post{}).Count(&count).Error; err != nil {
-		t.Fatalf("Failed to get post count: %v", err)
-	}
-
-	return count
-}
-
-func GetVoteCount(t *testing.T, db *gorm.DB) int64 {
-	t.Helper()
-
-	var count int64
-	if err := db.Model(&database.Vote{}).Count(&count).Error; err != nil {
-		t.Fatalf("Failed to get vote count: %v", err)
-	}
-
-	return count
 }
