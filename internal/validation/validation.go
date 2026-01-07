@@ -325,6 +325,9 @@ func validateMin(fieldName string, v reflect.Value, param string) *ValidationErr
 			return &ValidationError{Field: fieldName, Message: fmt.Sprintf("%s must be at least %d", fieldName, min)}
 		}
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		if min < 0 {
+			return &ValidationError{Field: fieldName, Message: fieldName + " has invalid min parameter (must be non-negative)"}
+		}
 		if v.Uint() < uint64(min) {
 			return &ValidationError{Field: fieldName, Message: fmt.Sprintf("%s must be at least %d", fieldName, min)}
 		}
@@ -349,6 +352,9 @@ func validateMax(fieldName string, v reflect.Value, param string) *ValidationErr
 			return &ValidationError{Field: fieldName, Message: fmt.Sprintf("%s must be at most %d", fieldName, max)}
 		}
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		if max < 0 {
+			return &ValidationError{Field: fieldName, Message: fieldName + " has invalid max parameter (must be non-negative)"}
+		}
 		if v.Uint() > uint64(max) {
 			return &ValidationError{Field: fieldName, Message: fmt.Sprintf("%s must be at most %d", fieldName, max)}
 		}
