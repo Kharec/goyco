@@ -1,11 +1,13 @@
 package e2e
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestE2E_DockerDeployment(t *testing.T) {
@@ -165,7 +167,10 @@ func TestE2E_BinaryExists(t *testing.T) {
 			workspaceRoot = parent
 		}
 
-		cmd := exec.Command("go", "build", "-o", "/tmp/goyco-test", "./cmd/goyco")
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		defer cancel()
+
+		cmd := exec.CommandContext(ctx, "go", "build", "-o", "/tmp/goyco-test", "./cmd/goyco")
 		cmd.Dir = workspaceRoot
 		if err := cmd.Run(); err != nil {
 			t.Skipf("Failed to build binary: %v", err)
