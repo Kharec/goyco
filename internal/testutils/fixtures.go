@@ -362,6 +362,9 @@ func CleanupTestData(t *testing.T, db *gorm.DB) {
 	if err := db.Exec("DELETE FROM account_deletion_requests").Error; err != nil {
 		t.Logf("Warning: Failed to clean up account deletion requests: %v", err)
 	}
+	if err := db.Exec("DELETE FROM refresh_tokens").Error; err != nil {
+		t.Logf("Warning: Failed to clean up refresh tokens: %v", err)
+	}
 	if err := db.Exec("DELETE FROM users").Error; err != nil {
 		t.Logf("Warning: Failed to clean up users: %v", err)
 	}
