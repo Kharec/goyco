@@ -231,10 +231,8 @@ func TestValidateJWTSecret(t *testing.T) {
 				if tt.errorMsg != "" && !strings.Contains(err.Error(), tt.errorMsg) {
 					t.Fatalf("expected error message to contain %q, got %q", tt.errorMsg, err.Error())
 				}
-			} else {
-				if err != nil {
-					t.Fatalf("unexpected error for secret %q: %v", tt.secret, err)
-				}
+			} else if err != nil {
+				t.Fatalf("unexpected error for secret %q: %v", tt.secret, err)
 			}
 		})
 	}
@@ -497,10 +495,8 @@ func TestValidateJWTConfig(t *testing.T) {
 				if tt.errorMsg != "" && !strings.Contains(err.Error(), tt.errorMsg) {
 					t.Fatalf("expected error message to contain %q, got %q", tt.errorMsg, err.Error())
 				}
-			} else {
-				if err != nil {
-					t.Fatalf("unexpected error for config %+v: %v", tt.config, err)
-				}
+			} else if err != nil {
+				t.Fatalf("unexpected error for config %+v: %v", tt.config, err)
 			}
 		})
 	}
@@ -626,10 +622,8 @@ func TestLoadWithInvalidJWTConfig(t *testing.T) {
 				if tt.errorMsg != "" && !strings.Contains(err.Error(), tt.errorMsg) {
 					t.Fatalf("expected error message to contain %q, got %q", tt.errorMsg, err.Error())
 				}
-			} else {
-				if err != nil {
-					t.Fatalf("unexpected error: %v", err)
-				}
+			} else if err != nil {
+				t.Fatalf("unexpected error: %v", err)
 			}
 		})
 	}
@@ -912,10 +906,8 @@ func TestValidateBcryptCost(t *testing.T) {
 				if tt.errorMsg != "" && !strings.Contains(err.Error(), tt.errorMsg) {
 					t.Fatalf("expected error message to contain %q, got %q", tt.errorMsg, err.Error())
 				}
-			} else {
-				if err != nil {
-					t.Fatalf("unexpected error for BCRYPT_COST %d: %v", tt.bcryptCost, err)
-				}
+			} else if err != nil {
+				t.Fatalf("unexpected error for BCRYPT_COST %d: %v", tt.bcryptCost, err)
 			}
 		})
 	}
@@ -976,17 +968,14 @@ func TestLoadWithInvalidBcryptCost(t *testing.T) {
 				if tt.errorMsg != "" && !strings.Contains(err.Error(), tt.errorMsg) {
 					t.Fatalf("expected error message to contain %q, got %q", tt.errorMsg, err.Error())
 				}
+			} else if err != nil {
+				t.Fatalf("unexpected error: %v", err)
 			} else {
-				if err != nil {
-					t.Fatalf("unexpected error: %v", err)
-				}
 				expectedCost := 12
 				if tt.bcryptCost == "" {
 					expectedCost = 10
-				} else {
-					if costInt, err := strconv.Atoi(tt.bcryptCost); err == nil {
-						expectedCost = costInt
-					}
+				} else if costInt, err := strconv.Atoi(tt.bcryptCost); err == nil {
+					expectedCost = costInt
 				}
 				if cfg.App.BcryptCost != expectedCost {
 					t.Fatalf("expected BCRYPT_COST %d, got %d", expectedCost, cfg.App.BcryptCost)
