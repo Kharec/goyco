@@ -1,7 +1,6 @@
 package commands
 
 import (
-	cryptoRand "crypto/rand"
 	"errors"
 	"flag"
 	"fmt"
@@ -26,11 +25,6 @@ var (
 func initSeedRand() {
 	seedRandOnce.Do(func() {
 		seed := time.Now().UnixNano()
-		seedBytes := make([]byte, 8)
-		if _, err := cryptoRand.Read(seedBytes); err == nil {
-			seed = int64(seedBytes[0])<<56 | int64(seedBytes[1])<<48 | int64(seedBytes[2])<<40 | int64(seedBytes[3])<<32 |
-				int64(seedBytes[4])<<24 | int64(seedBytes[5])<<16 | int64(seedBytes[6])<<8 | int64(seedBytes[7])
-		}
 		seedRandSource = rand.New(rand.NewSource(seed))
 	})
 }
