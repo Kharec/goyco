@@ -5,7 +5,9 @@ import (
 	"testing"
 	"unicode/utf8"
 
+	"goyco/internal/database"
 	"goyco/internal/repositories"
+	"goyco/internal/testutils"
 )
 
 func FuzzSearchRepository(f *testing.F) {
@@ -29,11 +31,7 @@ func FuzzSearchRepository(f *testing.F) {
 			t.Fatalf("Failed to connect to test database: %v", err)
 		}
 
-		db.Exec("DELETE FROM votes")
-		db.Exec("DELETE FROM posts")
-		db.Exec("DELETE FROM users")
-		db.Exec("DELETE FROM account_deletion_requests")
-		db.Exec("DELETE FROM refresh_tokens")
+		testutils.CleanupTestData(t, db)
 
 		postRepo := repositories.NewPostRepository(db)
 		sanitizer := repositories.NewSearchSanitizer()
@@ -93,51 +91,33 @@ func FuzzPostRepository(f *testing.F) {
 			t.Fatalf("Failed to connect to test database: %v", err)
 		}
 
-		db.Exec("DELETE FROM votes")
-		db.Exec("DELETE FROM posts")
-		db.Exec("DELETE FROM users")
-		db.Exec("DELETE FROM account_deletion_requests")
-		db.Exec("DELETE FROM refresh_tokens")
+		testutils.CleanupTestData(t, db)
 
 		postRepo := repositories.NewPostRepository(db)
 
-		var userID uint
-		result := db.Exec(`
-			INSERT INTO users (username, email, password, email_verified, created_at, updated_at)
-			VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))
-		`, "fuzz_test_user", "fuzz@example.com", "hashedpassword", true)
-		if result.Error != nil {
-			t.Fatalf("Failed to create test user: %v", result.Error)
-		}
-
-		var createdUser struct {
-			ID uint `gorm:"column:id"`
-		}
-		db.Raw("SELECT id FROM users WHERE username = ?", "fuzz_test_user").Scan(&createdUser)
-		userID = createdUser.ID
+		user := testutils.CreateSecureTestUser(t, db, "fuzz_test_user", "fuzz@example.com")
+		userID := user.ID
 
 		t.Run("create_and_get_post", func(t *testing.T) {
 			title := input[:min(len(input), 200)]
 			url := "https://example.com/" + input[:min(len(input), 50)]
 			content := input[:min(len(input), 1000)]
 
-			result := db.Exec(`
-				INSERT INTO posts (title, url, content, author_id, created_at, updated_at)
-				VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))
-			`, title, url, content, userID)
-			if result.Error != nil {
-				if strings.Contains(result.Error.Error(), "panic") {
-					t.Fatalf("Create should not panic: %v", result.Error)
+			post := &database.Post{
+				Title:    title,
+				URL:      url,
+				Content:  content,
+				AuthorID: &userID,
+			}
+
+			if err := db.Create(post).Error; err != nil {
+				if strings.Contains(err.Error(), "panic") {
+					t.Fatalf("Create should not panic: %v", err)
 				}
 				return
 			}
 
-			var postID uint
-			var createdPost struct {
-				ID uint `gorm:"column:id"`
-			}
-			db.Raw("SELECT id FROM posts WHERE author_id = ? ORDER BY id DESC LIMIT 1", userID).Scan(&createdPost)
-			postID = createdPost.ID
+			postID := post.ID
 
 			if postID == 0 {
 				t.Fatal("Created post should have an ID")
