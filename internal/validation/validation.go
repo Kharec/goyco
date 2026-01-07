@@ -408,12 +408,15 @@ func validateOneOf(fieldName string, v reflect.Value, param string) *ValidationE
 
 	value := v.String()
 	allowedValues := strings.Split(param, " ")
+	allowedMap := make(map[string]bool, len(allowedValues))
 
 	for _, allowed := range allowedValues {
-		if value == allowed {
-			return nil
-		}
+		allowedMap[allowed] = true
 	}
 
-	return &ValidationError{Field: fieldName, Message: fieldName + " must be one of: " + param}
+	if !allowedMap[value] {
+		return &ValidationError{Field: fieldName, Message: fieldName + " must be one of: " + param}
+	}
+
+	return nil
 }
