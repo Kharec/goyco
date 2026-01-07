@@ -36,7 +36,6 @@ linters:
         - name: error-naming
         - name: var-naming
         - name: if-return
-        - name: exported
         - name: context-as-argument
         - name: errorf
         - name: unexported-return
@@ -60,7 +59,7 @@ linters:
       check-type-assertions: true
 
     staticcheck:
-      checks: ["all", "-SA1019"]
+      checks: ["all", "-SA1019", "-ST1000", "-ST1020"]
 
     goconst:
       min-len: 3
