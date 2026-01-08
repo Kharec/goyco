@@ -589,18 +589,22 @@ func TestIntegration_CompleteAPIEndpoints(t *testing.T) {
 
 			response := assertJSONResponse(t, request, http.StatusOK)
 			if data, ok := getDataFromResponse(response); ok {
-				if newAccessToken, ok := data["access_token"].(string); ok {
-					if newAccessToken == "" {
-						t.Error("Expected new access token in refresh response")
-					}
+				newAccessToken, _ := data["access_token"].(string)
+				if newAccessToken == "" {
+					t.Error("Expected new access token in refresh response")
+				}
 
-					if newRefreshToken, ok := data["refresh_token"].(string); ok {
-						if newRefreshToken != "" && newRefreshToken == originalRefreshToken {
-							t.Log("Refresh token rotation may not be implemented (same token returned)")
-						}
-					}
+				newRefreshToken, _ := data["refresh_token"].(string)
+				if newRefreshToken == "" {
+					t.Error("Expected new refresh token in refresh response")
+				}
+				if newRefreshToken == originalRefreshToken {
+					t.Error("Expected refresh token to rotate")
 				}
 			}
+
+			request = makePostRequestWithJSON(t, ctx.Router, "/api/auth/refresh", map[string]any{"refresh_token": originalRefreshToken})
+			assertErrorResponse(t, request, http.StatusUnauthorized)
 		})
 
 		t.Run("Refresh_After_Account_Lock", func(t *testing.T) {
