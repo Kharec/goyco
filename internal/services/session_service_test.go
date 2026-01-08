@@ -398,11 +398,22 @@ func TestSessionService_RefreshAccessToken(t *testing.T) {
 		if result.AccessToken == "" {
 			t.Error("expected non-empty access token")
 		}
-		if result.RefreshToken != refreshToken {
-			t.Errorf("expected refresh token to remain unchanged")
+		if result.RefreshToken == "" {
+			t.Error("expected non-empty refresh token")
+		}
+		if result.RefreshToken == refreshToken {
+			t.Errorf("expected refresh token to rotate")
 		}
 		if result.User == nil {
 			t.Fatal("expected non-nil user")
+		}
+
+		_, err = service.RefreshAccessToken(refreshToken)
+		if err == nil {
+			t.Fatal("expected error when using rotated refresh token")
+		}
+		if !errors.Is(err, ErrRefreshTokenInvalid) {
+			t.Errorf("expected ErrRefreshTokenInvalid, got %v", err)
 		}
 	})
 
