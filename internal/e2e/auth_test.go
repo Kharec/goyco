@@ -271,8 +271,8 @@ func TestE2E_RefreshTokenFlow(t *testing.T) {
 				t.Logf("New access token is identical to original (may occur if generated within same second)")
 			}
 
-			if authClient.RefreshToken != originalRefreshToken {
-				t.Logf("Refresh token was changed (token rotation), which is acceptable")
+			if authClient.RefreshToken == originalRefreshToken {
+				t.Errorf("Expected refresh token to rotate")
 			}
 
 			profile := authClient.GetProfile(t)
