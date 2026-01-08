@@ -71,7 +71,7 @@ func (s *SessionService) issueAuthResult(user *database.User) (*AuthResult, erro
 }
 
 func (s *SessionService) RefreshAccessToken(refreshToken string) (*AuthResult, error) {
-	accessToken, err := s.jwtService.RefreshAccessToken(refreshToken)
+	accessToken, newRefreshToken, err := s.jwtService.RefreshAccessTokenWithRotation(refreshToken)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +88,7 @@ func (s *SessionService) RefreshAccessToken(refreshToken string) (*AuthResult, e
 
 	return &AuthResult{
 		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
+		RefreshToken: newRefreshToken,
 		User:         sanitizeUser(user),
 	}, nil
 }
