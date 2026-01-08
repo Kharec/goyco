@@ -117,6 +117,8 @@ JWT_EXPIRATION=1
 JWT_REFRESH_EXPIRATION=168
 ```
 
+Refresh tokens rotate on each successful refresh, the previous refresh token is invalidated.
+
 ### SMTP Configuration
 
 ```bash
@@ -203,6 +205,9 @@ It'll be more readable and easier to parse.
 - `POST /api/auth/login` - Login user
 - `GET /api/auth/confirm` - Confirm email
 - `POST /api/auth/logout` - Logout user
+- `POST /api/auth/refresh` - Refresh access token (rotates refresh token)
+- `POST /api/auth/revoke` - Revoke a refresh token
+- `POST /api/auth/revoke-all` - Revoke all refresh tokens for the current user
 
 #### Posts
 
