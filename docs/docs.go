@@ -487,7 +487,7 @@ const docTemplate = `{
         },
         "/api/auth/refresh": {
             "post": {
-                "description": "Use a refresh token to get a new access token. This endpoint allows clients to obtain a new access token using a valid refresh token without requiring user credentials.",
+                "description": "Use a refresh token to get a new access token. The refresh token is rotated on success, and the previous refresh token becomes invalid.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1906,7 +1906,7 @@ const docTemplate = `{
             "properties": {
                 "refresh_token": {
                     "type": "string",
-                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    "example": "f94d4ddc7d9b4fcb9d3a2c44c400b780c3e1f1a5c2b7d4e6a0b1c2d3e4f5a6b7"
                 }
             }
         },
@@ -1971,7 +1971,7 @@ const docTemplate = `{
             "properties": {
                 "refresh_token": {
                     "type": "string",
-                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    "example": "f94d4ddc7d9b4fcb9d3a2c44c400b780c3e1f1a5c2b7d4e6a0b1c2d3e4f5a6b7"
                 }
             }
         },
@@ -2073,7 +2073,7 @@ const docTemplate = `{
                 },
                 "refresh_token": {
                     "type": "string",
-                    "example": "f94d4ddc7d9b4fcb9d3a2c44c400b780"
+                    "example": "f94d4ddc7d9b4fcb9d3a2c44c400b780c3e1f1a5c2b7d4e6a0b1c2d3e4f5a6b7"
                 },
                 "user": {
                     "$ref": "#/definitions/handlers.AuthUserSummary"
