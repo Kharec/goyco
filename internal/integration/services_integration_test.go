@@ -610,6 +610,14 @@ func TestIntegration_Services(t *testing.T) {
 			t.Error("New access token should be different from original")
 		}
 
+		if newAccessToken.RefreshToken == "" {
+			t.Fatal("Refresh should return a new refresh token")
+		}
+
+		if newAccessToken.RefreshToken == loginResult.RefreshToken {
+			t.Error("Refresh token should rotate")
+		}
+
 		userID, err := authService.VerifyToken(newAccessToken.AccessToken)
 		if err != nil {
 			t.Fatalf("New access token should be valid: %v", err)
@@ -617,6 +625,11 @@ func TestIntegration_Services(t *testing.T) {
 
 		if userID != user.ID {
 			t.Errorf("Expected user ID %d, got %d", user.ID, userID)
+		}
+
+		_, err = authService.RefreshAccessToken(loginResult.RefreshToken)
+		if err == nil {
+			t.Error("Expected error for rotated refresh token")
 		}
 	})
 
