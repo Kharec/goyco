@@ -82,10 +82,13 @@ func TestE2E_SwaggerDocumentation(t *testing.T) {
 			return
 		}
 
-		paths, ok := swaggerDoc["paths"].(map[string]any)
+		pathsRaw, exists := swaggerDoc["paths"]
+		if !exists {
+			t.Fatalf("Swagger doc missing 'paths' section")
+		}
+		paths, ok := pathsRaw.(map[string]any)
 		if !ok {
-			t.Error("Paths section is not a map")
-			return
+			t.Fatalf("Swagger doc 'paths' section has invalid type: expected map[string]any, got %T", pathsRaw)
 		}
 
 		requiredPaths := []string{
@@ -113,11 +116,29 @@ func TestE2E_SwaggerDocumentation(t *testing.T) {
 			return
 		}
 
-		definitions, ok := swaggerDoc["definitions"].(map[string]any)
-		if !ok {
-			definitions, ok = swaggerDoc["components"].(map[string]any)
-			if ok {
-				definitions, _ = definitions["schemas"].(map[string]any)
+		var definitions map[string]any
+		var ok bool
+
+		definitionsRaw, exists := swaggerDoc["definitions"]
+		if exists {
+			definitions, ok = definitionsRaw.(map[string]any)
+			if !ok {
+				t.Fatalf("Swagger doc 'definitions' section has invalid type: expected map[string]any, got %T", definitionsRaw)
+			}
+		} else {
+			componentsRaw, exists := swaggerDoc["components"]
+			if exists {
+				components, ok := componentsRaw.(map[string]any)
+				if !ok {
+					t.Fatalf("Swagger doc 'components' section has invalid type: expected map[string]any, got %T", componentsRaw)
+				}
+				schemasRaw, exists := components["schemas"]
+				if exists {
+					definitions, ok = schemasRaw.(map[string]any)
+					if !ok {
+						t.Fatalf("Swagger doc 'components.schemas' section has invalid type: expected map[string]any, got %T", schemasRaw)
+					}
+				}
 			}
 		}
 
@@ -159,9 +180,13 @@ func TestE2E_APIEndpointDocumentation(t *testing.T) {
 			return
 		}
 
-		paths, ok := swaggerDoc["paths"].(map[string]any)
+		pathsRaw, exists := swaggerDoc["paths"]
+		if !exists {
+			t.Fatalf("Swagger doc missing 'paths' section")
+		}
+		paths, ok := pathsRaw.(map[string]any)
 		if !ok {
-			return
+			t.Fatalf("Swagger doc 'paths' section has invalid type: expected map[string]any, got %T", pathsRaw)
 		}
 
 		apiPath, ok := paths["/api"].(map[string]any)
@@ -187,9 +212,13 @@ func TestE2E_APIEndpointDocumentation(t *testing.T) {
 			return
 		}
 
-		paths, ok := swaggerDoc["paths"].(map[string]any)
+		pathsRaw, exists := swaggerDoc["paths"]
+		if !exists {
+			t.Fatalf("Swagger doc missing 'paths' section")
+		}
+		paths, ok := pathsRaw.(map[string]any)
 		if !ok {
-			return
+			t.Fatalf("Swagger doc 'paths' section has invalid type: expected map[string]any, got %T", pathsRaw)
 		}
 
 		authEndpoints := []string{
