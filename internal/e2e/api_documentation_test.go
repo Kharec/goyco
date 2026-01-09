@@ -29,7 +29,7 @@ func TestE2E_SwaggerDocumentation(t *testing.T) {
 			return
 		}
 
-		var swaggerDoc map[string]interface{}
+		var swaggerDoc map[string]any
 		if err := json.NewDecoder(resp.Body).Decode(&swaggerDoc); err != nil {
 			t.Fatalf("Failed to decode Swagger JSON: %v", err)
 		}
@@ -83,12 +83,12 @@ func TestE2E_SwaggerDocumentation(t *testing.T) {
 			return
 		}
 
-		var swaggerDoc map[string]interface{}
+		var swaggerDoc map[string]any
 		if err := json.NewDecoder(resp.Body).Decode(&swaggerDoc); err != nil {
 			t.Fatalf("Failed to decode Swagger JSON: %v", err)
 		}
 
-		paths, ok := swaggerDoc["paths"].(map[string]interface{})
+		paths, ok := swaggerDoc["paths"].(map[string]any)
 		if !ok {
 			t.Error("Paths section is not a map")
 			return
@@ -127,16 +127,16 @@ func TestE2E_SwaggerDocumentation(t *testing.T) {
 			return
 		}
 
-		var swaggerDoc map[string]interface{}
+		var swaggerDoc map[string]any
 		if err := json.NewDecoder(resp.Body).Decode(&swaggerDoc); err != nil {
 			t.Fatalf("Failed to decode Swagger JSON: %v", err)
 		}
 
-		definitions, ok := swaggerDoc["definitions"].(map[string]interface{})
+		definitions, ok := swaggerDoc["definitions"].(map[string]any)
 		if !ok {
-			definitions, ok = swaggerDoc["components"].(map[string]interface{})
+			definitions, ok = swaggerDoc["components"].(map[string]any)
 			if ok {
-				definitions, _ = definitions["schemas"].(map[string]interface{})
+				definitions, _ = definitions["schemas"].(map[string]any)
 			}
 		}
 
@@ -190,23 +190,23 @@ func TestE2E_APIEndpointDocumentation(t *testing.T) {
 			return
 		}
 
-		var swaggerDoc map[string]interface{}
+		var swaggerDoc map[string]any
 		if err := json.NewDecoder(resp.Body).Decode(&swaggerDoc); err != nil {
 			t.Fatalf("Failed to decode Swagger JSON: %v", err)
 		}
 
-		paths, ok := swaggerDoc["paths"].(map[string]interface{})
+		paths, ok := swaggerDoc["paths"].(map[string]any)
 		if !ok {
 			return
 		}
 
-		apiPath, ok := paths["/api"].(map[string]interface{})
+		apiPath, ok := paths["/api"].(map[string]any)
 		if !ok {
 			t.Error("API endpoint not documented")
 			return
 		}
 
-		getMethod, ok := apiPath["get"].(map[string]interface{})
+		getMethod, ok := apiPath["get"].(map[string]any)
 		if !ok {
 			t.Error("API GET method not documented")
 			return
@@ -235,12 +235,12 @@ func TestE2E_APIEndpointDocumentation(t *testing.T) {
 			return
 		}
 
-		var swaggerDoc map[string]interface{}
+		var swaggerDoc map[string]any
 		if err := json.NewDecoder(resp.Body).Decode(&swaggerDoc); err != nil {
 			t.Fatalf("Failed to decode Swagger JSON: %v", err)
 		}
 
-		paths, ok := swaggerDoc["paths"].(map[string]interface{})
+		paths, ok := swaggerDoc["paths"].(map[string]any)
 		if !ok {
 			return
 		}
@@ -251,13 +251,13 @@ func TestE2E_APIEndpointDocumentation(t *testing.T) {
 		}
 
 		for _, endpoint := range authEndpoints {
-			endpointData, ok := paths[endpoint].(map[string]interface{})
+			endpointData, ok := paths[endpoint].(map[string]any)
 			if !ok {
 				t.Errorf("Auth endpoint %s not documented", endpoint)
 				continue
 			}
 
-			postMethod, ok := endpointData["post"].(map[string]interface{})
+			postMethod, ok := endpointData["post"].(map[string]any)
 			if !ok {
 				t.Errorf("Auth endpoint %s missing POST method", endpoint)
 				continue
