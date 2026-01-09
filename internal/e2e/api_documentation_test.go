@@ -8,30 +8,41 @@ import (
 	"goyco/internal/testutils"
 )
 
+func fetchSwaggerDoc(t *testing.T, ctx *testContext) map[string]any {
+	t.Helper()
+
+	request, err := http.NewRequest("GET", ctx.baseURL+"/swagger/doc.json", nil)
+	if err != nil {
+		t.Fatalf("Failed to create request: %v", err)
+	}
+	testutils.WithStandardHeaders(request)
+
+	response, err := ctx.client.Do(request)
+	if err != nil {
+		t.Fatalf("Request failed: %v", err)
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusOK {
+		t.Skipf("Swagger JSON not available (status %d)", response.StatusCode)
+		return nil
+	}
+
+	var swaggerDoc map[string]any
+	if err := json.NewDecoder(response.Body).Decode(&swaggerDoc); err != nil {
+		t.Fatalf("Failed to decode Swagger JSON: %v", err)
+	}
+
+	return swaggerDoc
+}
+
 func TestE2E_SwaggerDocumentation(t *testing.T) {
 	ctx := setupTestContext(t)
 
 	t.Run("swagger_json_is_valid", func(t *testing.T) {
-		req, err := http.NewRequest("GET", ctx.baseURL+"/swagger/doc.json", nil)
-		if err != nil {
-			t.Fatalf("Failed to create request: %v", err)
-		}
-		testutils.WithStandardHeaders(req)
-
-		resp, err := ctx.client.Do(req)
-		if err != nil {
-			t.Fatalf("Request failed: %v", err)
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			t.Skipf("Swagger JSON not available (status %d)", resp.StatusCode)
+		swaggerDoc := fetchSwaggerDoc(t, ctx)
+		if swaggerDoc == nil {
 			return
-		}
-
-		var swaggerDoc map[string]any
-		if err := json.NewDecoder(resp.Body).Decode(&swaggerDoc); err != nil {
-			t.Fatalf("Failed to decode Swagger JSON: %v", err)
 		}
 
 		if swaggerDoc["swagger"] == nil && swaggerDoc["openapi"] == nil {
@@ -66,26 +77,9 @@ func TestE2E_SwaggerDocumentation(t *testing.T) {
 	})
 
 	t.Run("api_endpoints_documented", func(t *testing.T) {
-		req, err := http.NewRequest("GET", ctx.baseURL+"/swagger/doc.json", nil)
-		if err != nil {
-			t.Fatalf("Failed to create request: %v", err)
-		}
-		testutils.WithStandardHeaders(req)
-
-		resp, err := ctx.client.Do(req)
-		if err != nil {
-			t.Fatalf("Request failed: %v", err)
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			t.Skip("Swagger JSON not available")
+		swaggerDoc := fetchSwaggerDoc(t, ctx)
+		if swaggerDoc == nil {
 			return
-		}
-
-		var swaggerDoc map[string]any
-		if err := json.NewDecoder(resp.Body).Decode(&swaggerDoc); err != nil {
-			t.Fatalf("Failed to decode Swagger JSON: %v", err)
 		}
 
 		paths, ok := swaggerDoc["paths"].(map[string]any)
@@ -110,26 +104,9 @@ func TestE2E_SwaggerDocumentation(t *testing.T) {
 	})
 
 	t.Run("request_response_schemas_present", func(t *testing.T) {
-		req, err := http.NewRequest("GET", ctx.baseURL+"/swagger/doc.json", nil)
-		if err != nil {
-			t.Fatalf("Failed to create request: %v", err)
-		}
-		testutils.WithStandardHeaders(req)
-
-		resp, err := ctx.client.Do(req)
-		if err != nil {
-			t.Fatalf("Request failed: %v", err)
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			t.Skip("Swagger JSON not available")
+		swaggerDoc := fetchSwaggerDoc(t, ctx)
+		if swaggerDoc == nil {
 			return
-		}
-
-		var swaggerDoc map[string]any
-		if err := json.NewDecoder(resp.Body).Decode(&swaggerDoc); err != nil {
-			t.Fatalf("Failed to decode Swagger JSON: %v", err)
 		}
 
 		definitions, ok := swaggerDoc["definitions"].(map[string]any)
@@ -173,26 +150,9 @@ func TestE2E_APIEndpointDocumentation(t *testing.T) {
 	ctx := setupTestContext(t)
 
 	t.Run("api_info_endpoint_documented", func(t *testing.T) {
-		req, err := http.NewRequest("GET", ctx.baseURL+"/swagger/doc.json", nil)
-		if err != nil {
-			t.Fatalf("Failed to create request: %v", err)
-		}
-		testutils.WithStandardHeaders(req)
-
-		resp, err := ctx.client.Do(req)
-		if err != nil {
-			t.Fatalf("Request failed: %v", err)
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			t.Skip("Swagger JSON not available")
+		swaggerDoc := fetchSwaggerDoc(t, ctx)
+		if swaggerDoc == nil {
 			return
-		}
-
-		var swaggerDoc map[string]any
-		if err := json.NewDecoder(resp.Body).Decode(&swaggerDoc); err != nil {
-			t.Fatalf("Failed to decode Swagger JSON: %v", err)
 		}
 
 		paths, ok := swaggerDoc["paths"].(map[string]any)
@@ -218,26 +178,9 @@ func TestE2E_APIEndpointDocumentation(t *testing.T) {
 	})
 
 	t.Run("auth_endpoints_documented", func(t *testing.T) {
-		req, err := http.NewRequest("GET", ctx.baseURL+"/swagger/doc.json", nil)
-		if err != nil {
-			t.Fatalf("Failed to create request: %v", err)
-		}
-		testutils.WithStandardHeaders(req)
-
-		resp, err := ctx.client.Do(req)
-		if err != nil {
-			t.Fatalf("Request failed: %v", err)
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			t.Skip("Swagger JSON not available")
+		swaggerDoc := fetchSwaggerDoc(t, ctx)
+		if swaggerDoc == nil {
 			return
-		}
-
-		var swaggerDoc map[string]any
-		if err := json.NewDecoder(resp.Body).Decode(&swaggerDoc); err != nil {
-			t.Fatalf("Failed to decode Swagger JSON: %v", err)
 		}
 
 		paths, ok := swaggerDoc["paths"].(map[string]any)
