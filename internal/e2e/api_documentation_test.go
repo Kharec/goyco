@@ -218,5 +218,39 @@ func TestE2E_APIEndpointDocumentation(t *testing.T) {
 				t.Logf("Auth endpoint %s may use inline request body", endpoint)
 			}
 		}
+
+		refreshEndpointData, ok := paths["/api/auth/refresh"].(map[string]any)
+		if ok {
+			postMethod, ok := refreshEndpointData["post"].(map[string]any)
+			if ok {
+				responses, ok := postMethod["responses"].(map[string]any)
+				if ok {
+					successResponse, ok := responses["200"].(map[string]any)
+					if ok {
+						content, ok := successResponse["content"].(map[string]any)
+						if ok {
+							applicationJson, ok := content["application/json"].(map[string]any)
+							if ok {
+								schema, ok := applicationJson["schema"].(map[string]any)
+								if ok {
+									properties, ok := schema["properties"].(map[string]any)
+									if !ok {
+										data, ok := schema["data"].(map[string]any)
+										if ok {
+											properties, ok = data["properties"].(map[string]any)
+										}
+									}
+									if properties != nil {
+										if properties["refresh_token"] == nil {
+											t.Error("Refresh endpoint response schema missing refresh_token field (rotation not documented)")
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
 	})
 }
