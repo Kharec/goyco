@@ -93,6 +93,10 @@ func TestE2E_SwaggerDocumentation(t *testing.T) {
 			"/api/auth/login",
 			"/api/auth/register",
 			"/api/auth/me",
+			"/api/auth/refresh",
+			"/api/auth/revoke",
+			"/api/auth/revoke-all",
+			"/api/auth/logout",
 			"/api/posts",
 		}
 
@@ -191,6 +195,10 @@ func TestE2E_APIEndpointDocumentation(t *testing.T) {
 		authEndpoints := []string{
 			"/api/auth/login",
 			"/api/auth/register",
+			"/api/auth/refresh",
+			"/api/auth/revoke",
+			"/api/auth/revoke-all",
+			"/api/auth/logout",
 		}
 
 		for _, endpoint := range authEndpoints {
