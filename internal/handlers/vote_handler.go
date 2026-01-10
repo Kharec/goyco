@@ -78,14 +78,13 @@ func (h *VoteHandler) CastVote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req, ok := GetValidatedDTO[dto.CastVoteRequest](r)
+	request, ok := GetValidatedDTO[dto.CastVoteRequest](w, r)
 	if !ok {
-		SendErrorResponse(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
 	var voteType database.VoteType
-	switch req.Type {
+	switch request.Type {
 	case "up":
 		voteType = database.VoteUp
 	case "down":
