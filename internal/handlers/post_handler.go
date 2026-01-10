@@ -64,12 +64,13 @@ func (h *PostHandler) GetPosts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	postDTOs := dto.ToPostDTOs(posts)
-	SendSuccessResponse(w, "Posts retrieved successfully", map[string]any{
-		"posts":  postDTOs,
-		"count":  len(postDTOs),
-		"limit":  limit,
-		"offset": offset,
-	})
+	responseDTO := dto.PostListDTO{
+		Posts:  postDTOs,
+		Count:  len(postDTOs),
+		Limit:  limit,
+		Offset: offset,
+	}
+	SendSuccessResponse(w, "Posts retrieved successfully", responseDTO)
 }
 
 // @Summary Get a single post
@@ -230,13 +231,14 @@ func (h *PostHandler) SearchPosts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	postDTOs := dto.ToPostDTOs(posts)
-	SendSuccessResponse(w, "Search results retrieved successfully", map[string]any{
-		"posts":  postDTOs,
-		"count":  len(postDTOs),
-		"query":  query,
-		"limit":  limit,
-		"offset": offset,
-	})
+	responseDTO := dto.SearchPostListDTO{
+		Posts:  postDTOs,
+		Count:  len(postDTOs),
+		Query:  query,
+		Limit:  limit,
+		Offset: offset,
+	}
+	SendSuccessResponse(w, "Search results retrieved successfully", responseDTO)
 }
 
 // @Summary Update a post
