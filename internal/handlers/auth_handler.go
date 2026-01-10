@@ -64,14 +64,13 @@ func NewAuthHandler(authService AuthServiceInterface, userRepo repositories.User
 // @Failure 500 {object} AuthResponse "Internal server error"
 // @Router /api/auth/login [post]
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
-	req, ok := GetValidatedDTO[dto.LoginRequest](r)
+	request, ok := GetValidatedDTO[dto.LoginRequest](w, r)
 	if !ok {
-		SendErrorResponse(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
-	username := security.SanitizeUsername(req.Username)
-	password := strings.TrimSpace(req.Password)
+	username := security.SanitizeUsername(request.Username)
+	password := strings.TrimSpace(request.Password)
 
 	result, err := h.authService.Login(username, password)
 	if !HandleServiceError(w, err, "Authentication failed", http.StatusInternalServerError) {
@@ -94,15 +93,14 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} AuthResponse "Internal server error"
 // @Router /api/auth/register [post]
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
-	req, ok := GetValidatedDTO[dto.RegisterRequest](r)
+	request, ok := GetValidatedDTO[dto.RegisterRequest](w, r)
 	if !ok {
-		SendErrorResponse(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
-	username := strings.TrimSpace(req.Username)
-	email := strings.TrimSpace(req.Email)
-	password := strings.TrimSpace(req.Password)
+	username := strings.TrimSpace(request.Username)
+	email := strings.TrimSpace(request.Email)
+	password := strings.TrimSpace(request.Password)
 
 	username = security.SanitizeUsername(username)
 
@@ -163,13 +161,12 @@ func (h *AuthHandler) ConfirmEmail(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} AuthResponse
 // @Router /api/auth/resend-verification [post]
 func (h *AuthHandler) ResendVerificationEmail(w http.ResponseWriter, r *http.Request) {
-	req, ok := GetValidatedDTO[dto.ResendVerificationRequest](r)
+	request, ok := GetValidatedDTO[dto.ResendVerificationRequest](w, r)
 	if !ok {
-		SendErrorResponse(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
-	email := strings.TrimSpace(req.Email)
+	email := strings.TrimSpace(request.Email)
 
 	if email == "" {
 		SendErrorResponse(w, "Email address is required", http.StatusBadRequest)
@@ -237,13 +234,12 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} AuthResponse "Invalid request data"
 // @Router /api/auth/forgot-password [post]
 func (h *AuthHandler) RequestPasswordReset(w http.ResponseWriter, r *http.Request) {
-	req, ok := GetValidatedDTO[dto.ForgotPasswordRequest](r)
+	request, ok := GetValidatedDTO[dto.ForgotPasswordRequest](w, r)
 	if !ok {
-		SendErrorResponse(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
-	usernameOrEmail := strings.TrimSpace(req.UsernameOrEmail)
+	usernameOrEmail := strings.TrimSpace(request.UsernameOrEmail)
 
 	if usernameOrEmail == "" {
 		SendErrorResponse(w, "Username or email is required", http.StatusBadRequest)
@@ -267,14 +263,13 @@ func (h *AuthHandler) RequestPasswordReset(w http.ResponseWriter, r *http.Reques
 // @Failure 500 {object} AuthResponse "Internal server error"
 // @Router /api/auth/reset-password [post]
 func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
-	req, ok := GetValidatedDTO[dto.ResetPasswordRequest](r)
+	request, ok := GetValidatedDTO[dto.ResetPasswordRequest](w, r)
 	if !ok {
-		SendErrorResponse(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
-	token := strings.TrimSpace(req.Token)
-	newPassword := strings.TrimSpace(req.NewPassword)
+	token := strings.TrimSpace(request.Token)
+	newPassword := strings.TrimSpace(request.NewPassword)
 
 	if token == "" {
 		SendErrorResponse(w, "Token is required", http.StatusBadRequest)
@@ -316,13 +311,12 @@ func (h *AuthHandler) UpdateEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req, ok := GetValidatedDTO[dto.UpdateEmailRequest](r)
+	request, ok := GetValidatedDTO[dto.UpdateEmailRequest](w, r)
 	if !ok {
-		SendErrorResponse(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
-	email := strings.TrimSpace(req.Email)
+	email := strings.TrimSpace(request.Email)
 
 	user, err := h.authService.UpdateEmail(userID, email)
 	if err != nil {
@@ -362,13 +356,12 @@ func (h *AuthHandler) UpdateUsername(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req, ok := GetValidatedDTO[dto.UpdateUsernameRequest](r)
+	request, ok := GetValidatedDTO[dto.UpdateUsernameRequest](w, r)
 	if !ok {
-		SendErrorResponse(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
-	username := strings.TrimSpace(req.Username)
+	username := strings.TrimSpace(request.Username)
 
 	user, err := h.authService.UpdateUsername(userID, username)
 	if err != nil {
@@ -403,14 +396,13 @@ func (h *AuthHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req, ok := GetValidatedDTO[dto.UpdatePasswordRequest](r)
+	request, ok := GetValidatedDTO[dto.UpdatePasswordRequest](w, r)
 	if !ok {
-		SendErrorResponse(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
-	currentPassword := strings.TrimSpace(req.CurrentPassword)
-	newPassword := strings.TrimSpace(req.NewPassword)
+	currentPassword := strings.TrimSpace(request.CurrentPassword)
+	newPassword := strings.TrimSpace(request.NewPassword)
 
 	user, err := h.authService.UpdatePassword(userID, currentPassword, newPassword)
 	if err != nil {
@@ -468,20 +460,19 @@ func (h *AuthHandler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} AuthResponse "Internal server error"
 // @Router /api/auth/account/confirm [post]
 func (h *AuthHandler) ConfirmAccountDeletion(w http.ResponseWriter, r *http.Request) {
-	req, ok := GetValidatedDTO[dto.ConfirmAccountDeletionRequest](r)
+	request, ok := GetValidatedDTO[dto.ConfirmAccountDeletionRequest](w, r)
 	if !ok {
-		SendErrorResponse(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
-	token := strings.TrimSpace(req.Token)
+	token := strings.TrimSpace(request.Token)
 
 	if token == "" {
 		SendErrorResponse(w, "Deletion token is required", http.StatusBadRequest)
 		return
 	}
 
-	if err := h.authService.ConfirmAccountDeletionWithPosts(token, req.DeletePosts); err != nil {
+	if err := h.authService.ConfirmAccountDeletionWithPosts(token, request.DeletePosts); err != nil {
 		switch {
 		case errors.Is(err, services.ErrInvalidDeletionToken):
 			SendErrorResponse(w, "This deletion link is invalid or has expired.", http.StatusBadRequest)
@@ -489,7 +480,7 @@ func (h *AuthHandler) ConfirmAccountDeletion(w http.ResponseWriter, r *http.Requ
 			SendErrorResponse(w, "Account deletion isn't available right now because email delivery is disabled.", http.StatusServiceUnavailable)
 		case errors.Is(err, services.ErrDeletionEmailFailed):
 			responseDTO := dto.AccountDeletionResponseDTO{
-				PostsDeleted: req.DeletePosts,
+				PostsDeleted: request.DeletePosts,
 			}
 			SendSuccessResponse(w, "Your account has been deleted, but we couldn't send the confirmation email.", responseDTO)
 		default:
@@ -499,7 +490,7 @@ func (h *AuthHandler) ConfirmAccountDeletion(w http.ResponseWriter, r *http.Requ
 	}
 
 	responseDTO := dto.AccountDeletionResponseDTO{
-		PostsDeleted: req.DeletePosts,
+		PostsDeleted: request.DeletePosts,
 	}
 	SendSuccessResponse(w, "Your account has been deleted.", responseDTO)
 }
@@ -530,18 +521,17 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} AuthResponse "Internal server error"
 // @Router /api/auth/refresh [post]
 func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
-	req, ok := GetValidatedDTO[dto.RefreshTokenRequest](r)
+	request, ok := GetValidatedDTO[dto.RefreshTokenRequest](w, r)
 	if !ok {
-		SendErrorResponse(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
-	if req.RefreshToken == "" {
+	if request.RefreshToken == "" {
 		SendErrorResponse(w, "Refresh token is required", http.StatusBadRequest)
 		return
 	}
 
-	result, err := h.authService.RefreshAccessToken(req.RefreshToken)
+	result, err := h.authService.RefreshAccessToken(request.RefreshToken)
 	if !HandleServiceError(w, err, "Token refresh failed", http.StatusInternalServerError) {
 		return
 	}
@@ -563,18 +553,17 @@ func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} AuthResponse "Internal server error"
 // @Router /api/auth/revoke [post]
 func (h *AuthHandler) RevokeToken(w http.ResponseWriter, r *http.Request) {
-	req, ok := GetValidatedDTO[dto.RevokeTokenRequest](r)
+	request, ok := GetValidatedDTO[dto.RevokeTokenRequest](w, r)
 	if !ok {
-		SendErrorResponse(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
-	if req.RefreshToken == "" {
+	if request.RefreshToken == "" {
 		SendErrorResponse(w, "Refresh token is required", http.StatusBadRequest)
 		return
 	}
 
-	err := h.authService.RevokeRefreshToken(req.RefreshToken)
+	err := h.authService.RevokeRefreshToken(request.RefreshToken)
 	if err != nil {
 		SendErrorResponse(w, "Failed to revoke token", http.StatusInternalServerError)
 		return
