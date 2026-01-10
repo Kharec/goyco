@@ -75,6 +75,13 @@ func ToSanitizedUserDTOs(users []database.User) []SanitizedUserDTO {
 	return dtos
 }
 
+type SanitizedUserListDTO struct {
+	Users  []SanitizedUserDTO `json:"users"`
+	Count  int                `json:"count"`
+	Limit  int                `json:"limit"`
+	Offset int                `json:"offset"`
+}
+
 type RegistrationResponseDTO struct {
 	User             UserDTO `json:"user"`
 	VerificationSent bool    `json:"verification_sent"`
