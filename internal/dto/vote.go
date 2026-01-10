@@ -41,3 +41,14 @@ func ToVoteDTOs(votes []database.Vote) []VoteDTO {
 	}
 	return dtos
 }
+
+type VoteResponseDTO struct {
+	HasVote     bool     `json:"has_vote"`
+	Vote        *VoteDTO `json:"vote,omitempty"`
+	IsAnonymous bool     `json:"is_anonymous"`
+}
+
+type VoteListDTO struct {
+	Votes []VoteDTO `json:"votes"`
+	Count int       `json:"count"`
+}
