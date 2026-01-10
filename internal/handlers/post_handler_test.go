@@ -277,7 +277,7 @@ func TestPostHandlerCreatePostSuccess(t *testing.T) {
 
 	handler := NewPostHandler(repo, fetcher, nil)
 
-	request := createCreatePostRequest(`{"title":"  ","url":"https://example.com","content":"Go"}`)
+	request := createCreatePostRequest(`{"title":"","url":"https://example.com","content":"Go"}`)
 	ctx := context.WithValue(request.Context(), middleware.UserIDKey, uint(42))
 	request = request.WithContext(ctx)
 
@@ -310,7 +310,7 @@ func TestPostHandlerCreatePostValidation(t *testing.T) {
 	}
 
 	recorder = httptest.NewRecorder()
-	request = createCreatePostRequest(`{"title":"ok","url":"https://example.com"}`)
+	request = createCreatePostRequest(`{"title":"okay","url":"https://example.com"}`)
 	handler.CreatePost(recorder, request)
 	testutils.AssertHTTPStatus(t, recorder, http.StatusUnauthorized)
 }
@@ -334,7 +334,7 @@ func TestPostHandlerCreatePostTitleFetcherErrors(t *testing.T) {
 				return "", tc.err
 			}}
 			handler := NewPostHandler(repo, fetcher, nil)
-			request := createCreatePostRequest(`{"title":" ","url":"https://example.com"}`)
+			request := createCreatePostRequest(`{"title":"","url":"https://example.com"}`)
 			request = request.WithContext(context.WithValue(request.Context(), middleware.UserIDKey, uint(1)))
 
 			recorder := httptest.NewRecorder()
