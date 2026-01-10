@@ -96,3 +96,7 @@ func ToSearchPostListDTO(posts []database.Post, query string, limit, offset int)
 		Offset: offset,
 	}
 }
+
+type TitleResponseDTO struct {
+	Title string `json:"title"`
+}
