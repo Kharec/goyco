@@ -171,46 +171,6 @@ definitions:
       success:
         type: boolean
     type: object
-  handlers.AuthTokensDetail:
-    properties:
-      access_token:
-        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-        type: string
-      refresh_token:
-        example: f94d4ddc7d9b4fcb9d3a2c44c400b780c3e1f1a5c2b7d4e6a0b1c2d3e4f5a6b7
-        type: string
-      user:
-        $ref: '#/definitions/handlers.AuthUserSummary'
-    type: object
-  handlers.AuthTokensResponse:
-    properties:
-      data:
-        $ref: '#/definitions/handlers.AuthTokensDetail'
-      message:
-        example: Authentication successful
-        type: string
-      success:
-        example: true
-        type: boolean
-    type: object
-  handlers.AuthUserSummary:
-    properties:
-      email:
-        example: jane@example.com
-        type: string
-      email_verified:
-        example: true
-        type: boolean
-      id:
-        example: 42
-        type: integer
-      locked:
-        example: false
-        type: boolean
-      username:
-        example: janedoe
-        type: string
-    type: object
   handlers.CommonResponse:
     properties:
       data: {}
@@ -459,7 +419,7 @@ paths:
         "200":
           description: Authentication successful
           schema:
-            $ref: '#/definitions/handlers.AuthTokensResponse'
+            $ref: '#/definitions/handlers.AuthResponse'
         "400":
           description: Invalid request data or validation failed
           schema:
@@ -580,7 +540,7 @@ paths:
         "200":
           description: Token refreshed successfully
           schema:
-            $ref: '#/definitions/handlers.AuthTokensResponse'
+            $ref: '#/definitions/handlers.AuthResponse'
         "400":
           description: Invalid request body or missing refresh token
           schema:

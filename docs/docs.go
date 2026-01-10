@@ -324,7 +324,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Authentication successful",
                         "schema": {
-                            "$ref": "#/definitions/handlers.AuthTokensResponse"
+                            "$ref": "#/definitions/handlers.AuthResponse"
                         }
                     },
                     "400": {
@@ -513,7 +513,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Token refreshed successfully",
                         "schema": {
-                            "$ref": "#/definitions/handlers.AuthTokensResponse"
+                            "$ref": "#/definitions/handlers.AuthResponse"
                         }
                     },
                     "400": {
@@ -2061,63 +2061,6 @@ const docTemplate = `{
                 },
                 "success": {
                     "type": "boolean"
-                }
-            }
-        },
-        "handlers.AuthTokensDetail": {
-            "type": "object",
-            "properties": {
-                "access_token": {
-                    "type": "string",
-                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                },
-                "refresh_token": {
-                    "type": "string",
-                    "example": "f94d4ddc7d9b4fcb9d3a2c44c400b780c3e1f1a5c2b7d4e6a0b1c2d3e4f5a6b7"
-                },
-                "user": {
-                    "$ref": "#/definitions/handlers.AuthUserSummary"
-                }
-            }
-        },
-        "handlers.AuthTokensResponse": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "$ref": "#/definitions/handlers.AuthTokensDetail"
-                },
-                "message": {
-                    "type": "string",
-                    "example": "Authentication successful"
-                },
-                "success": {
-                    "type": "boolean",
-                    "example": true
-                }
-            }
-        },
-        "handlers.AuthUserSummary": {
-            "type": "object",
-            "properties": {
-                "email": {
-                    "type": "string",
-                    "example": "jane@example.com"
-                },
-                "email_verified": {
-                    "type": "boolean",
-                    "example": true
-                },
-                "id": {
-                    "type": "integer",
-                    "example": 42
-                },
-                "locked": {
-                    "type": "boolean",
-                    "example": false
-                },
-                "username": {
-                    "type": "string",
-                    "example": "janedoe"
                 }
             }
         },
