@@ -29,6 +29,14 @@ type PostListDTO struct {
 	Offset int       `json:"offset"`
 }
 
+type SearchPostListDTO struct {
+	Posts  []PostDTO `json:"posts"`
+	Count  int       `json:"count"`
+	Query  string    `json:"query"`
+	Limit  int       `json:"limit"`
+	Offset int       `json:"offset"`
+}
+
 func ToPostDTO(post *database.Post) PostDTO {
 	if post == nil {
 		return PostDTO{}
