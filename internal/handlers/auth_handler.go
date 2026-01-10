@@ -44,26 +44,6 @@ type AuthHandler struct {
 
 type AuthResponse = CommonResponse
 
-type AuthTokensResponse struct {
-	Success bool             `json:"success" example:"true"`
-	Message string           `json:"message" example:"Authentication successful"`
-	Data    AuthTokensDetail `json:"data"`
-}
-
-type AuthTokensDetail struct {
-	AccessToken  string          `json:"access_token" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
-	RefreshToken string          `json:"refresh_token" example:"f94d4ddc7d9b4fcb9d3a2c44c400b780c3e1f1a5c2b7d4e6a0b1c2d3e4f5a6b7"`
-	User         AuthUserSummary `json:"user"`
-}
-
-type AuthUserSummary struct {
-	ID            uint   `json:"id" example:"42"`
-	Username      string `json:"username" example:"janedoe"`
-	Email         string `json:"email" example:"jane@example.com"`
-	EmailVerified bool   `json:"email_verified" example:"true"`
-	Locked        bool   `json:"locked" example:"false"`
-}
-
 func NewAuthHandler(authService AuthServiceInterface, userRepo repositories.UserRepository) *AuthHandler {
 	return &AuthHandler{
 		authService: authService,
@@ -77,7 +57,7 @@ func NewAuthHandler(authService AuthServiceInterface, userRepo repositories.User
 // @Accept json
 // @Produce json
 // @Param request body dto.LoginRequest true "Login credentials"
-// @Success 200 {object} AuthTokensResponse "Authentication successful"
+// @Success 200 {object} AuthResponse "Authentication successful"
 // @Failure 400 {object} AuthResponse "Invalid request data or validation failed"
 // @Failure 401 {object} AuthResponse "Invalid credentials"
 // @Failure 403 {object} AuthResponse "Account is locked"
@@ -98,7 +78,8 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	SendSuccessResponse(w, "Authentication successful", result)
+	responseDTO := dto.ToAuthResponseDTO(result)
+	SendSuccessResponse(w, "Authentication successful", responseDTO)
 }
 
 // @Summary Register a new user
@@ -542,7 +523,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Param request body dto.RefreshTokenRequest true "Refresh token data"
-// @Success 200 {object} AuthTokensResponse "Token refreshed successfully"
+// @Success 200 {object} AuthResponse "Token refreshed successfully"
 // @Failure 400 {object} AuthResponse "Invalid request body or missing refresh token"
 // @Failure 401 {object} AuthResponse "Invalid or expired refresh token"
 // @Failure 403 {object} AuthResponse "Account is locked"
@@ -565,7 +546,8 @@ func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	SendSuccessResponse(w, "Token refreshed successfully", result)
+	responseDTO := dto.ToAuthResponseDTO(result)
+	SendSuccessResponse(w, "Token refreshed successfully", responseDTO)
 }
 
 // @Summary Revoke refresh token
