@@ -47,13 +47,13 @@ func (h *UserHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userDTOs := dto.ToSanitizedUserDTOs(users)
-
-	SendSuccessResponse(w, "Users retrieved successfully", map[string]any{
-		"users":  userDTOs,
-		"count":  len(userDTOs),
-		"limit":  limit,
-		"offset": offset,
-	})
+	responseDTO := dto.UserListDTO{
+		Users:  userDTOs,
+		Count:  len(userDTOs),
+		Limit:  limit,
+		Offset: offset,
+	}
+	SendSuccessResponse(w, "Users retrieved successfully", responseDTO)
 }
 
 // @Summary Get user
@@ -132,10 +132,8 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	SendCreatedResponse(w, "User created successfully. Verification email sent.", map[string]any{
-		"user":              result.User,
-		"verification_sent": result.VerificationSent,
-	})
+	responseDTO := dto.ToRegistrationResponseDTO(result.User, result.VerificationSent)
+	SendCreatedResponse(w, "User created successfully. Verification email sent.", responseDTO)
 }
 
 // @Summary Get user posts
@@ -167,12 +165,13 @@ func (h *UserHandler) GetUserPosts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	postDTOs := dto.ToPostDTOs(posts)
-	SendSuccessResponse(w, "User posts retrieved successfully", map[string]any{
-		"posts":  postDTOs,
-		"count":  len(postDTOs),
-		"limit":  limit,
-		"offset": offset,
-	})
+	responseDTO := dto.PostListDTO{
+		Posts:  postDTOs,
+		Count:  len(postDTOs),
+		Limit:  limit,
+		Offset: offset,
+	}
+	SendSuccessResponse(w, "User posts retrieved successfully", responseDTO)
 }
 
 func (h *UserHandler) MountRoutes(r chi.Router, config RouteModuleConfig) {
