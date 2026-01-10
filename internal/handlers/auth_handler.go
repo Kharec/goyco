@@ -214,9 +214,10 @@ func (h *AuthHandler) ResendVerificationEmail(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	SendSuccessResponse(w, "Verification email sent successfully", map[string]any{
-		"message": "Check your inbox for the verification link",
-	})
+	responseDTO := dto.MessageResponseDTO{
+		Message: "Check your inbox for the verification link",
+	}
+	SendSuccessResponse(w, "Verification email sent successfully", responseDTO)
 }
 
 // @Summary Get current user profile
@@ -271,7 +272,7 @@ func (h *AuthHandler) RequestPasswordReset(w http.ResponseWriter, r *http.Reques
 	if err := h.authService.RequestPasswordReset(usernameOrEmail); err != nil {
 	}
 
-	SendSuccessResponse(w, "If an account with that username or email exists, we've sent a password reset link.", nil)
+	SendSuccessResponse(w, "If an account with that username or email exists, we've sent a password reset link.", dto.EmptyResponseDTO{})
 }
 
 // @Summary Reset password
@@ -311,7 +312,7 @@ func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	SendSuccessResponse(w, "Password reset successfully. You can now sign in with your new password.", nil)
+	SendSuccessResponse(w, "Password reset successfully. You can now sign in with your new password.", dto.EmptyResponseDTO{})
 }
 
 // @Summary Update email address
@@ -471,7 +472,7 @@ func (h *AuthHandler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	SendSuccessResponse(w, "Check your inbox for a confirmation link to finish deleting your account.", nil)
+	SendSuccessResponse(w, "Check your inbox for a confirmation link to finish deleting your account.", dto.EmptyResponseDTO{})
 }
 
 // @Summary Confirm account deletion
@@ -532,7 +533,7 @@ func (h *AuthHandler) ConfirmAccountDeletion(w http.ResponseWriter, r *http.Requ
 // @Failure 401 {object} AuthResponse "Authentication required"
 // @Router /api/auth/logout [post]
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
-	SendSuccessResponse(w, "Logged out successfully", nil)
+	SendSuccessResponse(w, "Logged out successfully", dto.EmptyResponseDTO{})
 }
 
 // @Summary Refresh access token
@@ -597,7 +598,7 @@ func (h *AuthHandler) RevokeToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	SendSuccessResponse(w, "Token revoked successfully", nil)
+	SendSuccessResponse(w, "Token revoked successfully", dto.EmptyResponseDTO{})
 }
 
 // @Summary Revoke all user tokens
@@ -622,7 +623,7 @@ func (h *AuthHandler) RevokeAllTokens(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	SendSuccessResponse(w, "All tokens revoked successfully", nil)
+	SendSuccessResponse(w, "All tokens revoked successfully", dto.EmptyResponseDTO{})
 }
 
 func (h *AuthHandler) MountRoutes(r chi.Router, config RouteModuleConfig) {

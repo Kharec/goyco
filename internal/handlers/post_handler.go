@@ -329,7 +329,7 @@ func (h *PostHandler) DeletePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	SendSuccessResponse(w, "Post deleted successfully", nil)
+	SendSuccessResponse(w, "Post deleted successfully", dto.EmptyResponseDTO{})
 }
 
 // @Summary Fetch title from URL
@@ -371,9 +371,10 @@ func (h *PostHandler) FetchTitleFromURL(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	SendSuccessResponse(w, "Title fetched successfully", map[string]string{
-		"title": title,
-	})
+	responseDTO := dto.TitleResponseDTO{
+		Title: title,
+	}
+	SendSuccessResponse(w, "Title fetched successfully", responseDTO)
 }
 
 func translatePostCreateError(err error) (string, int) {
