@@ -117,3 +117,9 @@ func ToRegistrationResponseDTO(user *database.User, verificationSent bool) Regis
 type AccountDeletionResponseDTO struct {
 	PostsDeleted bool `json:"posts_deleted"`
 }
+
+type MessageResponseDTO struct {
+	Message string `json:"message"`
+}
+
+type EmptyResponseDTO struct{}
