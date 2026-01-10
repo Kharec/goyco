@@ -12,7 +12,6 @@ import (
 	"goyco/internal/repositories"
 	"goyco/internal/security"
 	"goyco/internal/services"
-	"goyco/internal/validation"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgconn"
@@ -272,16 +271,6 @@ func (h *PostHandler) UpdatePost(w http.ResponseWriter, r *http.Request) {
 
 	title := security.SanitizeInput(req.Title)
 	content := security.SanitizePostContent(req.Content)
-
-	if err := validation.ValidateTitle(title); err != nil {
-		SendErrorResponse(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	if err := validation.ValidateContent(content); err != nil {
-		SendErrorResponse(w, err.Error(), http.StatusBadRequest)
-		return
-	}
 
 	post.Title = title
 	post.Content = content
