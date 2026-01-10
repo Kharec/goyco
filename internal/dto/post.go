@@ -75,3 +75,24 @@ func ToPostDTOs(posts []database.Post) []PostDTO {
 	}
 	return dtos
 }
+
+func ToPostListDTO(posts []database.Post, limit, offset int) PostListDTO {
+	postDTOs := ToPostDTOs(posts)
+	return PostListDTO{
+		Posts:  postDTOs,
+		Count:  len(postDTOs),
+		Limit:  limit,
+		Offset: offset,
+	}
+}
+
+func ToSearchPostListDTO(posts []database.Post, query string, limit, offset int) SearchPostListDTO {
+	postDTOs := ToPostDTOs(posts)
+	return SearchPostListDTO{
+		Posts:  postDTOs,
+		Count:  len(postDTOs),
+		Query:  query,
+		Limit:  limit,
+		Offset: offset,
+	}
+}
