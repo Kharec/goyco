@@ -213,22 +213,26 @@ func (h *VoteHandler) GetUserVote(w http.ResponseWriter, r *http.Request) {
 	vote, err := h.voteService.GetUserVote(userID, postID, ipAddress, userAgent)
 	if err != nil {
 		if err.Error() == "record not found" {
-			SendSuccessResponse(w, "No vote found", map[string]any{
-				"has_vote":     false,
-				"vote":         nil,
-				"is_anonymous": false,
-			})
+			responseDTO := dto.VoteResponseDTO{
+				HasVote:     false,
+				Vote:        nil,
+				IsAnonymous: false,
+			}
+			SendSuccessResponse(w, "No vote found", responseDTO)
 			return
 		}
 		SendErrorResponse(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	SendSuccessResponse(w, "Vote retrieved successfully", map[string]any{
-		"has_vote":     true,
-		"vote":         vote,
-		"is_anonymous": false,
-	})
+	voteDTO := dto.ToVoteDTO(vote)
+	isAnonymous := vote.UserID == nil
+	responseDTO := dto.VoteResponseDTO{
+		HasVote:     true,
+		Vote:        &voteDTO,
+		IsAnonymous: isAnonymous,
+	}
+	SendSuccessResponse(w, "Vote retrieved successfully", responseDTO)
 }
 
 // @Summary Get post votes
@@ -263,15 +267,12 @@ func (h *VoteHandler) GetPostVotes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	allVotes := make([]any, 0, len(votes))
-	for _, vote := range votes {
-		allVotes = append(allVotes, vote)
+	voteDTOs := dto.ToVoteDTOs(votes)
+	responseDTO := dto.VoteListDTO{
+		Votes: voteDTOs,
+		Count: len(voteDTOs),
 	}
-
-	SendSuccessResponse(w, "Votes retrieved successfully", map[string]any{
-		"votes": allVotes,
-		"count": len(allVotes),
-	})
+	SendSuccessResponse(w, "Votes retrieved successfully", responseDTO)
 }
 
 func (h *VoteHandler) MountRoutes(r chi.Router, config RouteModuleConfig) {
