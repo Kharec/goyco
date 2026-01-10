@@ -99,21 +99,6 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := validation.ValidateUsername(req.Username); err != nil {
-		SendErrorResponse(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	if err := validation.ValidateEmail(req.Email); err != nil {
-		SendErrorResponse(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	if err := validation.ValidatePassword(req.Password); err != nil {
-		SendErrorResponse(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
 	result, err := h.authService.Register(req.Username, req.Email, req.Password)
 	if err != nil {
 		var validationErr *validation.ValidationError
