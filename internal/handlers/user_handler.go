@@ -93,9 +93,8 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} UserResponse "Internal server error"
 // @Router /api/users [post]
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
-	req, ok := GetValidatedDTO[dto.RegisterRequest](r)
+	req, ok := GetValidatedDTO[dto.RegisterRequest](w, r)
 	if !ok {
-		SendErrorResponse(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
