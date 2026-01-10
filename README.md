@@ -203,25 +203,44 @@ It'll be more readable and easier to parse.
 
 - `POST /api/auth/register` - Register new user
 - `POST /api/auth/login` - Login user
-- `GET /api/auth/confirm` - Confirm email
-- `POST /api/auth/logout` - Logout user
+- `GET /api/auth/confirm` - Confirm email address
+- `POST /api/auth/resend-verification` - Resend verification email
+- `POST /api/auth/forgot-password` - Request password reset
+- `POST /api/auth/reset-password` - Reset password
+- `GET /api/auth/me` - Get current user profile (protected)
+- `POST /api/auth/logout` - Logout user (protected)
 - `POST /api/auth/refresh` - Refresh access token (rotates refresh token)
-- `POST /api/auth/revoke` - Revoke a refresh token
-- `POST /api/auth/revoke-all` - Revoke all refresh tokens for the current user
+- `POST /api/auth/revoke` - Revoke a refresh token (protected)
+- `POST /api/auth/revoke-all` - Revoke all refresh tokens for the current user (protected)
+- `PUT /api/auth/email` - Update email address (protected)
+- `PUT /api/auth/username` - Update username (protected)
+- `PUT /api/auth/password` - Update password (protected)
+- `DELETE /api/auth/account` - Request account deletion (protected)
+- `POST /api/auth/account/confirm` - Confirm account deletion
 
 #### Posts
 
 - `GET /api/posts` - List posts
-- `POST /api/posts` - Create post
+- `GET /api/posts/search` - Search posts
+- `GET /api/posts/title` - Fetch title from URL
 - `GET /api/posts/{id}` - Get specific post
-- `PUT /api/posts/{id}` - Update post
-- `DELETE /api/posts/{id}` - Delete post
+- `POST /api/posts` - Create post (protected)
+- `PUT /api/posts/{id}` - Update post (protected)
+- `DELETE /api/posts/{id}` - Delete post (protected)
 
 #### Voting
 
-- `POST /api/posts/{id}/vote` - Cast vote
-- `DELETE /api/posts/{id}/vote` - Remove vote
-- `GET /api/posts/{id}/votes` - Get post votes
+- `POST /api/posts/{id}/vote` - Cast vote (protected)
+- `DELETE /api/posts/{id}/vote` - Remove vote (protected)
+- `GET /api/posts/{id}/vote` - Get current user's vote (protected)
+- `GET /api/posts/{id}/votes` - Get all votes for post
+
+#### Users
+
+- `GET /api/users` - List all users (protected)
+- `POST /api/users` - Create new user (protected)
+- `GET /api/users/{id}` - Get specific user
+- `GET /api/users/{id}/posts` - Get user's posts (protected)
 
 ## CLI Commands
 
