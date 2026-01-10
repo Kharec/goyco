@@ -124,20 +124,6 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	password := strings.TrimSpace(req.Password)
 
 	username = security.SanitizeUsername(username)
-	if err := validation.ValidateUsername(username); err != nil {
-		SendErrorResponse(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	if err := validation.ValidateEmail(email); err != nil {
-		SendErrorResponse(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	if err := validation.ValidatePassword(password); err != nil {
-		SendErrorResponse(w, err.Error(), http.StatusBadRequest)
-		return
-	}
 
 	result, err := h.authService.Register(username, email, password)
 	if err != nil {
@@ -313,11 +299,6 @@ func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := validation.ValidatePassword(newPassword); err != nil {
-		SendErrorResponse(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
 	if err := h.authService.ResetPassword(token, newPassword); err != nil {
 		switch {
 		case strings.Contains(err.Error(), "expired"):
@@ -360,10 +341,6 @@ func (h *AuthHandler) UpdateEmail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	email := strings.TrimSpace(req.Email)
-	if err := validation.ValidateEmail(email); err != nil {
-		SendErrorResponse(w, err.Error(), http.StatusBadRequest)
-		return
-	}
 
 	user, err := h.authService.UpdateEmail(userID, email)
 	if err != nil {
@@ -410,10 +387,6 @@ func (h *AuthHandler) UpdateUsername(w http.ResponseWriter, r *http.Request) {
 	}
 
 	username := strings.TrimSpace(req.Username)
-	if err := validation.ValidateUsername(username); err != nil {
-		SendErrorResponse(w, err.Error(), http.StatusBadRequest)
-		return
-	}
 
 	user, err := h.authService.UpdateUsername(userID, username)
 	if err != nil {
@@ -456,16 +429,6 @@ func (h *AuthHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 
 	currentPassword := strings.TrimSpace(req.CurrentPassword)
 	newPassword := strings.TrimSpace(req.NewPassword)
-
-	if currentPassword == "" {
-		SendErrorResponse(w, "Current password is required", http.StatusBadRequest)
-		return
-	}
-
-	if err := validation.ValidatePassword(newPassword); err != nil {
-		SendErrorResponse(w, err.Error(), http.StatusBadRequest)
-		return
-	}
 
 	user, err := h.authService.UpdatePassword(userID, currentPassword, newPassword)
 	if err != nil {
