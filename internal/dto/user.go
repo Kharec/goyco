@@ -82,6 +82,26 @@ type SanitizedUserListDTO struct {
 	Offset int                `json:"offset"`
 }
 
+func ToUserListDTO(users []database.User, limit, offset int) UserListDTO {
+	userDTOs := ToUserDTOs(users)
+	return UserListDTO{
+		Users:  userDTOs,
+		Count:  len(userDTOs),
+		Limit:  limit,
+		Offset: offset,
+	}
+}
+
+func ToSanitizedUserListDTO(users []database.User, limit, offset int) SanitizedUserListDTO {
+	userDTOs := ToSanitizedUserDTOs(users)
+	return SanitizedUserListDTO{
+		Users:  userDTOs,
+		Count:  len(userDTOs),
+		Limit:  limit,
+		Offset: offset,
+	}
+}
+
 type RegistrationResponseDTO struct {
 	User             UserDTO `json:"user"`
 	VerificationSent bool    `json:"verification_sent"`
