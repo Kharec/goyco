@@ -693,7 +693,7 @@ func TestAuthHandlerUpdateEmail(t *testing.T) {
 			userID:         1,
 			mockSetup:      func(repo *testutils.UserRepositoryStub) {},
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "Invalid request",
+			expectedError:  "Invalid JSON",
 		},
 		{
 			name:           "empty email",
@@ -876,7 +876,7 @@ func TestAuthHandlerUpdatePassword(t *testing.T) {
 			userID:         1,
 			mockSetup:      func(repo *testutils.UserRepositoryStub) {},
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "Current password is required",
+			expectedError:  "CurrentPassword is required",
 		},
 		{
 			name:           "empty new password",
@@ -884,7 +884,7 @@ func TestAuthHandlerUpdatePassword(t *testing.T) {
 			userID:         1,
 			mockSetup:      func(repo *testutils.UserRepositoryStub) {},
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "Password is required",
+			expectedError:  "NewPassword is required",
 		},
 		{
 			name:           "short new password",
@@ -892,7 +892,7 @@ func TestAuthHandlerUpdatePassword(t *testing.T) {
 			userID:         1,
 			mockSetup:      func(repo *testutils.UserRepositoryStub) {},
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "Password must be at least 8 characters long",
+			expectedError:  "NewPassword must be at least 8 characters",
 		},
 		{
 			name:        "incorrect current password",
@@ -1042,13 +1042,13 @@ func TestAuthHandlerResendVerificationEmail(t *testing.T) {
 			name:           "invalid json",
 			body:           "not-json",
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "Invalid request",
+			expectedError:  "Invalid JSON",
 		},
 		{
 			name:           "missing email",
 			body:           `{}`,
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "Email address is required",
+			expectedError:  "Email is required",
 		},
 		{
 			name: "account not found",
@@ -1167,13 +1167,13 @@ func TestAuthHandlerConfirmAccountDeletion(t *testing.T) {
 			name:           "invalid json",
 			body:           "not-json",
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "Invalid request",
+			expectedError:  "Invalid JSON",
 		},
 		{
 			name:           "missing token",
 			body:           `{}`,
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "Deletion token is required",
+			expectedError:  "Token is required",
 		},
 		{
 			name: "invalid token from service",
