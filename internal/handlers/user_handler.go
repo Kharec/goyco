@@ -47,7 +47,7 @@ func (h *UserHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userDTOs := dto.ToSanitizedUserDTOs(users)
-	responseDTO := dto.UserListDTO{
+	responseDTO := dto.SanitizedUserListDTO{
 		Users:  userDTOs,
 		Count:  len(userDTOs),
 		Limit:  limit,
