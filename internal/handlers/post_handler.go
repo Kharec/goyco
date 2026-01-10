@@ -109,9 +109,8 @@ func (h *PostHandler) GetPost(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} PostResponse "Internal server error"
 // @Router /api/posts [post]
 func (h *PostHandler) CreatePost(w http.ResponseWriter, r *http.Request) {
-	req, ok := GetValidatedDTO[dto.CreatePostRequest](r)
+	request, ok := GetValidatedDTO[dto.CreatePostRequest](w, r)
 	if !ok {
-		SendErrorResponse(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
@@ -120,9 +119,9 @@ func (h *PostHandler) CreatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	title := security.SanitizeInput(req.Title)
-	url := security.SanitizeURL(req.URL)
-	content := security.SanitizePostContent(req.Content)
+	title := security.SanitizeInput(request.Title)
+	url := security.SanitizeURL(request.URL)
+	content := security.SanitizePostContent(request.Content)
 
 	if url == "" {
 		SendErrorResponse(w, "Invalid URL", http.StatusBadRequest)
@@ -263,14 +262,13 @@ func (h *PostHandler) UpdatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req, ok := GetValidatedDTO[dto.UpdatePostRequest](r)
+	request, ok := GetValidatedDTO[dto.UpdatePostRequest](w, r)
 	if !ok {
-		SendErrorResponse(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
-	title := security.SanitizeInput(req.Title)
-	content := security.SanitizePostContent(req.Content)
+	title := security.SanitizeInput(request.Title)
+	content := security.SanitizePostContent(request.Content)
 
 	post.Title = title
 	post.Content = content
