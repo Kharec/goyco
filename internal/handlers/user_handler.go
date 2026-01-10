@@ -93,12 +93,12 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} UserResponse "Internal server error"
 // @Router /api/users [post]
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
-	req, ok := GetValidatedDTO[dto.RegisterRequest](w, r)
+	request, ok := GetValidatedDTO[dto.RegisterRequest](w, r)
 	if !ok {
 		return
 	}
 
-	result, err := h.authService.Register(req.Username, req.Email, req.Password)
+	result, err := h.authService.Register(request.Username, request.Email, request.Password)
 	if err != nil {
 		var validationErr *validation.ValidationError
 		if errors.As(err, &validationErr) {
