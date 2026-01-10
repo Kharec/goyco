@@ -151,22 +151,8 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	userData := map[string]any{
-		"id":             result.User.ID,
-		"username":       result.User.Username,
-		"email":          result.User.Email,
-		"email_verified": result.User.EmailVerified,
-		"created_at":     result.User.CreatedAt,
-		"updated_at":     result.User.UpdatedAt,
-		"deleted_at":     result.User.DeletedAt,
-	}
-
-	responseData := map[string]any{
-		"user":              userData,
-		"verification_sent": result.VerificationSent,
-	}
-
-	SendCreatedResponse(w, "Registration successful. Check your email to confirm your account.", responseData)
+	responseDTO := dto.ToRegistrationResponseDTO(result.User, result.VerificationSent)
+	SendCreatedResponse(w, "Registration successful. Check your email to confirm your account.", responseDTO)
 }
 
 // @Summary Confirm email address
@@ -192,9 +178,7 @@ func (h *AuthHandler) ConfirmEmail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userDTO := dto.ToUserDTO(user)
-	SendSuccessResponse(w, "Email confirmed successfully", map[string]any{
-		"user": userDTO,
-	})
+	SendSuccessResponse(w, "Email confirmed successfully", userDTO)
 }
 
 // @Summary Resend verification email
@@ -397,9 +381,7 @@ func (h *AuthHandler) UpdateEmail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userDTO := dto.ToUserDTO(user)
-	SendSuccessResponse(w, "Email updated. Check your inbox to confirm the new address.", map[string]any{
-		"user": userDTO,
-	})
+	SendSuccessResponse(w, "Email updated. Check your inbox to confirm the new address.", userDTO)
 }
 
 // @Summary Update username
@@ -445,9 +427,7 @@ func (h *AuthHandler) UpdateUsername(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userDTO := dto.ToUserDTO(user)
-	SendSuccessResponse(w, "Username updated successfully.", map[string]any{
-		"user": userDTO,
-	})
+	SendSuccessResponse(w, "Username updated successfully.", userDTO)
 }
 
 // @Summary Update password
@@ -498,9 +478,7 @@ func (h *AuthHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userDTO := dto.ToUserDTO(user)
-	SendSuccessResponse(w, "Password updated successfully.", map[string]any{
-		"user": userDTO,
-	})
+	SendSuccessResponse(w, "Password updated successfully.", userDTO)
 }
 
 // @Summary Request account deletion
@@ -565,18 +543,20 @@ func (h *AuthHandler) ConfirmAccountDeletion(w http.ResponseWriter, r *http.Requ
 		case errors.Is(err, services.ErrEmailSenderUnavailable):
 			SendErrorResponse(w, "Account deletion isn't available right now because email delivery is disabled.", http.StatusServiceUnavailable)
 		case errors.Is(err, services.ErrDeletionEmailFailed):
-			SendSuccessResponse(w, "Your account has been deleted, but we couldn't send the confirmation email.", map[string]any{
-				"posts_deleted": req.DeletePosts,
-			})
+			responseDTO := dto.AccountDeletionResponseDTO{
+				PostsDeleted: req.DeletePosts,
+			}
+			SendSuccessResponse(w, "Your account has been deleted, but we couldn't send the confirmation email.", responseDTO)
 		default:
 			SendErrorResponse(w, "We couldn't confirm the deletion right now.", http.StatusInternalServerError)
 		}
 		return
 	}
 
-	SendSuccessResponse(w, "Your account has been deleted.", map[string]any{
-		"posts_deleted": req.DeletePosts,
-	})
+	responseDTO := dto.AccountDeletionResponseDTO{
+		PostsDeleted: req.DeletePosts,
+	}
+	SendSuccessResponse(w, "Your account has been deleted.", responseDTO)
 }
 
 // @Summary Logout user
