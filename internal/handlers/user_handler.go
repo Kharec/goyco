@@ -46,13 +46,7 @@ func (h *UserHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userDTOs := dto.ToSanitizedUserDTOs(users)
-	responseDTO := dto.SanitizedUserListDTO{
-		Users:  userDTOs,
-		Count:  len(userDTOs),
-		Limit:  limit,
-		Offset: offset,
-	}
+	responseDTO := dto.ToSanitizedUserListDTO(users, limit, offset)
 	SendSuccessResponse(w, "Users retrieved successfully", responseDTO)
 }
 
@@ -164,13 +158,7 @@ func (h *UserHandler) GetUserPosts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	postDTOs := dto.ToPostDTOs(posts)
-	responseDTO := dto.PostListDTO{
-		Posts:  postDTOs,
-		Count:  len(postDTOs),
-		Limit:  limit,
-		Offset: offset,
-	}
+	responseDTO := dto.ToPostListDTO(posts, limit, offset)
 	SendSuccessResponse(w, "User posts retrieved successfully", responseDTO)
 }
 
