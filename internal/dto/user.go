@@ -74,3 +74,19 @@ func ToSanitizedUserDTOs(users []database.User) []SanitizedUserDTO {
 	}
 	return dtos
 }
+
+type RegistrationResponseDTO struct {
+	User             UserDTO `json:"user"`
+	VerificationSent bool    `json:"verification_sent"`
+}
+
+func ToRegistrationResponseDTO(user *database.User, verificationSent bool) RegistrationResponseDTO {
+	return RegistrationResponseDTO{
+		User:             ToUserDTO(user),
+		VerificationSent: verificationSent,
+	}
+}
+
+type AccountDeletionResponseDTO struct {
+	PostsDeleted bool `json:"posts_deleted"`
+}
