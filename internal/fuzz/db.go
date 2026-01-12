@@ -16,6 +16,10 @@ func GetFuzzDB() (*gorm.DB, error) {
 		return nil, err
 	}
 
+	if execErr := db.Exec("PRAGMA foreign_keys = ON").Error; execErr != nil {
+		return nil, execErr
+	}
+
 	err = db.AutoMigrate(
 		&database.User{},
 		&database.Post{},
@@ -25,10 +29,6 @@ func GetFuzzDB() (*gorm.DB, error) {
 	)
 	if err != nil {
 		return nil, err
-	}
-
-	if execErr := db.Exec("PRAGMA foreign_keys = ON").Error; execErr != nil {
-		return nil, execErr
 	}
 
 	return db, nil
