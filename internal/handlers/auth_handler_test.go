@@ -701,7 +701,7 @@ func TestAuthHandlerUpdateEmail(t *testing.T) {
 			userID:         1,
 			mockSetup:      func(repo *testutils.UserRepositoryStub) {},
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "Email is required",
+			expectedError:  "email is required",
 		},
 		{
 			name:        "email already taken",
@@ -788,7 +788,7 @@ func TestAuthHandlerUpdateUsername(t *testing.T) {
 			userID:         1,
 			mockSetup:      func(repo *testutils.UserRepositoryStub) {},
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "Username is required",
+			expectedError:  "username is required",
 		},
 		{
 			name:        "username already taken",
@@ -876,7 +876,7 @@ func TestAuthHandlerUpdatePassword(t *testing.T) {
 			userID:         1,
 			mockSetup:      func(repo *testutils.UserRepositoryStub) {},
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "CurrentPassword is required",
+			expectedError:  "current_password is required",
 		},
 		{
 			name:           "empty new password",
@@ -884,7 +884,7 @@ func TestAuthHandlerUpdatePassword(t *testing.T) {
 			userID:         1,
 			mockSetup:      func(repo *testutils.UserRepositoryStub) {},
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "NewPassword is required",
+			expectedError:  "new_password is required",
 		},
 		{
 			name:           "short new password",
@@ -892,7 +892,7 @@ func TestAuthHandlerUpdatePassword(t *testing.T) {
 			userID:         1,
 			mockSetup:      func(repo *testutils.UserRepositoryStub) {},
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "NewPassword must be at least 8 characters",
+			expectedError:  "new_password must be at least 8 characters",
 		},
 		{
 			name:        "incorrect current password",
@@ -1048,7 +1048,7 @@ func TestAuthHandlerResendVerificationEmail(t *testing.T) {
 			name:           "missing email",
 			body:           `{}`,
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "Email is required",
+			expectedError:  "email is required",
 		},
 		{
 			name: "account not found",
@@ -1173,7 +1173,7 @@ func TestAuthHandlerConfirmAccountDeletion(t *testing.T) {
 			name:           "missing token",
 			body:           `{}`,
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "Token is required",
+			expectedError:  "token is required",
 		},
 		{
 			name: "invalid token from service",
