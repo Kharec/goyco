@@ -27,7 +27,7 @@ func TestApplyPagination(t *testing.T) {
 				return db.Model(&database.User{})
 			},
 			verifyPagination: func(t *testing.T, query *gorm.DB, limit, offset int) {
-				for i := 0; i < 20; i++ {
+				for i := range 20 {
 					suite.CreateTestUser(
 						fmt.Sprintf("testuser_%d", i),
 						fmt.Sprintf("user%d@example.com", i),
@@ -54,7 +54,7 @@ func TestApplyPagination(t *testing.T) {
 				return db.Model(&database.User{})
 			},
 			verifyPagination: func(t *testing.T, query *gorm.DB, limit, offset int) {
-				for i := 0; i < 10; i++ {
+				for i := range 10 {
 					suite.CreateTestUser(
 						fmt.Sprintf("testuser_%d", i),
 						fmt.Sprintf("user%d@example.com", i),
@@ -81,7 +81,7 @@ func TestApplyPagination(t *testing.T) {
 				return db.Model(&database.User{})
 			},
 			verifyPagination: func(t *testing.T, query *gorm.DB, limit, offset int) {
-				for i := 0; i < 10; i++ {
+				for i := range 10 {
 					suite.CreateTestUser(
 						fmt.Sprintf("testuser_%d", i),
 						fmt.Sprintf("user%d@example.com", i),
@@ -109,7 +109,7 @@ func TestApplyPagination(t *testing.T) {
 				return db.Model(&database.User{})
 			},
 			verifyPagination: func(t *testing.T, query *gorm.DB, limit, offset int) {
-				for i := 0; i < 15; i++ {
+				for i := range 15 {
 					suite.CreateTestUser(
 						fmt.Sprintf("testuser_%d", i),
 						fmt.Sprintf("user%d@example.com", i),
@@ -136,7 +136,7 @@ func TestApplyPagination(t *testing.T) {
 				return db.Model(&database.User{})
 			},
 			verifyPagination: func(t *testing.T, query *gorm.DB, limit, offset int) {
-				for i := 0; i < 10; i++ {
+				for i := range 10 {
 					suite.CreateTestUser(
 						fmt.Sprintf("testuser_%d", i),
 						fmt.Sprintf("user%d@example.com", i),
@@ -163,7 +163,7 @@ func TestApplyPagination(t *testing.T) {
 				return db.Model(&database.User{})
 			},
 			verifyPagination: func(t *testing.T, query *gorm.DB, limit, offset int) {
-				for i := 0; i < 20; i++ {
+				for i := range 20 {
 					suite.CreateTestUser(
 						fmt.Sprintf("testuser_%d", i),
 						fmt.Sprintf("user%d@example.com", i),
@@ -191,7 +191,7 @@ func TestApplyPagination(t *testing.T) {
 				return db.Model(&database.User{})
 			},
 			verifyPagination: func(t *testing.T, query *gorm.DB, limit, offset int) {
-				for i := 0; i < 15; i++ {
+				for i := range 15 {
 					suite.CreateTestUser(
 						fmt.Sprintf("testuser_%d", i),
 						fmt.Sprintf("user%d@example.com", i),
@@ -218,7 +218,7 @@ func TestApplyPagination(t *testing.T) {
 				return db.Model(&database.User{})
 			},
 			verifyPagination: func(t *testing.T, query *gorm.DB, limit, offset int) {
-				for i := 0; i < 2000; i++ {
+				for i := range 2000 {
 					suite.CreateTestUser(
 						fmt.Sprintf("testuser_%d", i),
 						fmt.Sprintf("user%d@example.com", i),
