@@ -10,14 +10,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/jackc/pgconn"
-	"gorm.io/gorm"
 	"goyco/internal/database"
 	"goyco/internal/middleware"
 	"goyco/internal/repositories"
 	"goyco/internal/services"
 	"goyco/internal/testutils"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgconn"
+	"gorm.io/gorm"
 )
 
 func decodeHandlerResponse(t *testing.T, rr *httptest.ResponseRecorder) map[string]any {
@@ -466,7 +467,7 @@ func TestPostHandlerUpdatePost(t *testing.T) {
 				}
 			},
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "Title is required",
+			expectedError:  "title is required",
 		},
 		{
 			name:        "short title",
@@ -480,7 +481,7 @@ func TestPostHandlerUpdatePost(t *testing.T) {
 				}
 			},
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "Title must be at least 3 characters",
+			expectedError:  "title must be at least 3 characters",
 		},
 	}
 
