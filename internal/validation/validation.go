@@ -175,6 +175,33 @@ type FieldValidationError struct {
 	Message string
 }
 
+func getFieldDisplayName(field reflect.StructField) string {
+	jsonTag := field.Tag.Get("json")
+	if jsonTag != "" && jsonTag != "-" {
+		if idx := strings.Index(jsonTag, ","); idx != -1 {
+			jsonTag = jsonTag[:idx]
+		}
+		if jsonTag != "" {
+			return jsonTag
+		}
+	}
+	return camelCaseToWords(field.Name)
+}
+
+func camelCaseToWords(s string) string {
+	if s == "" {
+		return s
+	}
+	var result strings.Builder
+	for i, r := range s {
+		if i > 0 && unicode.IsUpper(r) {
+			result.WriteRune(' ')
+		}
+		result.WriteRune(unicode.ToLower(r))
+	}
+	return result.String()
+}
+
 func ValidateStruct(s interface{}) error {
 	if s == nil {
 		return nil
@@ -232,9 +259,10 @@ func ValidateStruct(s interface{}) error {
 				tagName = tag
 			}
 
-			if err := validateField(field.Name, fieldVal, tagName, param, omitempty); err != nil {
+			displayName := getFieldDisplayName(field)
+			if err := validateField(displayName, fieldVal, tagName, param, omitempty); err != nil {
 				errors = append(errors, FieldValidationError{
-					Field:   field.Name,
+					Field:   displayName,
 					Tag:     tagName,
 					Param:   param,
 					Message: err.Message,
@@ -293,7 +321,7 @@ func validateField(fieldName string, fieldVal reflect.Value, tagName, param stri
 func isEmptyValue(v reflect.Value) bool {
 	switch v.Kind() {
 	case reflect.String:
-		return v.String() == ""
+		return strings.TrimSpace(v.String()) == ""
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return v.Int() == 0
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
@@ -301,7 +329,7 @@ func isEmptyValue(v reflect.Value) bool {
 	case reflect.Float32, reflect.Float64:
 		return v.Float() == 0
 	case reflect.Bool:
-		return !v.Bool()
+		return false
 	case reflect.Pointer, reflect.Interface, reflect.Slice, reflect.Map:
 		return v.IsNil()
 	default:
@@ -317,7 +345,8 @@ func validateMin(fieldName string, v reflect.Value, param string) *ValidationErr
 
 	switch v.Kind() {
 	case reflect.String:
-		if len(v.String()) < min {
+		s := strings.TrimSpace(v.String())
+		if len([]rune(s)) < min {
 			return &ValidationError{Field: fieldName, Message: fmt.Sprintf("%s must be at least %d characters", fieldName, min)}
 		}
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -344,7 +373,7 @@ func validateMax(fieldName string, v reflect.Value, param string) *ValidationErr
 
 	switch v.Kind() {
 	case reflect.String:
-		if len(v.String()) > max {
+		if len([]rune(v.String())) > max {
 			return &ValidationError{Field: fieldName, Message: fmt.Sprintf("%s must be at most %d characters", fieldName, max)}
 		}
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
