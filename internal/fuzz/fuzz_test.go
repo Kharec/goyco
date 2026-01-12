@@ -1704,8 +1704,11 @@ func TestGetFuzzDB(t *testing.T) {
 	if err2 != nil {
 		t.Fatalf("Second GetFuzzDB call failed: %v", err2)
 	}
-	if db2 != db {
-		t.Fatal("GetFuzzDB should return the same database instance")
+	if db2 == nil {
+		t.Fatal("Second GetFuzzDB returned nil database")
+	}
+	if db2 == db {
+		t.Fatal("GetFuzzDB should return a new database instance for each call")
 	}
 }
 
