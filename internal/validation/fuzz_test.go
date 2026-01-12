@@ -3,52 +3,62 @@ package validation
 import (
 	"strings"
 	"testing"
-
-	"goyco/internal/fuzz"
+	"unicode/utf8"
 )
 
 func FuzzValidateEmail(f *testing.F) {
-	helper := fuzz.NewFuzzTestHelper()
-	helper.RunValidationFuzzTest(f, ValidateEmail)
+	runValidationFuzzTest(f, ValidateEmail)
 }
 
 func FuzzValidateUsername(f *testing.F) {
-	helper := fuzz.NewFuzzTestHelper()
-	helper.RunValidationFuzzTest(f, ValidateUsername)
+	runValidationFuzzTest(f, ValidateUsername)
 }
 
 func FuzzValidatePassword(f *testing.F) {
-	helper := fuzz.NewFuzzTestHelper()
-	helper.RunValidationFuzzTest(f, ValidatePassword)
+	runValidationFuzzTest(f, ValidatePassword)
 }
 
 func FuzzValidateURL(f *testing.F) {
-	helper := fuzz.NewFuzzTestHelper()
-	helper.RunValidationFuzzTest(f, ValidateURL)
+	runValidationFuzzTest(f, ValidateURL)
 }
 
 func FuzzValidateTitle(f *testing.F) {
-	helper := fuzz.NewFuzzTestHelper()
-	helper.RunValidationFuzzTest(f, ValidateTitle)
+	runValidationFuzzTest(f, ValidateTitle)
 }
 
 func FuzzValidateContent(f *testing.F) {
-	helper := fuzz.NewFuzzTestHelper()
-	helper.RunValidationFuzzTest(f, ValidateContent)
+	runValidationFuzzTest(f, ValidateContent)
 }
 
 func FuzzValidateSearchQuery(f *testing.F) {
-	helper := fuzz.NewFuzzTestHelper()
-	helper.RunValidationFuzzTest(f, ValidateSearchQuery)
+	runValidationFuzzTest(f, ValidateSearchQuery)
 }
 
 func FuzzSanitizeString(f *testing.F) {
-	helper := fuzz.NewFuzzTestHelper()
-	helper.RunSanitizationFuzzTestWithValidation(f,
-		SanitizeString,
-		func(result string) bool {
-			return !containsNullBytes(result)
-		})
+	f.Add("test input")
+	f.Fuzz(func(t *testing.T, input string) {
+		if !utf8.ValidString(input) {
+			return
+		}
+		result := SanitizeString(input)
+		if !utf8.ValidString(result) {
+			t.Fatal("Sanitized result contains invalid UTF-8")
+		}
+		if containsNullBytes(result) {
+			t.Fatal("Sanitized result contains null bytes")
+		}
+	})
+}
+
+func runValidationFuzzTest(f *testing.F, validateFunc func(string) error) {
+	f.Add("test input")
+	f.Fuzz(func(t *testing.T, input string) {
+		if !utf8.ValidString(input) {
+			return
+		}
+		err := validateFunc(input)
+		_ = err
+	})
 }
 
 func containsNullBytes(s string) bool {
