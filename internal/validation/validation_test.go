@@ -250,12 +250,12 @@ func TestSanitizeString(t *testing.T) {
 
 func TestValidateStruct(t *testing.T) {
 	type TestStruct struct {
-		Username string `validate:"required,min=3,max=20"`
-		Email    string `validate:"required,email"`
-		Age      int    `validate:"min=18,max=120"`
-		URL      string `validate:"url"`
-		Status   string `validate:"oneof=active inactive pending"`
-		Optional string `validate:"omitempty,min=1"`
+		Username string `json:"username" validate:"required,min=3,max=20"`
+		Email    string `json:"email" validate:"required,email"`
+		Age      int    `json:"age" validate:"min=18,max=120"`
+		URL      string `json:"url" validate:"url"`
+		Status   string `json:"status" validate:"oneof=active inactive pending"`
+		Optional string `json:"optional" validate:"omitempty,min=1"`
 	}
 
 	t.Run("valid struct", func(t *testing.T) {
@@ -287,6 +287,9 @@ func TestValidateStruct(t *testing.T) {
 			if len(structErr.Errors) == 0 {
 				t.Error("Expected validation errors, got none")
 			}
+			if structErr.Errors[0].Message != "username is required" {
+				t.Errorf("Expected JSON tag name in error, got %q", structErr.Errors[0].Message)
+			}
 		}
 	})
 
@@ -307,6 +310,20 @@ func TestValidateStruct(t *testing.T) {
 	t.Run("invalid min", func(t *testing.T) {
 		s := TestStruct{
 			Username: "ab",
+			Email:    "test@example.com",
+			Age:      25,
+			URL:      "https://example.com",
+			Status:   "active",
+		}
+		err := ValidateStruct(s)
+		if err == nil {
+			t.Error("ValidateStruct() expected error, got nil")
+		}
+	})
+
+	t.Run("whitespace required field", func(t *testing.T) {
+		s := TestStruct{
+			Username: "   ",
 			Email:    "test@example.com",
 			Age:      25,
 			URL:      "https://example.com",
