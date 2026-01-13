@@ -12,8 +12,8 @@
 package main
 
 import (
+	"context"
 	"errors"
-	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -63,33 +63,9 @@ func run(args []string) error {
 		docs.SwaggerInfo.Schemes = append(docs.SwaggerInfo.Schemes, "https")
 	}
 
-	rootFS := flag.NewFlagSet("goyco", flag.ContinueOnError)
-	rootFS.SetOutput(os.Stderr)
-	rootFS.Usage = printRootUsage
-	showHelp := rootFS.Bool("help", false, "show this help message")
-	jsonOutput := rootFS.Bool("json", cfg.CLI.JSONOutputDefault, "output results in JSON format")
-
-	if err := rootFS.Parse(args); err != nil {
-		if errors.Is(err, flag.ErrHelp) {
-			return nil
-		}
-		return fmt.Errorf("failed to parse arguments: %w", err)
-	}
-
-	if *showHelp {
-		printRootUsage()
-		return nil
-	}
-
-	commands.SetJSONOutput(*jsonOutput)
-
-	remaining := rootFS.Args()
-	if len(remaining) == 0 {
-		printRootUsage()
-		return nil
-	}
-
-	return dispatchCommand(cfg, remaining[0], remaining[1:])
+	root := buildRootCommand(cfg)
+	runArgs := append([]string{os.Args[0]}, args...)
+	return root.Run(context.Background(), runArgs)
 }
 
 func dispatchCommand(cfg *config.Config, name string, args []string) error {

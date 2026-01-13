@@ -1,14 +1,24 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"os"
+	"sync"
 
 	"goyco/cmd/goyco/commands"
+	"goyco/internal/config"
 
 	"github.com/joho/godotenv"
+	"github.com/urfave/cli/v3"
+)
+
+var (
+	helpPrinterOnce    sync.Once
+	defaultHelpPrinter func(io.Writer, string, interface{})
 )
 
 func loadDotEnv() {
@@ -54,4 +64,122 @@ func printRootUsage() {
 func printRunUsage() {
 	fmt.Fprintln(os.Stderr, "Usage: goyco run")
 	fmt.Fprintln(os.Stderr, "\nStart the web application in foreground.")
+}
+
+func buildRootCommand(cfg *config.Config) *cli.Command {
+	helpPrinterOnce.Do(func() {
+		defaultHelpPrinter = cli.HelpPrinter
+		cli.HelpPrinter = func(w io.Writer, templ string, data interface{}) {
+			if cmd, ok := data.(*cli.Command); ok && cmd.Root() == cmd {
+				printRootUsage()
+				return
+			}
+			defaultHelpPrinter(w, templ, data)
+		}
+	})
+
+	root := &cli.Command{
+		Name:        "goyco",
+		Usage:       "Y Combinator-style news aggregation platform API",
+		UsageText:   "goyco <command> [<args>]",
+		HideVersion: true,
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:  "json",
+				Usage: "output results in JSON format",
+				Value: cfg.CLI.JSONOutputDefault,
+			},
+		},
+		Before: func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
+			commands.SetJSONOutput(cmd.Bool("json"))
+			return ctx, nil
+		},
+		Action: func(_ context.Context, cmd *cli.Command) error {
+			if cmd.NArg() == 0 {
+				printRootUsage()
+				return nil
+			}
+			printRootUsage()
+			return fmt.Errorf("unknown command: %s", cmd.Args().First())
+		},
+		Commands: []*cli.Command{
+			{
+				Name:            "run",
+				Usage:           "start the web application in foreground",
+				SkipFlagParsing: true,
+				Action: func(_ context.Context, cmd *cli.Command) error {
+					return handleRunCommand(cfg, cmd.Args().Slice())
+				},
+			},
+			{
+				Name:            "start",
+				Usage:           "start the web application in background",
+				SkipFlagParsing: true,
+				Action: func(_ context.Context, cmd *cli.Command) error {
+					return commands.HandleStartCommand(cfg, cmd.Args().Slice())
+				},
+			},
+			{
+				Name:            "stop",
+				Usage:           "stop the daemon",
+				SkipFlagParsing: true,
+				Action: func(_ context.Context, cmd *cli.Command) error {
+					return commands.HandleStopCommand(cfg, cmd.Args().Slice())
+				},
+			},
+			{
+				Name:            "status",
+				Usage:           "check if the daemon is running",
+				SkipFlagParsing: true,
+				Action: func(_ context.Context, cmd *cli.Command) error {
+					return commands.HandleStatusCommand(cfg, cmd.Name, cmd.Args().Slice())
+				},
+			},
+			{
+				Name:            "migrate",
+				Aliases:         []string{"migrations"},
+				Usage:           "apply database migrations",
+				SkipFlagParsing: true,
+				Action: func(_ context.Context, cmd *cli.Command) error {
+					return commands.HandleMigrateCommand(cfg, cmd.Name, cmd.Args().Slice())
+				},
+			},
+			{
+				Name:            "user",
+				Usage:           "manage users (create, update, delete, lock, list)",
+				SkipFlagParsing: true,
+				Action: func(_ context.Context, cmd *cli.Command) error {
+					return commands.HandleUserCommand(cfg, cmd.Name, cmd.Args().Slice())
+				},
+			},
+			{
+				Name:            "post",
+				Usage:           "manage posts (delete, list, search)",
+				SkipFlagParsing: true,
+				Action: func(_ context.Context, cmd *cli.Command) error {
+					return commands.HandlePostCommand(cfg, cmd.Name, cmd.Args().Slice())
+				},
+			},
+			{
+				Name:            "prune",
+				Usage:           "hard delete users and posts (posts, all)",
+				SkipFlagParsing: true,
+				Action: func(_ context.Context, cmd *cli.Command) error {
+					return commands.HandlePruneCommand(cfg, cmd.Name, cmd.Args().Slice())
+				},
+			},
+			{
+				Name:            "seed",
+				Usage:           "seed database with random data",
+				SkipFlagParsing: true,
+				Action: func(_ context.Context, cmd *cli.Command) error {
+					return commands.HandleSeedCommand(cfg, cmd.Name, cmd.Args().Slice())
+				},
+			},
+		},
+		Writer:    os.Stdout,
+		ErrWriter: os.Stderr,
+	}
+
+	return root
 }
