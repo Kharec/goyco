@@ -79,12 +79,6 @@ func FuzzCommandDispatch(f *testing.F) {
 	})
 	defer commands.SetDBConnector(nil)
 
-	daemonCommands := map[string]bool{
-		"start":  true,
-		"stop":   true,
-		"status": true,
-	}
-
 	f.Add("run")
 	f.Add("help")
 	f.Add("user")
@@ -104,18 +98,20 @@ func FuzzCommandDispatch(f *testing.F) {
 			return
 		}
 
+		cmd := buildRootCommand(cfg)
+		for _, sub := range cmd.Commands {
+			sub.Action = func(context.Context, *cli.Command) error { return nil }
+		}
+
 		cmdName := parts[0]
 		args := parts[1:]
 
-		if daemonCommands[cmdName] {
-			return
-		}
-
-		err := dispatchCommand(cfg, cmdName, args)
+		err := cmd.Run(context.Background(), append([]string{"goyco"}, append([]string{cmdName}, args...)...))
 
 		knownCommands := map[string]bool{
 			"run": true, "user": true, "post": true, "prune": true, "migrate": true,
 			"migrations": true, "seed": true, "help": true, "-h": true, "--help": true,
+			"start": true, "stop": true, "status": true,
 		}
 
 		if knownCommands[cmdName] {
