@@ -75,6 +75,10 @@ func TestServerConfigurationFromConfig(t *testing.T) {
 		IdleTimeout:    cfg.Server.IdleTimeout,
 		MaxHeaderBytes: cfg.Server.MaxHeaderBytes,
 	}
+	expectedAddr := cfg.Server.Host + ":" + cfg.Server.Port
+	if srv.Addr != expectedAddr {
+		t.Errorf("Expected server address to be %q, got %q", expectedAddr, srv.Addr)
+	}
 
 	if srv.ReadTimeout != 30*time.Second {
 		t.Errorf("Expected ReadTimeout to be 30s, got %v", srv.ReadTimeout)
@@ -169,6 +173,10 @@ func TestTLSWiringFromConfig(t *testing.T) {
 
 	if srv.Addr != expectedAddr {
 		t.Errorf("Expected server address to be %q, got %q", expectedAddr, srv.Addr)
+	}
+
+	if srv.ReadHeaderTimeout != 5*time.Second {
+		t.Errorf("Expected ReadHeaderTimeout to be 5s, got %v", srv.ReadHeaderTimeout)
 	}
 
 	if cfg.Server.EnableTLS {
@@ -289,12 +297,14 @@ func TestFlagParsingInCLI(t *testing.T) {
 	t.Run("command dispatch", func(t *testing.T) {
 		cfg := testutils.NewTestConfig()
 
-		err := dispatchCommand(cfg, "unknown", []string{})
+		cmd := buildRootCommand(cfg)
+		err := cmd.Run(context.Background(), []string{"goyco", "unknown"})
 		if err == nil {
 			t.Error("Expected error for unknown command")
 		}
 
-		err = dispatchCommand(cfg, "help", []string{})
+		cmd = buildRootCommand(cfg)
+		err = cmd.Run(context.Background(), []string{"goyco", "help"})
 		if err != nil {
 			t.Errorf("Help command should not error: %v", err)
 		}
@@ -361,6 +371,26 @@ func TestServerInitializationFlow(t *testing.T) {
 
 	if srv.Handler == nil {
 		t.Error("Expected server handler to be set")
+	}
+	expectedAddr := cfg.Server.Host + ":" + cfg.Server.Port
+	if srv.Addr != expectedAddr {
+		t.Errorf("Expected server address to be %q, got %q", expectedAddr, srv.Addr)
+	}
+
+	if srv.ReadTimeout != cfg.Server.ReadTimeout {
+		t.Errorf("Expected ReadTimeout to be %v, got %v", cfg.Server.ReadTimeout, srv.ReadTimeout)
+	}
+
+	if srv.WriteTimeout != cfg.Server.WriteTimeout {
+		t.Errorf("Expected WriteTimeout to be %v, got %v", cfg.Server.WriteTimeout, srv.WriteTimeout)
+	}
+
+	if srv.IdleTimeout != cfg.Server.IdleTimeout {
+		t.Errorf("Expected IdleTimeout to be %v, got %v", cfg.Server.IdleTimeout, srv.IdleTimeout)
+	}
+
+	if srv.MaxHeaderBytes != cfg.Server.MaxHeaderBytes {
+		t.Errorf("Expected MaxHeaderBytes to be %d, got %d", cfg.Server.MaxHeaderBytes, srv.MaxHeaderBytes)
 	}
 
 	testServer := httptest.NewServer(srv.Handler)
