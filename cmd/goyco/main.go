@@ -68,35 +68,6 @@ func run(args []string) error {
 	return root.Run(context.Background(), runArgs)
 }
 
-func dispatchCommand(cfg *config.Config, name string, args []string) error {
-	switch name {
-	case "run":
-		return handleRunCommand(cfg, args)
-	case "start":
-		return commands.HandleStartCommand(cfg, args)
-	case "stop":
-		return commands.HandleStopCommand(cfg, args)
-	case "status":
-		return commands.HandleStatusCommand(cfg, name, args)
-	case "user":
-		return commands.HandleUserCommand(cfg, name, args)
-	case "post":
-		return commands.HandlePostCommand(cfg, name, args)
-	case "prune":
-		return commands.HandlePruneCommand(cfg, name, args)
-	case "migrate", "migrations":
-		return commands.HandleMigrateCommand(cfg, name, args)
-	case "seed":
-		return commands.HandleSeedCommand(cfg, name, args)
-	case "help", "-h", "--help":
-		printRootUsage()
-		return nil
-	default:
-		printRootUsage()
-		return fmt.Errorf("unknown command: %s", name)
-	}
-}
-
 func handleRunCommand(cfg *config.Config, args []string) error {
 	fs := newFlagSet("run", printRunUsage)
 	if err := parseCommand(fs, args, "run"); err != nil {
