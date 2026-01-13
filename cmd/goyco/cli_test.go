@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"os"
@@ -132,24 +133,25 @@ func TestPrintRunUsage(t *testing.T) {
 }
 
 func TestDispatchCommand(t *testing.T) {
-
 	t.Run("unknown command", func(t *testing.T) {
 		cfg := testutils.NewTestConfig()
-		err := dispatchCommand(cfg, "unknown", []string{})
+		cmd := buildRootCommand(cfg)
+		err := cmd.Run(context.Background(), []string{"goyco", "unknown"})
 
 		if err == nil {
 			t.Error("expected error for unknown command")
 		}
 
 		expectedErr := "unknown command: unknown"
-		if err.Error() != expectedErr {
+		if err != nil && err.Error() != expectedErr {
 			t.Errorf("expected error %q, got %q", expectedErr, err.Error())
 		}
 	})
 
 	t.Run("help command", func(t *testing.T) {
 		cfg := testutils.NewTestConfig()
-		err := dispatchCommand(cfg, "help", []string{})
+		cmd := buildRootCommand(cfg)
+		err := cmd.Run(context.Background(), []string{"goyco", "help"})
 
 		if err != nil {
 			t.Errorf("unexpected error for help command: %v", err)
@@ -158,7 +160,8 @@ func TestDispatchCommand(t *testing.T) {
 
 	t.Run("h command", func(t *testing.T) {
 		cfg := testutils.NewTestConfig()
-		err := dispatchCommand(cfg, "-h", []string{})
+		cmd := buildRootCommand(cfg)
+		err := cmd.Run(context.Background(), []string{"goyco", "-h"})
 
 		if err != nil {
 			t.Errorf("unexpected error for -h command: %v", err)
@@ -167,7 +170,8 @@ func TestDispatchCommand(t *testing.T) {
 
 	t.Run("--help command", func(t *testing.T) {
 		cfg := testutils.NewTestConfig()
-		err := dispatchCommand(cfg, "--help", []string{})
+		cmd := buildRootCommand(cfg)
+		err := cmd.Run(context.Background(), []string{"goyco", "--help"})
 
 		if err != nil {
 			t.Errorf("unexpected error for --help command: %v", err)
@@ -179,7 +183,8 @@ func TestDispatchCommand(t *testing.T) {
 
 		useInMemoryCommandsConnector(t)
 
-		err := dispatchCommand(cfg, "post", []string{"list"})
+		cmd := buildRootCommand(cfg)
+		err := cmd.Run(context.Background(), []string{"goyco", "post", "list"})
 
 		if err != nil {
 			t.Errorf("unexpected error for post list: %v", err)
