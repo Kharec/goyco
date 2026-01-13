@@ -3,14 +3,13 @@ package main
 import (
 	"context"
 	"crypto/tls"
-	"errors"
-	"flag"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
 	"time"
 
+	"goyco/cmd/goyco/commands"
 	"goyco/internal/config"
 	"goyco/internal/database"
 	"goyco/internal/handlers"
@@ -267,25 +266,24 @@ func TestConfigLoadingInCLI(t *testing.T) {
 }
 
 func TestFlagParsingInCLI(t *testing.T) {
-	originalArgs := os.Args
-	defer func() {
-		os.Args = originalArgs
-	}()
-
 	t.Run("help flag", func(t *testing.T) {
-		os.Args = []string{"goyco", "--help"}
-		fs := flag.NewFlagSet("goyco", flag.ContinueOnError)
-		fs.SetOutput(os.Stderr)
-		showHelp := fs.Bool("help", false, "show help")
-
-		err := fs.Parse([]string{"--help"})
-		if err != nil && !errors.Is(err, flag.ErrHelp) {
+		cmd := buildRootCommand(testutils.NewTestConfig())
+		err := cmd.Run(context.Background(), []string{"goyco", "--help"})
+		if err != nil {
 			t.Errorf("Expected help flag parsing, got error: %v", err)
 		}
+	})
 
-		if !*showHelp {
-			t.Error("Expected help flag to be true")
+	t.Run("json flag", func(t *testing.T) {
+		cmd := buildRootCommand(testutils.NewTestConfig())
+		err := cmd.Run(context.Background(), []string{"goyco", "--json"})
+		if err != nil {
+			t.Errorf("Expected json flag parsing, got error: %v", err)
 		}
+		if !commands.IsJSONOutput() {
+			t.Error("Expected json output to be enabled")
+		}
+		commands.SetJSONOutput(false)
 	})
 
 	t.Run("command dispatch", func(t *testing.T) {
