@@ -1,9 +1,8 @@
 package main
 
 import (
-	"flag"
+	"context"
 	"fmt"
-	"os"
 	"strings"
 	"testing"
 	"unicode/utf8"
@@ -12,6 +11,7 @@ import (
 	"goyco/internal/config"
 	"goyco/internal/testutils"
 
+	"github.com/urfave/cli/v3"
 	"gorm.io/gorm"
 )
 
@@ -36,32 +36,15 @@ func FuzzCLIArgs(f *testing.F) {
 		if len(args) == 0 {
 			return
 		}
+		cmd := buildRootCommand(testutils.NewTestConfig())
+		for _, sub := range cmd.Commands {
+			sub.Action = func(context.Context, *cli.Command) error { return nil }
+		}
 
-		fs := flag.NewFlagSet("goyco", flag.ContinueOnError)
-		fs.SetOutput(os.Stderr)
-		fs.Usage = printRootUsage
-		showHelp := fs.Bool("help", false, "show this help message")
-
-		err := fs.Parse(args)
-
+		err := cmd.Run(context.Background(), append([]string{"goyco"}, args...))
 		if err != nil {
-			if !strings.Contains(err.Error(), "flag") && !strings.Contains(err.Error(), "help") {
-				t.Logf("Unexpected error format from flag parsing: %v", err)
-			}
-		}
-
-		if *showHelp && err != nil {
-			return
-		}
-
-		remaining := fs.Args()
-		if len(remaining) > 0 {
-			cmdName := remaining[0]
-			if len(cmdName) == 0 {
-				t.Fatal("Command name cannot be empty")
-			}
-			if !isValidUTF8(cmdName) {
-				t.Fatal("Command name must be valid UTF-8")
+			if !strings.Contains(err.Error(), "flag") && !strings.Contains(err.Error(), "unknown command") {
+				t.Logf("Unexpected error format from command parsing: %v", err)
 			}
 		}
 	})
