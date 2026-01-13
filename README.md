@@ -419,7 +419,7 @@ This will regenerate the swagger documentation and update the `docs/swagger.json
 
 ## Roadmap
 
-- [ ] migrate cli to urfave/cli
+- [x] migrate cli to urfave/cli
 - [ ] add a ML powered nsfw link detection
 - [ ] add right management within the app
 - [ ] add an admin backoffice to manage rights, users, content and settings
