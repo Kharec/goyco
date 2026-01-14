@@ -35,25 +35,25 @@ func FuzzJSONParsing(f *testing.F) {
 func FuzzURLParsing(f *testing.F) {
 	helper := fuzz.NewFuzzTestHelper()
 	helper.RunBasicFuzzTest(f, func(t *testing.T, input string) {
-
-		sanitized := ""
+		var sanitized strings.Builder
+		sanitized.Grow(len(input))
+		sanitizedLen := 0
 		for _, char := range input {
-
 			if (char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z') ||
 				(char >= '0' && char <= '9') || char == '-' || char == '_' {
-				sanitized += string(char)
+				sanitized.WriteRune(char)
+				sanitizedLen++
+				if sanitizedLen >= 20 {
+					break
+				}
 			}
 		}
 
-		if len(sanitized) > 20 {
-			sanitized = sanitized[:20]
-		}
-
-		if len(sanitized) == 0 {
+		if sanitizedLen == 0 {
 			return
 		}
 
-		url := "/api/posts/" + sanitized
+		url := "/api/posts/" + sanitized.String()
 		req := httptest.NewRequest("GET", url, nil)
 
 		pathParts := strings.Split(req.URL.Path, "/")
@@ -67,46 +67,52 @@ func FuzzURLParsing(f *testing.F) {
 func FuzzQueryParameters(f *testing.F) {
 	helper := fuzz.NewFuzzTestHelper()
 	helper.RunBasicFuzzTest(f, func(t *testing.T, input string) {
-
 		if !utf8.ValidString(input) {
 			return
 		}
 
-		sanitized := ""
+		var sanitized strings.Builder
+		sanitized.Grow(len(input))
+		sanitizedLen := 0
 		for _, char := range input {
-
 			if char >= 32 && char <= 126 {
 				switch char {
 				case ' ', '\n', '\r', '\t':
 
 					continue
 				case '&':
-					sanitized += "%26"
+					sanitized.WriteString("%26")
+					sanitizedLen += 3
 				case '=':
-					sanitized += "%3D"
+					sanitized.WriteString("%3D")
+					sanitizedLen += 3
 				case '?':
-					sanitized += "%3F"
+					sanitized.WriteString("%3F")
+					sanitizedLen += 3
 				case '#':
-					sanitized += "%23"
+					sanitized.WriteString("%23")
+					sanitizedLen += 3
 				case '/':
-					sanitized += "%2F"
+					sanitized.WriteString("%2F")
+					sanitizedLen += 3
 				case '\\':
-					sanitized += "%5C"
+					sanitized.WriteString("%5C")
+					sanitizedLen += 3
 				default:
-					sanitized += string(char)
+					sanitized.WriteRune(char)
+					sanitizedLen++
+				}
+				if sanitizedLen >= 100 {
+					break
 				}
 			}
 		}
 
-		if len(sanitized) > 100 {
-			sanitized = sanitized[:100]
-		}
-
-		if len(sanitized) == 0 {
+		if sanitizedLen == 0 {
 			return
 		}
 
-		query := "?q=" + sanitized + "&limit=10&offset=0"
+		query := "?q=" + sanitized.String() + "&limit=10&offset=0"
 		req := httptest.NewRequest("GET", "/api/posts/search"+query, nil)
 
 		q := req.URL.Query().Get("q")
