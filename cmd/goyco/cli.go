@@ -69,14 +69,14 @@ func printRunUsage() {
 func buildRootCommand(cfg *config.Config) *cli.Command {
 	helpPrinterOnce.Do(func() {
 		defaultHelpPrinter = cli.HelpPrinter
-		cli.HelpPrinter = func(w io.Writer, templ string, data interface{}) {
-			if cmd, ok := data.(*cli.Command); ok && cmd.Root() == cmd {
-				printRootUsage()
-				return
-			}
-			defaultHelpPrinter(w, templ, data)
-		}
 	})
+	cli.HelpPrinter = func(w io.Writer, templ string, data interface{}) {
+		if cmd, ok := data.(*cli.Command); ok && cmd.Root() == cmd {
+			printRootUsage()
+			return
+		}
+		defaultHelpPrinter(w, templ, data)
+	}
 
 	root := &cli.Command{
 		Name:        "goyco",
@@ -93,6 +93,10 @@ func buildRootCommand(cfg *config.Config) *cli.Command {
 		Before: func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
 			commands.SetJSONOutput(cmd.Bool("json"))
 			return ctx, nil
+		},
+		After: func(ctx context.Context, cmd *cli.Command) error {
+			cli.HelpPrinter = defaultHelpPrinter
+			return nil
 		},
 		Action: func(_ context.Context, cmd *cli.Command) error {
 			if cmd.NArg() == 0 {
