@@ -132,7 +132,7 @@ func TestPrintRunUsage(t *testing.T) {
 	printRunUsage()
 }
 
-func TestDispatchCommand(t *testing.T) {
+func TestRootCommandDispatch(t *testing.T) {
 	t.Run("unknown command", func(t *testing.T) {
 		cfg := testutils.NewTestConfig()
 		cmd := buildRootCommand(cfg)
