@@ -421,12 +421,8 @@ This will regenerate the swagger documentation and update the `docs/swagger.json
 
 - [x] migrate cli to urfave/cli
 - [ ] add a ML powered nsfw link detection
-- [ ] add right management within the app
-- [ ] add an admin backoffice to manage rights, users, content and settings
 - [ ] add a way to run read-only communities
 - [ ] migrate raw CSS to UnoCSS
-- [ ] kubernetes deployment
-- [ ] store configuration in the database
 
 ## License
 
