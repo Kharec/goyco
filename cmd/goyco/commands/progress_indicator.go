@@ -56,16 +56,16 @@ func newProgressIndicatorWithClock(total int, description string, c clock) *Prog
 
 func (p *ProgressIndicator) Update(current int) {
 	p.mu.Lock()
-	defer p.mu.Unlock()
-
 	p.current = current
 	now := p.clock.Now()
 
 	if now.Sub(p.lastUpdate) < 100*time.Millisecond {
+		p.mu.Unlock()
 		return
 	}
 
 	p.lastUpdate = now
+	p.mu.Unlock()
 	p.display()
 }
 
