@@ -44,15 +44,14 @@ func captureOutput(fn func()) string {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	defer func() {
-		_ = w.Close()
-		os.Stdout = old
-	}()
-
 	fn()
+
+	_ = w.Close()
+	os.Stdout = old
 
 	var buf bytes.Buffer
 	_, _ = io.Copy(&buf, r)
+	_ = r.Close()
 	return buf.String()
 }
 
