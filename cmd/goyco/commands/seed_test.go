@@ -2,8 +2,11 @@ package commands
 
 import (
 	"fmt"
+	"math/rand"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"goyco/internal/database"
 	"goyco/internal/repositories"
@@ -12,6 +15,18 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
+
+var (
+	seedRandSource *rand.Rand
+	seedRandOnce   sync.Once
+)
+
+func initSeedRand() {
+	seedRandOnce.Do(func() {
+		seed := time.Now().UnixNano()
+		seedRandSource = rand.New(rand.NewSource(seed))
+	})
+}
 
 func TestSeedCommand(t *testing.T) {
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
@@ -269,6 +284,22 @@ func TestSeedDatabaseFlagParsing(t *testing.T) {
 
 		if err != nil {
 			t.Errorf("zero votes-per-post should be valid, got error: %v", err)
+		}
+	})
+
+	t.Run("help flag returns no error", func(t *testing.T) {
+		err := seedDatabase(userRepo, postRepo, voteRepo, []string{"--help"})
+
+		if err != nil {
+			t.Errorf("help flag should return no error, got: %v", err)
+		}
+	})
+
+	t.Run("short help flag returns no error", func(t *testing.T) {
+		err := seedDatabase(userRepo, postRepo, voteRepo, []string{"-h"})
+
+		if err != nil {
+			t.Errorf("short help flag should return no error, got: %v", err)
 		}
 	})
 }
@@ -529,5 +560,27 @@ func TestEnsureSeedUser(t *testing.T) {
 
 	if seedUserCount != 1 {
 		t.Errorf("Expected exactly 1 seed user, got %d", seedUserCount)
+	}
+}
+
+func TestEnsureSeedUser_HandlesDatabaseErrors(t *testing.T) {
+	userRepo := testutils.NewMockUserRepository()
+	passwordHash := "test_password_hash"
+
+	dbError := fmt.Errorf("database connection failed")
+
+	userRepo.SetGetByUsernameError(dbError)
+
+	_, err := ensureSeedUser(userRepo, passwordHash)
+	if err == nil {
+		t.Fatal("Expected error when GetByUsername returns database error")
+	}
+
+	if !strings.Contains(err.Error(), "failed to check if seed user exists") {
+		t.Errorf("Expected error message about checking seed user, got: %v", err)
+	}
+
+	if !strings.Contains(err.Error(), dbError.Error()) {
+		t.Errorf("Expected error to wrap original database error, got: %v", err)
 	}
 }
