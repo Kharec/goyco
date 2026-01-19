@@ -1,5 +1,5 @@
 // @title Goyco API
-// @version 0.1.0
+// @version 0.1.1
 // @description Goyco is a Y Combinator-style news aggregation platform API.
 // @contact.name Goyco Team
 // @contact.email sandro@cazzaniga.fr
