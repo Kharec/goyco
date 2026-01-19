@@ -21,6 +21,8 @@ var (
 	seedRandOnce   sync.Once
 )
 
+const testPasswordHash = "test_password_hash"
+
 func initSeedRand() {
 	seedRandOnce.Do(func() {
 		seed := time.Now().UnixNano()
@@ -61,11 +63,11 @@ func TestSeedCommand(t *testing.T) {
 	seedUserCount := 0
 	var seedUser *database.User
 	regularUserCount := 0
-	for i := range users {
-		if users[i].Username == "seed_admin" {
+	for idx := range users {
+		if users[idx].Username == seedUsername {
 			seedUserCount++
-			seedUser = &users[i]
-		} else if strings.HasPrefix(users[i].Username, "user_") {
+			seedUser = &users[idx]
+		} else if strings.HasPrefix(users[idx].Username, "user_") {
 			regularUserCount++
 		}
 	}
@@ -78,12 +80,12 @@ func TestSeedCommand(t *testing.T) {
 		t.Fatal("Expected seed user to be created")
 	}
 
-	if seedUser.Username != "seed_admin" {
-		t.Errorf("Expected username to be 'seed_admin', got '%s'", seedUser.Username)
+	if seedUser.Username != seedUsername {
+		t.Errorf("Expected username to be %q, got '%s'", seedUsername, seedUser.Username)
 	}
 
-	if seedUser.Email != "seed_admin@goyco.local" {
-		t.Errorf("Expected email to be 'seed_admin@goyco.local', got '%s'", seedUser.Email)
+	if seedUser.Email != seedEmail {
+		t.Errorf("Expected email to be %q, got '%s'", seedEmail, seedUser.Email)
 	}
 
 	if !seedUser.EmailVerified {
@@ -103,20 +105,20 @@ func TestSeedCommand(t *testing.T) {
 		t.Errorf("Expected 5 posts, got %d", len(posts))
 	}
 
-	for i, post := range posts {
+	for idx, post := range posts {
 		if post.Title == "" {
-			t.Errorf("Post %d has empty title", i)
+			t.Errorf("Post %d has empty title", idx)
 		}
 		if post.URL == "" {
-			t.Errorf("Post %d has empty URL", i)
+			t.Errorf("Post %d has empty URL", idx)
 		}
 		if post.AuthorID == nil || *post.AuthorID != seedUser.ID {
-			t.Errorf("Post %d has wrong author ID: expected %d, got %v", i, seedUser.ID, post.AuthorID)
+			t.Errorf("Post %d has wrong author ID: expected %d, got %v", idx, seedUser.ID, post.AuthorID)
 		}
 
 		expectedScore := post.UpVotes - post.DownVotes
 		if post.Score != expectedScore {
-			t.Errorf("Post %d has incorrect score: expected %d, got %d", i, expectedScore, post.Score)
+			t.Errorf("Post %d has incorrect score: expected %d, got %d", idx, expectedScore, post.Score)
 		}
 	}
 
@@ -148,11 +150,12 @@ func TestSeedCommand(t *testing.T) {
 }
 
 func TestGenerateRandomPath(t *testing.T) {
+	const articlePathPrefix = "/article/"
 	initSeedRand()
 	pathLength := seedRandSource.Intn(20)
-	path := "/article/"
+	path := articlePathPrefix
 
-	for i := 0; i < pathLength+5; i++ {
+	for idx := 0; idx < pathLength+5; idx++ {
 		randomChar := seedRandSource.Intn(26)
 		path += string(rune('a' + randomChar))
 	}
@@ -167,13 +170,14 @@ func TestGenerateRandomPath(t *testing.T) {
 
 	initSeedRand()
 	secondPathLength := seedRandSource.Intn(20)
-	secondPath := "/article/"
-	for i := 0; i < secondPathLength+5; i++ {
+	var secondPath strings.Builder
+	secondPath.WriteString(articlePathPrefix)
+	for idx := 0; idx < secondPathLength+5; idx++ {
 		randomChar := seedRandSource.Intn(26)
-		secondPath += string(rune('a' + randomChar))
+		secondPath.WriteString(string(rune('a' + randomChar)))
 	}
 
-	if path == secondPath {
+	if path == secondPath.String() {
 		t.Error("Generated paths should be different")
 	}
 }
@@ -333,7 +337,7 @@ func TestSeedCommandIdempotency(t *testing.T) {
 
 		seedUserCount := 0
 		for _, user := range users {
-			if user.Username == "seed_admin" {
+			if user.Username == seedUsername {
 				seedUserCount++
 			}
 		}
@@ -369,10 +373,10 @@ func TestSeedCommandIdempotency(t *testing.T) {
 	})
 
 	t.Run("database remains consistent after multiple runs", func(t *testing.T) {
-		for i := range 2 {
+		for idx := range 2 {
 			err := seedDatabase(userRepo, postRepo, voteRepo, []string{"--users", "0", "--posts", "1"})
 			if err != nil {
-				t.Fatalf("Seed run %d failed: %v", i+1, err)
+				t.Fatalf("Seed run %d failed: %v", idx+1, err)
 			}
 		}
 
@@ -417,9 +421,9 @@ func TestSeedCommandIdempotency(t *testing.T) {
 }
 
 func findSeedUser(users []database.User) *database.User {
-	for i := range users {
-		if users[i].Username == "seed_admin" {
-			return &users[i]
+	for idx := range users {
+		if users[idx].Username == seedUsername {
+			return &users[idx]
 		}
 	}
 	return nil
@@ -519,14 +523,14 @@ func TestEnsureSeedUser(t *testing.T) {
 	}
 
 	userRepo := repositories.NewUserRepository(db)
-	passwordHash := "test_password_hash"
+	passwordHash := testPasswordHash
 
 	firstUser, err := ensureSeedUser(userRepo, passwordHash)
 	if err != nil {
 		t.Fatalf("Failed to create seed user: %v", err)
 	}
 
-	if firstUser.Username != "seed_admin" || firstUser.Email != "seed_admin@goyco.local" || firstUser.Password != passwordHash || !firstUser.EmailVerified {
+	if firstUser.Username != seedUsername || firstUser.Email != seedEmail || firstUser.Password != passwordHash || !firstUser.EmailVerified {
 		t.Errorf("Invalid seed user: username=%s, email=%s, password matches=%v, emailVerified=%v",
 			firstUser.Username, firstUser.Email, firstUser.Password == passwordHash, firstUser.EmailVerified)
 	}
@@ -540,9 +544,9 @@ func TestEnsureSeedUser(t *testing.T) {
 		t.Errorf("Expected same user to be reused (ID %d), got different user (ID %d)", firstUser.ID, secondUser.ID)
 	}
 
-	for i := 0; i < 3; i++ {
+	for idx := range 3 {
 		if _, err := ensureSeedUser(userRepo, passwordHash); err != nil {
-			t.Fatalf("Call %d failed: %v", i+1, err)
+			t.Fatalf("Call %d failed: %v", idx+1, err)
 		}
 	}
 
@@ -553,7 +557,7 @@ func TestEnsureSeedUser(t *testing.T) {
 
 	seedUserCount := 0
 	for _, user := range users {
-		if user.Username == "seed_admin" {
+		if user.Username == seedUsername {
 			seedUserCount++
 		}
 	}
@@ -565,7 +569,7 @@ func TestEnsureSeedUser(t *testing.T) {
 
 func TestEnsureSeedUser_HandlesDatabaseErrors(t *testing.T) {
 	userRepo := testutils.NewMockUserRepository()
-	passwordHash := "test_password_hash"
+	passwordHash := testPasswordHash
 
 	dbError := fmt.Errorf("database connection failed")
 
