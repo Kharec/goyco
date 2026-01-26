@@ -75,7 +75,7 @@ func (h *APIHandler) GetAPIInfo(w http.ResponseWriter, r *http.Request) {
 
 	apiInfo := map[string]any{
 		"name":        fmt.Sprintf("%s API", h.config.App.Title),
-		"version":     version.Version,
+		"version":     version.GetVersion(),
 		"description": "Y Combinator-style news board API",
 		"endpoints": map[string]any{
 			"authentication": map[string]any{
@@ -145,7 +145,7 @@ func (h *APIHandler) GetHealth(w http.ResponseWriter, r *http.Request) {
 
 	if h.healthChecker != nil {
 		health := h.healthChecker.CheckHealth()
-		health["version"] = version.Version
+		health["version"] = version.GetVersion()
 		SendSuccessResponse(w, "Health check successful", health)
 		return
 	}
@@ -155,7 +155,7 @@ func (h *APIHandler) GetHealth(w http.ResponseWriter, r *http.Request) {
 	health := map[string]any{
 		"status":    "healthy",
 		"timestamp": currentTimestamp,
-		"version":   version.Version,
+		"version":   version.GetVersion(),
 		"services": map[string]any{
 			"database": "connected",
 			"api":      "running",
@@ -230,7 +230,7 @@ func (h *APIHandler) GetMetrics(w http.ResponseWriter, r *http.Request) {
 		},
 		"system": map[string]any{
 			"timestamp": time.Now().UTC().Format(time.RFC3339),
-			"version":   version.Version,
+			"version":   version.GetVersion(),
 		},
 	}
 

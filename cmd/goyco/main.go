@@ -55,7 +55,7 @@ func run(args []string) error {
 
 	docs.SwaggerInfo.Title = fmt.Sprintf("%s API", cfg.App.Title)
 	docs.SwaggerInfo.Description = "Y Combinator-style news board API."
-	docs.SwaggerInfo.Version = version.Version
+	docs.SwaggerInfo.Version = version.GetVersion()
 	docs.SwaggerInfo.BasePath = "/api"
 	docs.SwaggerInfo.Host = fmt.Sprintf("%s:%s", cfg.Server.Host, cfg.Server.Port)
 	docs.SwaggerInfo.Schemes = []string{"http"}

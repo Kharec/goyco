@@ -8,39 +8,39 @@ import (
 func TestVersionSemver(t *testing.T) {
 	semverRegex := regexp.MustCompile(`^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$`)
 
-	if !semverRegex.MatchString(Version) {
-		t.Errorf("Version %q does not follow semantic versioning format (MAJOR.MINOR.PATCH[-PRERELEASE][+BUILD])", Version)
+	if !semverRegex.MatchString(GetVersion()) {
+		t.Errorf("Version %q does not follow semantic versioning format (MAJOR.MINOR.PATCH[-PRERELEASE][+BUILD])", GetVersion())
 	}
 }
 
 func TestVersionSemverFlexible(t *testing.T) {
 	flexibleSemverRegex := regexp.MustCompile(`^(0|[1-9]\d*)\.(0|[1-9]\d*)(?:\.(0|[1-9]\d*))?(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$`)
 
-	if !flexibleSemverRegex.MatchString(Version) {
-		t.Errorf("Version %q does not follow semantic versioning format (MAJOR.MINOR[.PATCH][-PRERELEASE][+BUILD])", Version)
+	if !flexibleSemverRegex.MatchString(GetVersion()) {
+		t.Errorf("Version %q does not follow semantic versioning format (MAJOR.MINOR[.PATCH][-PRERELEASE][+BUILD])", GetVersion())
 	}
 }
 
 func TestVersionNotEmpty(t *testing.T) {
-	if Version == "" {
+	if GetVersion() == "" {
 		t.Error("Version should not be empty")
 	}
 }
 
 func TestVersionFormat(t *testing.T) {
-	if !regexp.MustCompile(`\d+\.\d+`).MatchString(Version) {
-		t.Errorf("Version %q should contain at least MAJOR.MINOR format", Version)
+	if !regexp.MustCompile(`\d+\.\d+`).MatchString(GetVersion()) {
+		t.Errorf("Version %q should contain at least MAJOR.MINOR format", GetVersion())
 	}
 }
 
 func TestVersionStartsWithNumber(t *testing.T) {
-	if !regexp.MustCompile(`^\d+`).MatchString(Version) {
-		t.Errorf("Version %q should start with a number", Version)
+	if !regexp.MustCompile(`^\d+`).MatchString(GetVersion()) {
+		t.Errorf("Version %q should start with a number", GetVersion())
 	}
 }
 
 func TestVersionNoLeadingZeros(t *testing.T) {
-	parts := regexp.MustCompile(`^(\d+)\.(\d+)`).FindStringSubmatch(Version)
+	parts := regexp.MustCompile(`^(\d+)\.(\d+)`).FindStringSubmatch(GetVersion())
 	if len(parts) >= 3 {
 		major := parts[1]
 		minor := parts[2]
