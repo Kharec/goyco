@@ -1,3 +1,7 @@
 package version
 
-const Version = "0.1.1"
+const version = "0.1.1"
+
+func GetVersion() string {
+	return version
+}
