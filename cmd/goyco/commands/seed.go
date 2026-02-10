@@ -142,6 +142,10 @@ func seedDatabase(userRepo repositories.UserRepository, postRepo repositories.Po
 		return err
 	}
 
+	if err := lockSeedUser(userRepo, seedUser); err != nil {
+		return err
+	}
+
 	if err := validateSeedConsistency(voteRepo, allUsers, posts); err != nil {
 		return fmt.Errorf("seed consistency validation failed: %w", err)
 	}
@@ -162,6 +166,19 @@ func seedDatabase(userRepo repositories.UserRepository, postRepo repositories.Po
 		fmt.Printf("Created %d users, %d posts, and %d votes\n", len(allUsers), len(posts), votes)
 	}
 
+	return nil
+}
+
+func lockSeedUser(userRepo repositories.UserRepository, seedUser *database.User) error {
+	if seedUser.Locked {
+		return nil
+	}
+
+	if err := userRepo.Lock(seedUser.ID); err != nil {
+		return fmt.Errorf("lock seed user: %w", err)
+	}
+
+	seedUser.Locked = true
 	return nil
 }
 
