@@ -269,6 +269,13 @@ func skipIfRateLimited(t *testing.T, statusCode int, reason string) {
 	}
 }
 
+func failIfRateLimited(t *testing.T, statusCode int, operation string) {
+	t.Helper()
+	if statusCode == http.StatusTooManyRequests {
+		t.Fatalf("%s was rate limited unexpectedly (429); this test expects deterministic isolation", operation)
+	}
+}
+
 func setupTestContext(t *testing.T) *testContext {
 	t.Helper()
 	server := setupIntegrationTestServer(t)
@@ -780,6 +787,11 @@ func setupIntegrationTestServerWithConfig(t *testing.T, serverCfg serverConfig) 
 func (ctx *testContext) resendVerification(t *testing.T, email string) int {
 	t.Helper()
 	return testutils.ResendVerificationEmail(t, ctx.client, ctx.baseURL, email)
+}
+
+func (ctx *testContext) resendVerificationWithIP(t *testing.T, email, ipAddress string) int {
+	t.Helper()
+	return testutils.ResendVerificationEmailWithIP(t, ctx.client, ctx.baseURL, email, ipAddress)
 }
 
 func (ctx *testContext) createTestFixtures(t *testing.T) *TestFixtures {

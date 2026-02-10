@@ -114,84 +114,6 @@ func TestE2E_SearchSanitization(t *testing.T) {
 	})
 }
 
-func TestE2E_SecurityHeaders(t *testing.T) {
-	ctx := setupTestContext(t)
-
-	expectedHeaders := map[string]string{
-		"X-Content-Type-Options": "nosniff",
-		"X-Frame-Options":        "DENY",
-		"X-XSS-Protection":       "1; mode=block",
-		"Referrer-Policy":        "strict-origin-when-cross-origin",
-	}
-
-	type endpointTest struct {
-		name   string
-		method string
-		path   string
-		auth   bool
-		body   []byte
-	}
-
-	endpoints := []endpointTest{
-		{name: "health_endpoint", method: "GET", path: "/health", auth: false},
-		{name: "metrics_endpoint", method: "GET", path: "/metrics", auth: false},
-		{name: "api_registration", method: "POST", path: "/api/auth/register", auth: false, body: []byte(`{"username":"testuser","email":"test@example.com","password":"StrongPass123!"}`)},
-		{name: "api_posts", method: "GET", path: "/api/posts", auth: true},
-		{name: "api_auth_me", method: "GET", path: "/api/auth/me", auth: true},
-	}
-
-	t.Run("security_headers_on_all_endpoints", func(t *testing.T) {
-		testUser := ctx.createUserWithCleanup(t, "headertest", "StrongPass123!")
-		var authToken string
-
-		authClient, err := ctx.loginUserSafe(t, testUser.Username, testUser.Password)
-		if err == nil {
-			authToken = authClient.Token
-		}
-
-		for _, endpoint := range endpoints {
-			t.Run(endpoint.name, func(t *testing.T) {
-				var req *http.Request
-				var err error
-
-				if endpoint.body != nil {
-					req, err = http.NewRequest(endpoint.method, ctx.baseURL+endpoint.path, bytes.NewReader(endpoint.body))
-				} else {
-					req, err = http.NewRequest(endpoint.method, ctx.baseURL+endpoint.path, nil)
-				}
-
-				if err != nil {
-					t.Fatalf("Failed to create request: %v", err)
-				}
-
-				if endpoint.auth && authToken != "" {
-					req.Header.Set("Authorization", "Bearer "+authToken)
-				}
-
-				testutils.WithStandardHeaders(req)
-
-				resp, err := ctx.client.Do(req)
-				if err != nil {
-					t.Fatalf("Failed to make request: %v", err)
-				}
-				defer resp.Body.Close()
-
-				for headerName, expectedValue := range expectedHeaders {
-					actualValue := resp.Header.Get(headerName)
-					if actualValue != expectedValue {
-						t.Errorf("Endpoint %s: Expected %s header to be '%s', got '%s'", endpoint.path, headerName, expectedValue, actualValue)
-					}
-				}
-
-				csp := resp.Header.Get("Content-Security-Policy")
-				if csp == "" {
-					t.Errorf("Endpoint %s: Content-Security-Policy header should be present", endpoint.path)
-				}
-			})
-		}
-	})
-}
-
 func TestE2E_SQLInjectionAcrossEndpoints(t *testing.T) {
 	ctx := setupTestContext(t)
 
@@ -201,7 +123,7 @@ func TestE2E_SQLInjectionAcrossEndpoints(t *testing.T) {
 		testUser := ctx.createUserWithCleanup(t, "sqltest", "StrongPass123!")
 		authClient, err := ctx.loginUserSafe(t, testUser.Username, testUser.Password)
 		if err != nil {
-			t.Skipf("Skipping sql injection in post fields test: %v", err)
+			t.Fatalf("Failed to login for SQL injection post fields test: %v", err)
 		}
 
 		for i, payload := range sqlPayloads {
@@ -313,7 +235,7 @@ func TestE2E_SQLInjectionAcrossEndpoints(t *testing.T) {
 		testUser := ctx.createUserWithCleanup(t, "sqltest2", "StrongPass123!")
 		authClient, err := ctx.loginUserSafe(t, testUser.Username, testUser.Password)
 		if err != nil {
-			t.Skipf("Skipping sql injection in url fields test: %v", err)
+			t.Fatalf("Failed to login for SQL injection URL fields test: %v", err)
 		}
 
 		for i, payload := range sqlPayloads {
@@ -349,7 +271,7 @@ func TestE2E_SQLInjectionAcrossEndpoints(t *testing.T) {
 		testUser := ctx.createUserWithCleanup(t, "sqltest3", "StrongPass123!")
 		authClient, err := ctx.loginUserSafe(t, testUser.Username, testUser.Password)
 		if err != nil {
-			t.Skipf("Skipping sql injection in query parameters test: %v", err)
+			t.Fatalf("Failed to login for SQL injection query parameter test: %v", err)
 		}
 
 		_ = authClient.CreatePost(t, "Searchable Post", "https://example.com/search", "Content")
@@ -641,16 +563,18 @@ func TestE2E_SecurityHeadersEnhanced(t *testing.T) {
 			method string
 			path   string
 			auth   bool
+			body   []byte
 		}{
-			{"health", "GET", "/health", false},
-			{"metrics", "GET", "/metrics", false},
-			{"api_posts", "GET", "/api/posts", true},
-			{"api_auth_me", "GET", "/api/auth/me", true},
+			{"health", "GET", "/health", false, nil},
+			{"metrics", "GET", "/metrics", false, nil},
+			{"api_registration", "POST", "/api/auth/register", false, []byte(`{"username":"headertestnew","email":"headertestnew@example.com","password":"StrongPass123!"}`)},
+			{"api_posts", "GET", "/api/posts", true, nil},
+			{"api_auth_me", "GET", "/api/auth/me", true, nil},
 		}
 
 		for _, endpoint := range endpoints {
 			t.Run(endpoint.name, func(t *testing.T) {
-				req, err := http.NewRequest(endpoint.method, ctx.baseURL+endpoint.path, nil)
+				req, err := http.NewRequest(endpoint.method, ctx.baseURL+endpoint.path, bytes.NewReader(endpoint.body))
 				if err != nil {
 					t.Fatalf("Failed to create request: %v", err)
 				}
@@ -706,83 +630,6 @@ func TestE2E_SecurityHeadersEnhanced(t *testing.T) {
 
 		if !strings.Contains(hsts, "max-age=") {
 			t.Errorf("HSTS header should contain max-age, got: %s", hsts)
-		}
-	})
-}
-
-func TestE2E_ParameterizedQueries(t *testing.T) {
-	ctx := setupTestContext(t)
-
-	t.Run("sql_injection_prevention", func(t *testing.T) {
-		testUser := ctx.createUserWithCleanup(t, "sqltest", "StrongPass123!")
-		authClient, err := ctx.loginUserSafe(t, testUser.Username, testUser.Password)
-		if err != nil {
-			t.Fatalf("Failed to login: %v", err)
-		}
-
-		for i, payload := range testutils.SQLInjectionPayloads {
-			t.Run(fmt.Sprintf("payload_%d", i), func(t *testing.T) {
-				postData := map[string]string{
-					"title":   payload,
-					"url":     fmt.Sprintf("https://example.com/test%d", i),
-					"content": "Test content",
-				}
-
-				req, err := testutils.NewRequestBuilder("POST", ctx.baseURL+"/api/posts").
-					WithAuth(authClient.Token).
-					WithJSONBody(postData).
-					Build()
-				if err != nil {
-					t.Fatalf("Failed to create request: %v", err)
-				}
-
-				resp, err := ctx.client.Do(req)
-				if err != nil {
-					t.Fatalf("Failed to make request: %v", err)
-				}
-				defer resp.Body.Close()
-
-				if resp.StatusCode == http.StatusInternalServerError {
-					t.Errorf("SQL injection in title caused server error (500). Payload: %s", payload)
-				}
-
-				if resp.StatusCode != http.StatusCreated {
-					t.Errorf("Expected post creation to succeed (parameterized queries prevent SQL injection), got status: %d", resp.StatusCode)
-				}
-			})
-		}
-	})
-
-	t.Run("search_sanitization", func(t *testing.T) {
-		testUser := ctx.createUserWithCleanup(t, "searchtest", "StrongPass123!")
-		authClient, err := ctx.loginUserSafe(t, testUser.Username, testUser.Password)
-		if err != nil {
-			t.Fatalf("Failed to login: %v", err)
-		}
-
-		_ = authClient.CreatePost(t, "Searchable Post", "https://example.com/search", "Content")
-
-		for i, payload := range testutils.SQLInjectionPayloads {
-			t.Run(fmt.Sprintf("payload_%d", i), func(t *testing.T) {
-				searchURL := ctx.baseURL + "/api/posts/search?q=" + url.QueryEscape(payload)
-
-				req, err := testutils.NewRequestBuilder("GET", searchURL).
-					WithAuth(authClient.Token).
-					Build()
-				if err != nil {
-					t.Fatalf("Failed to create request: %v", err)
-				}
-
-				resp, err := ctx.client.Do(req)
-				if err != nil {
-					t.Fatalf("Failed to make request: %v", err)
-				}
-				defer resp.Body.Close()
-
-				if resp.StatusCode == http.StatusInternalServerError {
-					t.Errorf("SQL injection in search query caused server error (500). Payload: %s", payload)
-				}
-			})
 		}
 	})
 }

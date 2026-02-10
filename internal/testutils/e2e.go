@@ -1252,6 +1252,11 @@ func ConfirmAccountDeletion(t *testing.T, client *http.Client, baseURL, token st
 
 func ResendVerificationEmail(t *testing.T, client *http.Client, baseURL, email string) int {
 	t.Helper()
+	return ResendVerificationEmailWithIP(t, client, baseURL, email, "")
+}
+
+func ResendVerificationEmailWithIP(t *testing.T, client *http.Client, baseURL, email, ipAddress string) int {
+	t.Helper()
 
 	requestData := map[string]string{
 		"email": email,
@@ -1268,6 +1273,9 @@ func ResendVerificationEmail(t *testing.T, client *http.Client, baseURL, email s
 	}
 	request.Header.Set("Content-Type", "application/json")
 	WithStandardHeaders(request)
+	if ipAddress != "" {
+		request.Header.Set("X-Forwarded-For", ipAddress)
+	}
 
 	resp, err := client.Do(request)
 	if err != nil {
