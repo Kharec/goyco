@@ -92,6 +92,10 @@ func TestSeedCommand(t *testing.T) {
 		t.Error("Expected seed user to be email verified")
 	}
 
+	if !seedUser.Locked {
+		t.Error("Expected seed user to be locked after seeding")
+	}
+
 	if regularUserCount != 2 {
 		t.Errorf("Expected 2 regular users, got %d", regularUserCount)
 	}
@@ -336,14 +340,20 @@ func TestSeedCommandIdempotency(t *testing.T) {
 		}
 
 		seedUserCount := 0
+		seedUserLocked := false
 		for _, user := range users {
 			if user.Username == seedUsername {
 				seedUserCount++
+				seedUserLocked = user.Locked
 			}
 		}
 
 		if seedUserCount != 1 {
 			t.Errorf("Expected exactly 1 seed user, got %d", seedUserCount)
+		}
+
+		if !seedUserLocked {
+			t.Error("Expected seed user to be locked after first seed run")
 		}
 	})
 
@@ -369,6 +379,10 @@ func TestSeedCommandIdempotency(t *testing.T) {
 
 		if seedUserBefore.ID != seedUserAfter.ID {
 			t.Errorf("Expected seed user to be reused (ID %d), but got different user (ID %d)", seedUserBefore.ID, seedUserAfter.ID)
+		}
+
+		if !seedUserAfter.Locked {
+			t.Error("Expected reused seed user to remain locked")
 		}
 	})
 
