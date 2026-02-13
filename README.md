@@ -24,7 +24,7 @@ It's basically pure Go (using Chi router), raw CSS and PostgreSQL 18.
 
 ### Prerequisites
 
-- Go 1.25.0 or later
+- Go 1.26.0 or later
 - PostgreSQL 18 or later
 - SMTP server for email functionality
 
