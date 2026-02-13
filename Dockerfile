@@ -1,4 +1,4 @@
-ARG GO_VERSION=1.25.4
+ARG GO_VERSION=1.26.0
 
 # Building the binary using a golang alpine image
 FROM golang:${GO_VERSION}-alpine AS go-builder
