@@ -256,6 +256,7 @@ Goyco includes a comprehensive CLI for administration:
 # Database management
 ./bin/goyco migrate                # Run database migrations
 ./bin/goyco seed database          # Seed database with sample data
+./bin/goyco seed database --posts 100 --users 10 --upvote-ratio 0.5  # Customize seeding
 
 # User management
 ./bin/goyco user create            # Create new user
