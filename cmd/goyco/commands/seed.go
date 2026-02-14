@@ -56,10 +56,11 @@ func runSeedCommand(userRepo repositories.UserRepository, postRepo repositories.
 
 func printSeedUsage() {
 	fmt.Fprintln(os.Stderr, "Seed subcommands:")
-	fmt.Fprintln(os.Stderr, "  database [--posts <n>] [--users <n>] [--votes-per-post <n>]")
+	fmt.Fprintln(os.Stderr, "  database [--posts <n>] [--users <n>] [--votes-per-post <n>] [--upvote-ratio <r>]")
 	fmt.Fprintln(os.Stderr, "    --posts: number of posts to create (default: 40)")
 	fmt.Fprintln(os.Stderr, "    --users: number of additional users to create (default: 5)")
 	fmt.Fprintln(os.Stderr, "    --votes-per-post: average votes per post (default: 15)")
+	fmt.Fprintln(os.Stderr, "    --upvote-ratio: percentage of upvotes vs downvotes, 0.0-1.0 (default: 0.7)")
 }
 
 func clampFlagValue(value *int, min int, name string) {
@@ -76,9 +77,10 @@ func seedDatabase(userRepo repositories.UserRepository, postRepo repositories.Po
 	numPosts := fs.Int("posts", 40, "number of posts to create")
 	numUsers := fs.Int("users", 5, "number of additional users to create")
 	votesPerPost := fs.Int("votes-per-post", 15, "average votes per post")
+	upvoteRatio := fs.Float64("upvote-ratio", 0.7, "percentage of upvotes vs downvotes, 0.0-1.0")
 	fs.SetOutput(os.Stderr)
 	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: goyco seed database [--posts <n>] [--users <n>] [--votes-per-post <n>]")
+		fmt.Fprintln(os.Stderr, "Usage: goyco seed database [--posts <n>] [--users <n>] [--votes-per-post <n>] [--upvote-ratio <r>]")
 		fmt.Fprintln(os.Stderr, "\nOptions:")
 		fs.PrintDefaults()
 	}
@@ -93,6 +95,11 @@ func seedDatabase(userRepo repositories.UserRepository, postRepo repositories.Po
 	clampFlagValue(numUsers, 0, "users")
 	clampFlagValue(numPosts, 1, "posts")
 	clampFlagValue(votesPerPost, 0, "votes-per-post")
+	if *upvoteRatio < 0 {
+		*upvoteRatio = 0
+	} else if *upvoteRatio > 1 {
+		*upvoteRatio = 1
+	}
 
 	if !IsJSONOutput() {
 		fmt.Println("Starting database seeding...")
@@ -119,7 +126,7 @@ func seedDatabase(userRepo repositories.UserRepository, postRepo repositories.Po
 		fmt.Printf("Seed user ready: ID=%d Username=%s\n", seedUser.ID, seedUser.Username)
 	}
 
-	generator := newSeedGenerator(string(userPasswordHash))
+	generator := newSeedGenerator(string(userPasswordHash), *upvoteRatio)
 	allUsers := []database.User{*seedUser}
 
 	users, err := createUsers(generator, userRepo, *numUsers, "Creating users")
@@ -258,13 +265,15 @@ func validateSeedConsistency(voteRepo repositories.VoteRepository, users []datab
 type seedGenerator struct {
 	passwordHash string
 	randSource   *rand.Rand
+	upvoteRatio  float64
 }
 
-func newSeedGenerator(passwordHash string) *seedGenerator {
+func newSeedGenerator(passwordHash string, upvoteRatio float64) *seedGenerator {
 	seed := time.Now().UnixNano()
 	return &seedGenerator{
 		passwordHash: passwordHash,
 		randSource:   rand.New(rand.NewSource(seed)),
+		upvoteRatio:  upvoteRatio,
 	}
 }
 
@@ -490,9 +499,8 @@ func (g *seedGenerator) createVotesForPost(voteRepo repositories.VoteRepository,
 		}
 		usedUsers[user.ID] = true
 
-		voteTypeInt := g.randSource.Intn(10)
 		var voteType database.VoteType
-		if voteTypeInt < 7 {
+		if g.randSource.Float64() < g.upvoteRatio {
 			voteType = database.VoteUp
 		} else {
 			voteType = database.VoteDown
