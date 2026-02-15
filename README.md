@@ -252,6 +252,7 @@ Goyco includes a comprehensive CLI for administration:
 ./bin/goyco start                  # Start server as daemon
 ./bin/goyco stop                   # Stop daemon
 ./bin/goyco status                 # Check server status
+./bin/goyco health                 # Check application and dependencies health
 
 # Database management
 ./bin/goyco migrate                # Run database migrations
@@ -286,6 +287,7 @@ All CLI commands support JSON output for easier parsing and integration with scr
 ./bin/goyco --json user list
 ./bin/goyco --json post list
 ./bin/goyco --json status
+./bin/goyco --json health          # Check health with JSON output
 
 # Example: Parse JSON output with jq
 ./bin/goyco --json user list | jq '.users[0].username'
