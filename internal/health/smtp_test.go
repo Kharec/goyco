@@ -3,6 +3,8 @@ package health
 import (
 	"context"
 	"net"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
@@ -178,7 +180,7 @@ func TestSMTPChecker_Check_EHLOFailure(t *testing.T) {
 		t.Errorf("expected degraded status for EHLO failure, got %s", result.Status)
 	}
 
-	if !contains(result.Message, "EHLO") {
+	if !strings.Contains(result.Message, "EHLO") {
 		t.Errorf("expected EHLO error in message, got: %s", result.Message)
 	}
 }
@@ -303,35 +305,5 @@ func TestSMTPConfig_GetAddress(t *testing.T) {
 }
 
 func getSMTPAddress(config SMTPConfig) string {
-	return config.Host + ":" + itoa(config.Port)
-}
-
-func itoa(n int) string {
-	if n == 0 {
-		return "0"
-	}
-	if n < 0 {
-		return "-" + itoa(-n)
-	}
-	var result []byte
-	for n > 0 {
-		result = append([]byte{byte('0' + n%10)}, result...)
-		n /= 10
-	}
-	return string(result)
-}
-
-func contains(s, substr string) bool {
-	if len(substr) == 0 {
-		return true
-	}
-	if len(s) < len(substr) {
-		return false
-	}
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
+	return config.Host + ":" + strconv.Itoa(config.Port)
 }
