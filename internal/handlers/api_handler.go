@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"goyco/internal/config"
+	"goyco/internal/health"
 	"goyco/internal/middleware"
 	"goyco/internal/repositories"
 	"goyco/internal/services"
@@ -21,7 +22,7 @@ type APIHandler struct {
 	userRepo         repositories.UserRepository
 	voteService      *services.VoteService
 	dbMonitor        middleware.DBMonitor
-	healthChecker    *middleware.DatabaseHealthChecker
+	healthChecker    *health.CompositeChecker
 	metricsCollector *middleware.MetricsCollector
 }
 
@@ -44,7 +45,21 @@ func NewAPIHandlerWithMonitoring(config *config.Config, postRepo repositories.Po
 		return NewAPIHandler(config, postRepo, userRepo, voteService)
 	}
 
-	healthChecker := middleware.NewDatabaseHealthChecker(sqlDB, dbMonitor)
+	compositeChecker := health.NewCompositeChecker()
+
+	dbChecker := health.NewDatabaseChecker(sqlDB, dbMonitor)
+	compositeChecker.AddChecker(dbChecker)
+
+	smtpConfig := health.SMTPConfig{
+		Host:     config.SMTP.Host,
+		Port:     config.SMTP.Port,
+		Username: config.SMTP.Username,
+		Password: config.SMTP.Password,
+		From:     config.SMTP.From,
+	}
+	smtpChecker := health.NewSMTPChecker(smtpConfig)
+	compositeChecker.AddChecker(smtpChecker)
+
 	metricsCollector := middleware.NewMetricsCollector(dbMonitor)
 
 	return &APIHandler{
@@ -53,7 +68,7 @@ func NewAPIHandlerWithMonitoring(config *config.Config, postRepo repositories.Po
 		userRepo:         userRepo,
 		voteService:      voteService,
 		dbMonitor:        dbMonitor,
-		healthChecker:    healthChecker,
+		healthChecker:    compositeChecker,
 		metricsCollector: metricsCollector,
 	}
 }
@@ -135,17 +150,17 @@ func (h *APIHandler) GetAPIInfo(w http.ResponseWriter, r *http.Request) {
 }
 
 // @Summary Health check
-// @Description Check the API health status along with database connectivity details
+// @Description Check the API health status along with database connectivity and SMTP service details
 // @Tags api
 // @Accept json
 // @Produce json
 // @Success 200 {object} CommonResponse "Health check successful"
 // @Router /health [get]
 func (h *APIHandler) GetHealth(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 
 	if h.healthChecker != nil {
-		health := h.healthChecker.CheckHealth()
-		health["version"] = version.GetVersion()
+		health := h.healthChecker.CheckWithVersion(ctx, version.GetVersion())
 		SendSuccessResponse(w, "Health check successful", health)
 		return
 	}
