@@ -59,6 +59,7 @@ func printRootUsage() {
 	fmt.Fprintln(os.Stderr, "  post      manage posts (delete, list, search)")
 	fmt.Fprintln(os.Stderr, "  prune     hard delete users and posts (posts, all)")
 	fmt.Fprintln(os.Stderr, "  seed      seed database with random data")
+	fmt.Fprintln(os.Stderr, "  health    check the health of the application and its dependencies")
 }
 
 func printRunUsage() {
@@ -178,6 +179,14 @@ func buildRootCommand(cfg *config.Config) *cli.Command {
 				SkipFlagParsing: true,
 				Action: func(_ context.Context, cmd *cli.Command) error {
 					return commands.HandleSeedCommand(cfg, cmd.Name, cmd.Args().Slice())
+				},
+			},
+			{
+				Name:            "health",
+				Usage:           "check the health of the application and its dependencies",
+				SkipFlagParsing: true,
+				Action: func(_ context.Context, cmd *cli.Command) error {
+					return commands.HandleHealthCommand(cfg, cmd.Name, cmd.Args().Slice())
 				},
 			},
 		},
