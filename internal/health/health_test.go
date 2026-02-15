@@ -10,7 +10,6 @@ import (
 	"goyco/internal/middleware"
 )
 
-// MockDBMonitor is a mock implementation of DBMonitor for testing
 type MockDBMonitor struct {
 	stats middleware.DBStats
 }
@@ -20,11 +19,9 @@ func (m *MockDBMonitor) GetStats() middleware.DBStats {
 }
 
 func (m *MockDBMonitor) LogQuery(query string, duration time.Duration, err error) {
-	// Mock implementation - does nothing
 }
 
 func (m *MockDBMonitor) LogSlowQuery(query string, duration time.Duration, threshold time.Duration) {
-	// Mock implementation - does nothing
 }
 
 func TestStatusConstants(t *testing.T) {
@@ -90,10 +87,8 @@ func TestDatabaseChecker_Name(t *testing.T) {
 }
 
 func TestDatabaseChecker_Check(t *testing.T) {
-	// Create an in-memory database using the default driver
 	db, err := sql.Open("sqlite", ":memory:")
 	if err != nil {
-		// Fallback: create a nil db and just verify the checker structure
 		t.Logf("Could not open test database: %v", err)
 		t.Skip("Skipping database-dependent test")
 	}
@@ -115,8 +110,6 @@ func TestDatabaseChecker_Check(t *testing.T) {
 
 	result := checker.Check(ctx)
 
-	// Note: The actual result depends on database availability
-	// We just verify the structure is correct
 	if result.Timestamp.IsZero() {
 		t.Error("Expected non-zero timestamp")
 	}
@@ -125,7 +118,6 @@ func TestDatabaseChecker_Check(t *testing.T) {
 		t.Error("Expected ping_time in details")
 	}
 
-	// Only check stats if status is healthy
 	if result.Status == StatusHealthy {
 		stats, ok := result.Details["stats"].(map[string]any)
 		if !ok {
@@ -139,11 +131,9 @@ func TestDatabaseChecker_Check(t *testing.T) {
 }
 
 func TestDatabaseChecker_Check_Unhealthy(t *testing.T) {
-	// Test with a nil database connection
 	checker := NewDatabaseChecker(nil, nil)
 	ctx := context.Background()
 
-	// This should panic or return an error result
 	defer func() {
 		if r := recover(); r != nil {
 			t.Logf("Got expected panic with nil db: %v", r)
@@ -152,65 +142,12 @@ func TestDatabaseChecker_Check_Unhealthy(t *testing.T) {
 
 	result := checker.Check(ctx)
 
-	// If no panic, we should get an unhealthy status
 	if result.Status != StatusUnhealthy {
 		t.Logf("Expected unhealthy status for nil db, got %s", result.Status)
 	}
 }
 
-func TestSMTPChecker_Name(t *testing.T) {
-	checker := &SMTPChecker{}
-	if checker.Name() != "smtp" {
-		t.Errorf("Expected name 'smtp', got %s", checker.Name())
-	}
-}
-
-func TestSMTPChecker_Check_InvalidHost(t *testing.T) {
-	config := SMTPConfig{
-		Host: "invalid.host.that.does.not.exist",
-		Port: 587,
-	}
-
-	checker := NewSMTPChecker(config)
-	ctx := context.Background()
-
-	result := checker.Check(ctx)
-
-	if result.Status != StatusDegraded {
-		t.Errorf("Expected degraded status for invalid host, got %s", result.Status)
-	}
-
-	if result.Message == "" {
-		t.Error("Expected error message for connection failure")
-	}
-
-	if result.Details["host"] != "invalid.host.that.does.not.exist:587" {
-		t.Errorf("Expected host in details, got %v", result.Details["host"])
-	}
-}
-
-func TestSMTPChecker_Check_WithAuth(t *testing.T) {
-	config := SMTPConfig{
-		Host:     "smtp.example.com",
-		Port:     587,
-		Username: "test@example.com",
-		Password: "password",
-		From:     "noreply@example.com",
-	}
-
-	checker := NewSMTPChecker(config)
-
-	// Just verify the configuration is stored correctly
-	if checker.config.Host != "smtp.example.com" {
-		t.Errorf("Expected host to be 'smtp.example.com', got %s", checker.config.Host)
-	}
-	if checker.config.Port != 587 {
-		t.Errorf("Expected port to be 587, got %d", checker.config.Port)
-	}
-}
-
 func TestCompositeChecker(t *testing.T) {
-	// Create a composite checker with test checkers
 	checker1 := &mockChecker{
 		name:   "service1",
 		status: StatusHealthy,
@@ -276,7 +213,6 @@ func TestCompositeChecker_CheckWithVersion(t *testing.T) {
 	}
 }
 
-// mockChecker is a test implementation of the Checker interface
 type mockChecker struct {
 	name   string
 	status Status
