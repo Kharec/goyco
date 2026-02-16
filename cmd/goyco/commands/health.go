@@ -55,11 +55,7 @@ func runHealthCheck(cfg *config.Config) error {
 	ctx := context.Background()
 	result := compositeChecker.CheckWithVersion(ctx, version.GetVersion())
 
-	if IsJSONOutput() {
-		return outputJSON(result)
-	}
-
-	return printHealthResult(result)
+	return outputJSON(result)
 }
 
 func createDatabaseChecker(cfg *config.Config) (health.Checker, error) {
@@ -95,35 +91,4 @@ func createSMTPChecker(cfg *config.Config) health.Checker {
 	}
 
 	return health.NewSMTPChecker(smtpConfig)
-}
-
-func printHealthResult(result health.OverallResult) error {
-	fmt.Printf("Health Status: %s\n", result.Status)
-	fmt.Printf("Version: %s\n", result.Version)
-	fmt.Printf("Timestamp: %s\n", result.Timestamp.Format(time.RFC3339))
-	fmt.Println()
-
-	if len(result.Services) == 0 {
-		fmt.Println("No services configured.")
-		return nil
-	}
-
-	fmt.Println("Services:")
-	for name, service := range result.Services {
-		fmt.Printf("  %s:\n", name)
-		fmt.Printf("    Status: %s\n", service.Status)
-		fmt.Printf("    Latency: %s\n", service.Latency)
-		if service.Message != "" {
-			fmt.Printf("    Message: %s\n", service.Message)
-		}
-		if len(service.Details) > 0 {
-			fmt.Printf("    Details:\n")
-			for key, value := range service.Details {
-				fmt.Printf("      %s: %v\n", key, value)
-			}
-		}
-		fmt.Println()
-	}
-
-	return nil
 }
