@@ -45,7 +45,7 @@ func (c *SMTPChecker) Check(ctx context.Context) Result {
 
 	conn, err := net.Dial("tcp", address)
 	if err != nil {
-		result.Status = StatusDegraded
+		result.Status = StatusUnhealthy
 		result.Message = fmt.Sprintf("Failed to connect to SMTP server: %v", err)
 		result.Latency = time.Since(start)
 		return result
@@ -54,7 +54,7 @@ func (c *SMTPChecker) Check(ctx context.Context) Result {
 
 	client, err := smtp.NewClient(conn, c.config.Host)
 	if err != nil {
-		result.Status = StatusDegraded
+		result.Status = StatusUnhealthy
 		result.Message = fmt.Sprintf("Failed to create SMTP client: %v", err)
 		result.Latency = time.Since(start)
 		return result
