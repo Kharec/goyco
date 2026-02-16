@@ -58,9 +58,14 @@ func TestDetermineOverallStatus(t *testing.T) {
 			expected: StatusUnhealthy,
 		},
 		{
+			name:     "smtp unhealthy downgrades overall to degraded",
+			results:  map[string]Result{"db": {Status: StatusHealthy}, "smtp": {Status: StatusUnhealthy}},
+			expected: StatusDegraded,
+		},
+		{
 			name:     "mixed degraded and unhealthy",
 			results:  map[string]Result{"db": {Status: StatusDegraded}, "smtp": {Status: StatusUnhealthy}},
-			expected: StatusUnhealthy,
+			expected: StatusDegraded,
 		},
 		{
 			name:     "empty results",
