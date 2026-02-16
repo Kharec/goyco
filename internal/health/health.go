@@ -35,12 +35,17 @@ type OverallResult struct {
 
 func determineOverallStatus(results map[string]Result) Status {
 	hasUnhealthy := false
+	hasSMTPUnhealthy := false
 	hasDegraded := false
 
-	for _, result := range results {
+	for name, result := range results {
 		switch result.Status {
 		case StatusUnhealthy:
-			hasUnhealthy = true
+			if name == "smtp" {
+				hasSMTPUnhealthy = true
+			} else {
+				hasUnhealthy = true
+			}
 		case StatusDegraded:
 			hasDegraded = true
 		}
@@ -49,7 +54,7 @@ func determineOverallStatus(results map[string]Result) Status {
 	if hasUnhealthy {
 		return StatusUnhealthy
 	}
-	if hasDegraded {
+	if hasDegraded || hasSMTPUnhealthy {
 		return StatusDegraded
 	}
 	return StatusHealthy
