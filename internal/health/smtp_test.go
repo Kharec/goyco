@@ -36,8 +36,8 @@ func TestSMTPChecker_Check_InvalidPort(t *testing.T) {
 
 	result := checker.Check(ctx)
 
-	if result.Status != StatusDegraded {
-		t.Errorf("expected degraded status for invalid port, got %s", result.Status)
+	if result.Status != StatusUnhealthy {
+		t.Errorf("expected unhealthy status for invalid port, got %s", result.Status)
 	}
 }
 
@@ -59,8 +59,8 @@ func TestSMTPChecker_Check_ConnectionRefused(t *testing.T) {
 
 	result := checker.Check(ctx)
 
-	if result.Status != StatusDegraded {
-		t.Errorf("expected degraded status for connection refused, got %s", result.Status)
+	if result.Status != StatusUnhealthy {
+		t.Errorf("expected unhealthy status for connection refused, got %s", result.Status)
 	}
 }
 
