@@ -113,15 +113,15 @@ func truncate(in string, max int) string {
 	return in[:max-3] + "..."
 }
 
-func outputJSON(v interface{}) error {
+func outputJSON(v any) error {
 	encoder := json.NewEncoder(os.Stdout)
 	encoder.SetIndent("", "  ")
 	return encoder.Encode(v)
 }
 
-func outputWarning(message string, args ...interface{}) {
+func outputWarning(message string, args ...any) {
 	if IsJSONOutput() {
-		outputJSON(map[string]interface{}{
+		outputJSON(map[string]any{
 			"warning": fmt.Sprintf(message, args...),
 		})
 	} else {

@@ -169,7 +169,7 @@ func userCreate(cfg *config.Config, repo repositories.UserRepository, args []str
 	}
 
 	if IsJSONOutput() {
-		outputJSON(map[string]interface{}{
+		outputJSON(map[string]any{
 			"action":   "user_created",
 			"id":       user.ID,
 			"username": user.Username,
@@ -296,7 +296,7 @@ func userUpdate(cfg *config.Config, repo repositories.UserRepository, refreshTok
 	}
 
 	if IsJSONOutput() {
-		outputJSON(map[string]interface{}{
+		outputJSON(map[string]any{
 			"action":   "user_updated",
 			"id":       user.ID,
 			"username": user.Username,
@@ -424,7 +424,7 @@ func userDelete(cfg *config.Config, repo repositories.UserRepository, args []str
 	}
 
 	if IsJSONOutput() {
-		outputJSON(map[string]interface{}{
+		outputJSON(map[string]any{
 			"action":        "user_deleted",
 			"id":            id,
 			"username":      user.Username,
@@ -479,7 +479,7 @@ func userList(repo repositories.UserRepository, args []string) error {
 				CreatedAt: u.CreatedAt.Format("2006-01-02 15:04:05"),
 			}
 		}
-		outputJSON(map[string]interface{}{
+		outputJSON(map[string]any{
 			"users": usersJSON,
 			"count": len(usersJSON),
 		})
@@ -578,7 +578,7 @@ func userLock(cfg *config.Config, repo repositories.UserRepository, args []strin
 
 	if user.Locked {
 		if IsJSONOutput() {
-			outputJSON(map[string]interface{}{
+			outputJSON(map[string]any{
 				"action":   "user_lock",
 				"id":       id,
 				"username": user.Username,
@@ -604,7 +604,7 @@ func userLock(cfg *config.Config, repo repositories.UserRepository, args []strin
 	}
 
 	if IsJSONOutput() {
-		outputJSON(map[string]interface{}{
+		outputJSON(map[string]any{
 			"action":     "user_locked",
 			"id":         id,
 			"username":   user.Username,
@@ -653,7 +653,7 @@ func userUnlock(cfg *config.Config, repo repositories.UserRepository, args []str
 
 	if !user.Locked {
 		if IsJSONOutput() {
-			outputJSON(map[string]interface{}{
+			outputJSON(map[string]any{
 				"action":   "user_unlock",
 				"id":       id,
 				"username": user.Username,
@@ -679,7 +679,7 @@ func userUnlock(cfg *config.Config, repo repositories.UserRepository, args []str
 	}
 
 	if IsJSONOutput() {
-		outputJSON(map[string]interface{}{
+		outputJSON(map[string]any{
 			"action":     "user_unlocked",
 			"id":         id,
 			"username":   user.Username,
@@ -732,7 +732,7 @@ func resetUserPassword(cfg *config.Config, repo repositories.UserRepository, ses
 	}
 
 	if IsJSONOutput() {
-		outputJSON(map[string]interface{}{
+		outputJSON(map[string]any{
 			"action":   "password_reset",
 			"id":       userID,
 			"username": user.Username,

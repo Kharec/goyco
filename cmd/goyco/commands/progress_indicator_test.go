@@ -508,9 +508,9 @@ func TestProgressIndicator_Concurrency(t *testing.T) {
 	pi := NewProgressIndicator(100, "Concurrent test")
 	done := make(chan bool)
 
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		go func() {
-			for j := 0; j < 10; j++ {
+			for range 10 {
 				pi.Increment()
 				time.Sleep(1 * time.Millisecond)
 			}
@@ -518,7 +518,7 @@ func TestProgressIndicator_Concurrency(t *testing.T) {
 		}()
 	}
 
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		<-done
 	}
 

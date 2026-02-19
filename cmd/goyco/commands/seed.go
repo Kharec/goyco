@@ -321,7 +321,7 @@ func createUsers(g *seedGenerator, userRepo repositories.UserRepository, count i
 	}
 	progress := maybeProgress(count, desc)
 	users := make([]database.User, 0, count)
-	for i := 0; i < count; i++ {
+	for i := range count {
 		user, err := g.createSingleUser(userRepo, i+1)
 		if err != nil {
 			return nil, fmt.Errorf("create random user: %w", err)
@@ -343,7 +343,7 @@ func createPosts(g *seedGenerator, postRepo repositories.PostRepository, authorI
 	}
 	progress := maybeProgress(count, desc)
 	posts := make([]database.Post, 0, count)
-	for i := 0; i < count; i++ {
+	for i := range count {
 		post, err := g.createSinglePost(postRepo, authorID, i+1)
 		if err != nil {
 			return nil, fmt.Errorf("create random post: %w", err)

@@ -95,7 +95,7 @@ func prunePosts(postRepo repositories.PostRepository, args []string) error {
 			}
 		}
 		if *dryRun {
-			outputJSON(map[string]interface{}{
+			outputJSON(map[string]any{
 				"action":  "prune_posts",
 				"dry_run": true,
 				"posts":   postsJSON,
@@ -110,7 +110,7 @@ func prunePosts(postRepo repositories.PostRepository, args []string) error {
 		if err != nil {
 			return fmt.Errorf("hard delete posts: %w", err)
 		}
-		outputJSON(map[string]interface{}{
+		outputJSON(map[string]any{
 			"action":        "prune_posts",
 			"deleted_count": deletedCount,
 		})
@@ -178,7 +178,7 @@ func pruneUsers(userRepo repositories.UserRepository, postRepo repositories.Post
 	userCount := len(users)
 	if userCount == 0 {
 		if IsJSONOutput() {
-			outputJSON(map[string]interface{}{
+			outputJSON(map[string]any{
 				"action": "prune_users",
 				"count":  0,
 			})
@@ -211,7 +211,7 @@ func pruneUsers(userRepo repositories.UserRepository, postRepo repositories.Post
 			}
 		}
 		if *dryRun {
-			outputJSON(map[string]interface{}{
+			outputJSON(map[string]any{
 				"action":     "prune_users",
 				"dry_run":    true,
 				"users":      usersJSON,
@@ -229,7 +229,7 @@ func pruneUsers(userRepo repositories.UserRepository, postRepo repositories.Post
 			if err != nil {
 				return fmt.Errorf("hard delete all users and posts: %w", err)
 			}
-			outputJSON(map[string]interface{}{
+			outputJSON(map[string]any{
 				"action":        "prune_users",
 				"deleted_count": totalDeleted,
 				"with_posts":    true,
@@ -242,7 +242,7 @@ func pruneUsers(userRepo repositories.UserRepository, postRepo repositories.Post
 				}
 				deletedCount++
 			}
-			outputJSON(map[string]interface{}{
+			outputJSON(map[string]any{
 				"action":        "prune_users",
 				"deleted_count": deletedCount,
 				"with_posts":    false,
@@ -328,7 +328,7 @@ func pruneAll(userRepo repositories.UserRepository, postRepo repositories.PostRe
 
 	if IsJSONOutput() {
 		if *dryRun {
-			outputJSON(map[string]interface{}{
+			outputJSON(map[string]any{
 				"action":     "prune_all",
 				"dry_run":    true,
 				"user_count": len(userCount),
@@ -343,7 +343,7 @@ func pruneAll(userRepo repositories.UserRepository, postRepo repositories.PostRe
 		if err != nil {
 			return fmt.Errorf("hard delete all: %w", err)
 		}
-		outputJSON(map[string]interface{}{
+		outputJSON(map[string]any{
 			"action":        "prune_all",
 			"deleted_count": totalDeleted,
 		})

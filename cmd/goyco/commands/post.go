@@ -91,7 +91,7 @@ func postDelete(repo repositories.PostRepository, args []string) error {
 	}
 
 	if IsJSONOutput() {
-		outputJSON(map[string]interface{}{
+		outputJSON(map[string]any{
 			"action": "post_deleted",
 			"id":     id,
 		})
@@ -158,7 +158,7 @@ func postList(postQueries *services.PostQueries, args []string) error {
 				CreatedAt: p.CreatedAt.Format("2006-01-02 15:04:05"),
 			}
 		}
-		outputJSON(map[string]interface{}{
+		outputJSON(map[string]any{
 			"posts": postsJSON,
 			"count": len(postsJSON),
 		})
@@ -298,7 +298,7 @@ func postSearch(postQueries *services.PostQueries, args []string) error {
 				CreatedAt: p.CreatedAt.Format("2006-01-02 15:04:05"),
 			}
 		}
-		outputJSON(map[string]interface{}{
+		outputJSON(map[string]any{
 			"search_term": sanitizedTerm,
 			"posts":       postsJSON,
 			"count":       len(postsJSON),

@@ -87,7 +87,7 @@ func runStatusCommand(cfg *config.Config) error {
 
 	if !isDaemonRunning(pidFile) {
 		if IsJSONOutput() {
-			outputJSON(map[string]interface{}{
+			outputJSON(map[string]any{
 				"status": "not_running",
 			})
 		} else {
@@ -99,7 +99,7 @@ func runStatusCommand(cfg *config.Config) error {
 	data, err := os.ReadFile(pidFile)
 	if err != nil {
 		if IsJSONOutput() {
-			outputJSON(map[string]interface{}{
+			outputJSON(map[string]any{
 				"status": "running",
 				"error":  fmt.Sprintf("PID file exists but cannot be read: %v", err),
 			})
@@ -112,7 +112,7 @@ func runStatusCommand(cfg *config.Config) error {
 	pid, err := strconv.Atoi(string(data))
 	if err != nil {
 		if IsJSONOutput() {
-			outputJSON(map[string]interface{}{
+			outputJSON(map[string]any{
 				"status": "running",
 				"error":  fmt.Sprintf("PID file exists but contains invalid PID: %v", err),
 			})
@@ -123,7 +123,7 @@ func runStatusCommand(cfg *config.Config) error {
 	}
 
 	if IsJSONOutput() {
-		outputJSON(map[string]interface{}{
+		outputJSON(map[string]any{
 			"status": "running",
 			"pid":    pid,
 		})
@@ -171,7 +171,7 @@ func stopDaemon(cfg *config.Config) error {
 	_ = os.Remove(pidFile)
 
 	if IsJSONOutput() {
-		outputJSON(map[string]interface{}{
+		outputJSON(map[string]any{
 			"action": "stopped",
 			"pid":    pid,
 		})
@@ -219,7 +219,7 @@ func runDaemon(cfg *config.Config) error {
 			return fmt.Errorf("cannot write PID file: %w", err)
 		}
 		if IsJSONOutput() {
-			outputJSON(map[string]interface{}{
+			outputJSON(map[string]any{
 				"action":   "started",
 				"pid":      pid,
 				"pid_file": pidFile,
