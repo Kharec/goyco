@@ -18,7 +18,7 @@ import (
 
 var (
 	helpPrinterOnce    sync.Once
-	defaultHelpPrinter func(io.Writer, string, interface{})
+	defaultHelpPrinter func(io.Writer, string, any)
 )
 
 func loadDotEnv() {
@@ -71,7 +71,7 @@ func buildRootCommand(cfg *config.Config) *cli.Command {
 	helpPrinterOnce.Do(func() {
 		defaultHelpPrinter = cli.HelpPrinter
 	})
-	cli.HelpPrinter = func(w io.Writer, templ string, data interface{}) {
+	cli.HelpPrinter = func(w io.Writer, templ string, data any) {
 		if cmd, ok := data.(*cli.Command); ok && cmd.Root() == cmd {
 			printRootUsage()
 			return
