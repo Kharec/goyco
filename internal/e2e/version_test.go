@@ -30,12 +30,12 @@ func TestE2E_VersionEndpoint(t *testing.T) {
 			return
 		}
 
-		var apiInfo map[string]interface{}
+		var apiInfo map[string]any
 		if err := json.NewDecoder(resp.Body).Decode(&apiInfo); err != nil {
 			t.Fatalf("Failed to decode API info response: %v", err)
 		}
 
-		data, ok := apiInfo["data"].(map[string]interface{})
+		data, ok := apiInfo["data"].(map[string]any)
 		if !ok {
 			t.Fatalf("API info data is not a map")
 		}
@@ -74,12 +74,12 @@ func TestE2E_VersionEndpoint(t *testing.T) {
 			return
 		}
 
-		var healthInfo map[string]interface{}
+		var healthInfo map[string]any
 		if err := json.NewDecoder(resp.Body).Decode(&healthInfo); err != nil {
 			t.Fatalf("Failed to decode health response: %v", err)
 		}
 
-		data, ok := healthInfo["data"].(map[string]interface{})
+		data, ok := healthInfo["data"].(map[string]any)
 		if !ok {
 			t.Fatalf("Health data is not a map")
 		}
@@ -130,18 +130,18 @@ func TestE2E_VersionEndpoint(t *testing.T) {
 			return
 		}
 
-		var apiInfo map[string]interface{}
+		var apiInfo map[string]any
 		if err := json.NewDecoder(apiResp.Body).Decode(&apiInfo); err != nil {
 			t.Fatalf("Failed to decode API info: %v", err)
 		}
 
-		var healthInfo map[string]interface{}
+		var healthInfo map[string]any
 		if err := json.NewDecoder(healthResp.Body).Decode(&healthInfo); err != nil {
 			t.Fatalf("Failed to decode health info: %v", err)
 		}
 
-		apiData, _ := apiInfo["data"].(map[string]interface{})
-		healthData, _ := healthInfo["data"].(map[string]interface{})
+		apiData, _ := apiInfo["data"].(map[string]any)
+		healthData, _ := healthInfo["data"].(map[string]any)
 
 		apiVersion, apiOk := apiData["version"].(string)
 		healthVersion, healthOk := healthData["version"].(string)
@@ -169,12 +169,12 @@ func TestE2E_VersionEndpoint(t *testing.T) {
 			return
 		}
 
-		var apiInfo map[string]interface{}
+		var apiInfo map[string]any
 		if err := json.NewDecoder(resp.Body).Decode(&apiInfo); err != nil {
 			t.Fatalf("Failed to decode API info: %v", err)
 		}
 
-		data, ok := apiInfo["data"].(map[string]interface{})
+		data, ok := apiInfo["data"].(map[string]any)
 		if !ok {
 			return
 		}

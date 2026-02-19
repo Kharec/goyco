@@ -59,7 +59,7 @@ func TestE2E_Performance(t *testing.T) {
 				var totalTime time.Duration
 				iterations := 10
 
-				for i := 0; i < iterations; i++ {
+				for range iterations {
 					req, err := endpoint.req()
 					if err != nil {
 						t.Fatalf("Failed to create request: %v", err)
@@ -98,11 +98,9 @@ func TestE2E_Performance(t *testing.T) {
 		var errorCount int64
 
 		var wg sync.WaitGroup
-		for i := 0; i < concurrency; i++ {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				for j := 0; j < requestsPerGoroutine; j++ {
+		for range concurrency {
+			wg.Go(func() {
+				for range requestsPerGoroutine {
 					req, err := http.NewRequest("GET", ctx.baseURL+"/api/posts", nil)
 					if err != nil {
 						atomic.AddInt64(&errorCount, 1)
@@ -123,7 +121,7 @@ func TestE2E_Performance(t *testing.T) {
 						atomic.AddInt64(&errorCount, 1)
 					}
 				}
-			}()
+			})
 		}
 
 		wg.Wait()
@@ -138,7 +136,7 @@ func TestE2E_Performance(t *testing.T) {
 		createdUser := ctx.createUserWithCleanup(t, "dbperf", "StrongPass123!")
 		authClient := ctx.loginUser(t, createdUser.Username, createdUser.Password)
 
-		for i := 0; i < 10; i++ {
+		for i := range 10 {
 			authClient.CreatePost(t, fmt.Sprintf("Post %d", i), fmt.Sprintf("https://example.com/%d", i), "Content")
 		}
 
@@ -160,7 +158,7 @@ func TestE2E_Performance(t *testing.T) {
 		authClient := ctx.loginUser(t, createdUser.Username, createdUser.Password)
 
 		initialPosts := 50
-		for i := 0; i < initialPosts; i++ {
+		for i := range initialPosts {
 			authClient.CreatePost(t, fmt.Sprintf("Memory Test Post %d", i), fmt.Sprintf("https://example.com/mem%d", i), "Content")
 		}
 
@@ -271,16 +269,14 @@ func TestE2E_ConcurrentWrites(t *testing.T) {
 
 		for _, user := range users {
 			u := user
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+			wg.Go(func() {
 				authClient, err := ctx.loginUserSafe(t, u.Username, u.Password)
 				if err != nil {
 					atomic.AddInt64(&errorCount, 1)
 					return
 				}
 
-				for i := 0; i < 5; i++ {
+				for i := range 5 {
 					post, err := authClient.CreatePostSafe(
 						fmt.Sprintf("Concurrent Post %d", i),
 						fmt.Sprintf("https://example.com/concurrent%d-%d", u.ID, i),
@@ -292,7 +288,7 @@ func TestE2E_ConcurrentWrites(t *testing.T) {
 						atomic.AddInt64(&errorCount, 1)
 					}
 				}
-			}()
+			})
 		}
 
 		wg.Wait()
@@ -311,7 +307,7 @@ func TestE2E_ResponseSize(t *testing.T) {
 		createdUser := ctx.createUserWithCleanup(t, "sizetest", "StrongPass123!")
 		authClient := ctx.loginUser(t, createdUser.Username, createdUser.Password)
 
-		for i := 0; i < 100; i++ {
+		for i := range 100 {
 			authClient.CreatePost(t, fmt.Sprintf("Post %d", i), fmt.Sprintf("https://example.com/%d", i), "Content")
 		}
 

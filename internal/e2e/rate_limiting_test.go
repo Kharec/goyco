@@ -38,7 +38,7 @@ func TestE2E_RateLimitingHeaders(t *testing.T) {
 					t.Error("Expected Retry-After header when rate limited")
 				}
 
-				var jsonResponse map[string]interface{}
+				var jsonResponse map[string]any
 				body, _ := json.Marshal(map[string]string{})
 				_ = json.Unmarshal(body, &jsonResponse)
 
@@ -72,7 +72,7 @@ func TestE2E_RateLimitingHeaders(t *testing.T) {
 				if resp.StatusCode != http.StatusTooManyRequests {
 					t.Errorf("Expected status 429 on request %d, got %d", i+1, resp.StatusCode)
 				} else {
-					var errorResponse map[string]interface{}
+					var errorResponse map[string]any
 					body, _ := io.ReadAll(resp.Body)
 					if err := json.Unmarshal(body, &errorResponse); err == nil {
 						if errorResponse["error"] == nil {

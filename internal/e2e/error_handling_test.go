@@ -422,9 +422,7 @@ func TestE2E_ConcurrentPostCreation(t *testing.T) {
 
 		for _, user := range users {
 			u := user
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+			wg.Go(func() {
 				client, err := ctx.loginUserSafe(t, u.Username, u.Password)
 				if err != nil || client == nil {
 					results <- nil
@@ -443,7 +441,7 @@ func TestE2E_ConcurrentPostCreation(t *testing.T) {
 
 				post, err := client.CreatePostSafe("Concurrent Post", url, "Content")
 				results <- post
-			}()
+			})
 		}
 
 		wg.Wait()

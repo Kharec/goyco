@@ -455,7 +455,7 @@ func TestE2E_ConcurrentRequestsWithSameSession(t *testing.T) {
 		authClient := ctx.loginUser(t, createdUser.Username, createdUser.Password)
 
 		results := make(chan bool, 5)
-		for i := 0; i < 5; i++ {
+		for range 5 {
 			go func() {
 				profile := authClient.GetProfile(t)
 				results <- (profile != nil && profile.Data.Username == createdUser.Username)
@@ -463,7 +463,7 @@ func TestE2E_ConcurrentRequestsWithSameSession(t *testing.T) {
 		}
 
 		successCount := 0
-		for i := 0; i < 5; i++ {
+		for range 5 {
 			if <-results {
 				successCount++
 			}
@@ -562,7 +562,7 @@ func TestE2E_RapidSuccessiveActions(t *testing.T) {
 
 		post := authClient.CreatePost(t, "Rapid Vote Test", "https://example.com/rapid", "Content")
 
-		for i := 0; i < 10; i++ {
+		for i := range 10 {
 			voteType := "up"
 			if i%2 == 0 {
 				voteType = "down"

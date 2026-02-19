@@ -56,10 +56,8 @@ func TestE2E_DatabaseFailureRecovery(t *testing.T) {
 		var wg sync.WaitGroup
 		errors := make(chan error, 10)
 
-		for i := 0; i < 5; i++ {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+		for range 5 {
+			wg.Go(func() {
 				conn, err := sqlDB.Conn(context.Background())
 				if err != nil {
 					errors <- err
@@ -68,7 +66,7 @@ func TestE2E_DatabaseFailureRecovery(t *testing.T) {
 				defer conn.Close()
 
 				time.Sleep(100 * time.Millisecond)
-			}()
+			})
 		}
 
 		wg.Wait()
@@ -297,7 +295,7 @@ func TestE2E_DatabaseConnectionPool(t *testing.T) {
 
 		initialStats := sqlDB.Stats()
 
-		for i := 0; i < 5; i++ {
+		for range 5 {
 			req, err := http.NewRequest("GET", ctx.baseURL+"/api/posts", nil)
 			if err != nil {
 				continue

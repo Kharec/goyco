@@ -134,9 +134,7 @@ func TestE2E_ConcurrentUserWorkflows(t *testing.T) {
 
 		for _, user := range users {
 			u := user
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+			wg.Go(func() {
 				var err error
 				authClient, loginErr := ctx.loginUserSafe(t, u.Username, u.Password)
 				if loginErr != nil || authClient == nil || authClient.Token == "" {
@@ -157,7 +155,7 @@ func TestE2E_ConcurrentUserWorkflows(t *testing.T) {
 				case results <- result{userID: u.ID, err: err}:
 				case <-done:
 				}
-			}()
+			})
 		}
 
 		go func() {
