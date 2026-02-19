@@ -77,7 +77,8 @@ func setupTestHandlers() (*handlers.AuthHandler, *handlers.PostHandler, *handler
 	emailSender := &testutils.MockEmailSender{}
 
 	voteService := services.NewVoteService(voteRepo, postRepo, nil)
-	metadataService := services.NewURLMetadataService()
+	titleFetcher := &testutils.MockTitleFetcher{}
+	titleFetcher.SetTitle("Example Domain")
 
 	mockRefreshRepo := &mockRefreshTokenRepository{}
 	mockDeletionRepo := &mockAccountDeletionRepository{}
@@ -94,7 +95,7 @@ func setupTestHandlers() (*handlers.AuthHandler, *handlers.PostHandler, *handler
 	}
 
 	authHandler := handlers.NewAuthHandler(authFacade, userRepo)
-	postHandler := handlers.NewPostHandler(postRepo, metadataService, voteService)
+	postHandler := handlers.NewPostHandler(postRepo, titleFetcher, voteService)
 	voteHandler := handlers.NewVoteHandler(voteService)
 	userHandler := handlers.NewUserHandler(userRepo, authFacade)
 	apiHandler := handlers.NewAPIHandler(testutils.AppTestConfig, postRepo, userRepo, voteService)
