@@ -285,7 +285,7 @@ func (b *VoteRequestBuilder) Build() VoteRequest {
 
 func (f *TestDataFactory) CreateTestUsers(count int) []*database.User {
 	users := make([]*database.User, count)
-	for i := 0; i < count; i++ {
+	for i := range count {
 		users[i] = f.NewUserBuilder().
 			WithID(uint(i + 1)).
 			WithUsername(fmt.Sprintf("user%d", i+1)).
@@ -297,7 +297,7 @@ func (f *TestDataFactory) CreateTestUsers(count int) []*database.User {
 
 func (f *TestDataFactory) CreateTestPosts(count int) []*database.Post {
 	posts := make([]*database.Post, count)
-	for i := 0; i < count; i++ {
+	for i := range count {
 		posts[i] = f.NewPostBuilder().
 			WithID(uint(i+1)).
 			WithTitle(fmt.Sprintf("Post %d", i+1)).
@@ -332,7 +332,7 @@ func (f *TestDataFactory) CreateTestVotes(count int) []*database.Vote {
 
 func (f *TestDataFactory) CreateTestAuthResults(count int) []*AuthResult {
 	results := make([]*AuthResult, count)
-	for i := 0; i < count; i++ {
+	for i := range count {
 		results[i] = f.NewAuthResultBuilder().
 			WithUser(f.NewUserBuilder().
 				WithID(uint(i + 1)).
@@ -346,7 +346,7 @@ func (f *TestDataFactory) CreateTestAuthResults(count int) []*AuthResult {
 
 func (f *TestDataFactory) CreateTestVoteRequests(count int) []VoteRequest {
 	requests := make([]VoteRequest, count)
-	for i := 0; i < count; i++ {
+	for i := range count {
 		voteType := database.VoteUp
 		if i%3 == 0 {
 			voteType = database.VoteDown
@@ -365,8 +365,9 @@ func (f *TestDataFactory) CreateTestVoteRequests(count int) []VoteRequest {
 	return requests
 }
 
+//go:fix inline
 func uintPtr(u uint) *uint {
-	return &u
+	return new(u)
 }
 
 type E2ETestDataFactory struct {
@@ -450,7 +451,7 @@ func (f *E2ETestDataFactory) CreateMultipleUsers(t *testing.T, count int, userna
 	var users []*TestUser
 	timestamp := time.Now().UnixNano()
 
-	for i := 0; i < count; i++ {
+	for i := range count {
 		uniqueID := timestamp + int64(i)
 		username := fmt.Sprintf("%s%d", usernamePrefix, uniqueID)
 		email := fmt.Sprintf("%s%d@example.com", emailPrefix, uniqueID)

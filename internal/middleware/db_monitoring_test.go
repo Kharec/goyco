@@ -318,7 +318,7 @@ func TestConcurrentAccess(t *testing.T) {
 	collector := NewMetricsCollector(monitor)
 
 	done := make(chan bool, 10)
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		go func() {
 			monitor.LogQuery("SELECT * FROM users", 50*time.Millisecond, nil)
 			collector.RecordRequest(100*time.Millisecond, false)
@@ -326,7 +326,7 @@ func TestConcurrentAccess(t *testing.T) {
 		}()
 	}
 
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		<-done
 	}
 
@@ -384,7 +384,7 @@ func TestThreadSafety(t *testing.T) {
 	numGoroutines := 100
 	done := make(chan bool, numGoroutines)
 
-	for i := 0; i < numGoroutines; i++ {
+	for i := range numGoroutines {
 		go func(id int) {
 
 			if id%2 == 0 {
@@ -398,7 +398,7 @@ func TestThreadSafety(t *testing.T) {
 		}(i)
 	}
 
-	for i := 0; i < numGoroutines; i++ {
+	for range numGoroutines {
 		<-done
 	}
 

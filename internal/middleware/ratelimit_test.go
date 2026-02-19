@@ -388,7 +388,7 @@ func TestRateLimiterMaxKeys(t *testing.T) {
 	limiter := NewRateLimiterWithConfig(1*time.Minute, 10, 5, 1*time.Minute, 2*time.Minute)
 	defer limiter.StopCleanup()
 
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		key := fmt.Sprintf("key-%d", i)
 		if !limiter.Allow(key) {
 			t.Errorf("Key %s should be allowed", key)
@@ -435,7 +435,7 @@ func TestRateLimiterRegistry(t *testing.T) {
 	request := httptest.NewRequest("GET", "/test", nil)
 	request.RemoteAddr = "127.0.0.1:12345"
 
-	for i := 0; i < 50; i++ {
+	for i := range 50 {
 		recorder := httptest.NewRecorder()
 		server1.ServeHTTP(recorder, request)
 		if recorder.Code != http.StatusOK {
@@ -443,7 +443,7 @@ func TestRateLimiterRegistry(t *testing.T) {
 		}
 	}
 
-	for i := 0; i < 50; i++ {
+	for i := range 50 {
 		recorder2 := httptest.NewRecorder()
 		server2.ServeHTTP(recorder2, request)
 		if recorder2.Code != http.StatusOK {
@@ -463,7 +463,7 @@ func TestRateLimiterRegistry(t *testing.T) {
 		t.Error("101st request to server2 should be rejected (shared limiter reached limit)")
 	}
 
-	for i := 0; i < 50; i++ {
+	for i := range 50 {
 		recorder3 := httptest.NewRecorder()
 		server3.ServeHTTP(recorder3, request)
 		if recorder3.Code != http.StatusOK {

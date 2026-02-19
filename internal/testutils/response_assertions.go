@@ -164,7 +164,7 @@ func getErrorField(resp *APIResponse) (string, bool) {
 	if resp == nil {
 		return "", false
 	}
-	if dataMap, ok := resp.Data.(map[string]interface{}); ok {
+	if dataMap, ok := resp.Data.(map[string]any); ok {
 		if errorVal, ok := dataMap["error"].(string); ok {
 			return errorVal, true
 		}

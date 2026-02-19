@@ -156,7 +156,7 @@ func TestPostRepository_GetAll(t *testing.T) {
 
 		user := suite.CreateTestUser("testuser2", "test2@example.com", "password123")
 
-		for i := 0; i < 5; i++ {
+		for i := range 5 {
 			suite.CreateTestPost(user.ID,
 				"Post "+strconv.Itoa(i),
 				"https://example.com/"+strconv.Itoa(i),
@@ -178,7 +178,7 @@ func TestPostRepository_GetAll(t *testing.T) {
 
 		user := suite.CreateTestUser("testuser3", "test3@example.com", "password123")
 
-		for i := 0; i < 5; i++ {
+		for i := range 5 {
 			suite.CreateTestPost(user.ID,
 				"Post "+strconv.Itoa(i),
 				"https://example.com/"+strconv.Itoa(i),
@@ -328,7 +328,7 @@ func TestPostRepository_Count(t *testing.T) {
 
 		user := suite.CreateTestUser("testuser", "test@example.com", "password123")
 
-		for i := 0; i < 5; i++ {
+		for i := range 5 {
 			suite.CreateTestPost(user.ID,
 				"Post "+strconv.Itoa(i),
 				"https://example.com/"+strconv.Itoa(i),
@@ -506,7 +506,7 @@ func TestPostRepository_Search(t *testing.T) {
 
 		user := suite.CreateTestUser("testuser2", "test2@example.com", "password123")
 
-		for i := 0; i < 5; i++ {
+		for i := range 5 {
 			suite.CreateTestPost(user.ID,
 				"Go Post "+strconv.Itoa(i),
 				"https://example.com/go"+strconv.Itoa(i),

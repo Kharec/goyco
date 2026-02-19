@@ -621,7 +621,7 @@ func TestUserRepository_GetPosts(t *testing.T) {
 
 		user := suite.CreateTestUser("pagination", "pagination@example.com", "password123")
 
-		for i := 0; i < 5; i++ {
+		for i := range 5 {
 			suite.CreateTestPost(user.ID,
 				"Post "+strconv.Itoa(i),
 				"https://example.com/"+strconv.Itoa(i),
@@ -1089,7 +1089,7 @@ func TestUserRepository_ConcurrentAccess(t *testing.T) {
 		done := make(chan bool, 10)
 		errors := make(chan error, 10)
 
-		for i := 0; i < 10; i++ {
+		for i := range 10 {
 			go func(id int) {
 				defer func() { done <- true }()
 				user := &database.User{
@@ -1099,7 +1099,7 @@ func TestUserRepository_ConcurrentAccess(t *testing.T) {
 					EmailVerified: true,
 				}
 				var err error
-				for retries := 0; retries < 5; retries++ {
+				for retries := range 5 {
 					err = suite.UserRepo.Create(user)
 					if err == nil {
 						break
@@ -1116,7 +1116,7 @@ func TestUserRepository_ConcurrentAccess(t *testing.T) {
 			}(i)
 		}
 
-		for i := 0; i < 10; i++ {
+		for range 10 {
 			<-done
 		}
 		close(errors)
@@ -1142,7 +1142,7 @@ func TestUserRepository_ConcurrentAccess(t *testing.T) {
 		user := suite.CreateTestUser("concurrent_update", "update@example.com", "password123")
 
 		done := make(chan bool, 5)
-		for i := 0; i < 5; i++ {
+		for i := range 5 {
 			go func(id int) {
 				defer func() { done <- true }()
 				user.Username = fmt.Sprintf("updated%d", id)
@@ -1150,7 +1150,7 @@ func TestUserRepository_ConcurrentAccess(t *testing.T) {
 			}(i)
 		}
 
-		for i := 0; i < 5; i++ {
+		for range 5 {
 			<-done
 		}
 
@@ -1172,7 +1172,7 @@ func TestUserRepository_ConcurrentAccess(t *testing.T) {
 		done := make(chan bool, 2)
 		go func() {
 			var err error
-			for retries := 0; retries < 5; retries++ {
+			for retries := range 5 {
 				err = suite.UserRepo.Delete(user1.ID)
 				if err == nil {
 					break
@@ -1187,7 +1187,7 @@ func TestUserRepository_ConcurrentAccess(t *testing.T) {
 		}()
 		go func() {
 			var err error
-			for retries := 0; retries < 5; retries++ {
+			for retries := range 5 {
 				err = suite.UserRepo.Delete(user2.ID)
 				if err == nil {
 					break
@@ -1210,7 +1210,7 @@ func TestUserRepository_ConcurrentAccess(t *testing.T) {
 		}
 		if count > 0 {
 			var err error
-			for retries := 0; retries < 5; retries++ {
+			for retries := range 5 {
 				count, err = suite.UserRepo.Count()
 				if err == nil && count == 0 {
 					break

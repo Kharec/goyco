@@ -283,7 +283,7 @@ func TestIntegration_Repositories(t *testing.T) {
 		}
 
 		voters := make([]*database.User, 5)
-		for i := 0; i < 5; i++ {
+		for i := range 5 {
 			voter := &database.User{
 				Username:      fmt.Sprintf("voter_%d", i),
 				Email:         fmt.Sprintf("voter%d@example.com", i),

@@ -458,13 +458,13 @@ func TestIsRapidRequest(t *testing.T) {
 
 	ip := "192.168.1.1"
 
-	for i := 0; i < 50; i++ {
+	for i := range 50 {
 		if isRapidRequest(ip) {
 			t.Errorf("Request %d should not be considered rapid", i+1)
 		}
 	}
 
-	for i := 0; i < 110; i++ {
+	for i := range 110 {
 		result := isRapidRequest(ip)
 		if i < 50 {
 			if result {

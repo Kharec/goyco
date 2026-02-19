@@ -90,7 +90,7 @@ func TestEmailService_Performance(t *testing.T) {
 
 	start := time.Now()
 	iterations := 1000
-	for i := 0; i < iterations; i++ {
+	for range iterations {
 		service.GenerateVerificationEmailBody(user.Username, "https://example.com/confirm?token=test")
 	}
 	duration := time.Since(start)

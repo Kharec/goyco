@@ -39,7 +39,7 @@ func TestValidationMiddleware(t *testing.T) {
 		body, _ := json.Marshal(user)
 		request := httptest.NewRequest("POST", "/users", bytes.NewBuffer(body))
 		request.Header.Set("Content-Type", "application/json")
-		ctx := context.WithValue(request.Context(), DTOTypeKey, reflect.TypeOf(TestUser{}))
+		ctx := context.WithValue(request.Context(), DTOTypeKey, reflect.TypeFor[TestUser]())
 		request = request.WithContext(ctx)
 		recorder := httptest.NewRecorder()
 
@@ -70,7 +70,7 @@ func TestValidationMiddleware(t *testing.T) {
 		body, _ := json.Marshal(user)
 		request := httptest.NewRequest("POST", "/users", bytes.NewBuffer(body))
 		request.Header.Set("Content-Type", "application/json")
-		ctx := context.WithValue(request.Context(), DTOTypeKey, reflect.TypeOf(TestUser{}))
+		ctx := context.WithValue(request.Context(), DTOTypeKey, reflect.TypeFor[TestUser]())
 		request = request.WithContext(ctx)
 		recorder := httptest.NewRecorder()
 
@@ -117,7 +117,7 @@ func TestValidationMiddleware(t *testing.T) {
 		body, _ := json.Marshal(user)
 		request := httptest.NewRequest("POST", "/users", bytes.NewBuffer(body))
 		request.Header.Set("Content-Type", "application/json")
-		ctx := context.WithValue(request.Context(), DTOTypeKey, reflect.TypeOf(TestUser{}))
+		ctx := context.WithValue(request.Context(), DTOTypeKey, reflect.TypeFor[TestUser]())
 		request = request.WithContext(ctx)
 		recorder := httptest.NewRecorder()
 
@@ -144,7 +144,7 @@ func TestValidationMiddleware(t *testing.T) {
 		body, _ := json.Marshal(user)
 		request := httptest.NewRequest("POST", "/users", bytes.NewBuffer(body))
 		request.Header.Set("Content-Type", "application/json")
-		ctx := context.WithValue(request.Context(), DTOTypeKey, reflect.TypeOf(TestUser{}))
+		ctx := context.WithValue(request.Context(), DTOTypeKey, reflect.TypeFor[TestUser]())
 		request = request.WithContext(ctx)
 		recorder := httptest.NewRecorder()
 

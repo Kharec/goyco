@@ -158,10 +158,3 @@ func FuzzPostRepository(f *testing.F) {
 		})
 	})
 }
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}

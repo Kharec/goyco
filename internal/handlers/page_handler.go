@@ -115,10 +115,7 @@ func NewPageHandler(templatesDir string, authService AuthServiceInterface, postR
 				if start >= len(s) {
 					return ""
 				}
-				end := start + length
-				if end > len(s) {
-					end = len(s)
-				}
+				end := min(start+length, len(s))
 				return s[start:end]
 			},
 			"upper": strings.ToUpper,

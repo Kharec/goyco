@@ -1364,7 +1364,7 @@ func TestAuthHandler_ConcurrentAccess(t *testing.T) {
 		concurrency := 10
 		done := make(chan bool, concurrency)
 
-		for i := 0; i < concurrency; i++ {
+		for range concurrency {
 			go func() {
 				req := createLoginRequest(`{"username":"testuser","password":"Password123!"}`)
 				w := httptest.NewRecorder()
@@ -1376,7 +1376,7 @@ func TestAuthHandler_ConcurrentAccess(t *testing.T) {
 			}()
 		}
 
-		for i := 0; i < concurrency; i++ {
+		for range concurrency {
 			<-done
 		}
 	})

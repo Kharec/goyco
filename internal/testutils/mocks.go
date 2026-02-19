@@ -123,12 +123,12 @@ func defaultIfEmpty(value, fallback string) string {
 }
 
 func extractTokenFromBody(body string) string {
-	index := strings.Index(body, "token=")
-	if index == -1 {
+	_, after, ok := strings.Cut(body, "token=")
+	if !ok {
 		return ""
 	}
 
-	tokenPart := body[index+len("token="):]
+	tokenPart := after
 
 	if delimIdx := strings.IndexAny(tokenPart, "&\"'\\\r\n <>"); delimIdx != -1 {
 		tokenPart = tokenPart[:delimIdx]

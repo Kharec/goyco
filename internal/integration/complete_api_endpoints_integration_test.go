@@ -635,7 +635,7 @@ func TestIntegration_CompleteAPIEndpoints(t *testing.T) {
 		ctx.Suite.EmailSender.Reset()
 		paginationUser := createAuthenticatedUser(t, ctx.AuthService, ctx.Suite.UserRepo, uniqueTestUsername(t, "pagination_edge"), uniqueTestEmail(t, "pagination_edge"))
 
-		for i := 0; i < 5; i++ {
+		for i := range 5 {
 			testutils.CreatePostWithRepo(t, ctx.Suite.PostRepo, paginationUser.User.ID, fmt.Sprintf("Pagination Post %d", i), fmt.Sprintf("https://example.com/pag%d", i))
 		}
 

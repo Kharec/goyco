@@ -53,13 +53,13 @@ func TestRunSanitizationFuzzTest(t *testing.T) {
 
 	sanitizeFunc := func(input string) string {
 
-		result := ""
+		var result strings.Builder
 		for _, char := range input {
 			if char != ' ' {
-				result += string(char)
+				result.WriteString(string(char))
 			}
 		}
-		return result
+		return result.String()
 	}
 
 	result := sanitizeFunc("hello world")
@@ -76,13 +76,13 @@ func TestRunSanitizationFuzzTestWithValidation(t *testing.T) {
 
 	sanitizeFunc := func(input string) string {
 
-		result := ""
+		var result strings.Builder
 		for _, char := range input {
 			if char != ' ' {
-				result += string(char)
+				result.WriteString(string(char))
 			}
 		}
-		return result
+		return result.String()
 	}
 
 	validateFunc := func(input string) bool {
@@ -1673,7 +1673,7 @@ func TestValidateHTTPRequestWithManyHeaders(t *testing.T) {
 	helper := NewFuzzTestHelper()
 
 	req := httptest.NewRequest("GET", "/api/test", nil)
-	for i := 0; i < 20; i++ {
+	for i := range 20 {
 		req.Header.Set(fmt.Sprintf("Header-%d", i), fmt.Sprintf("Value-%d", i))
 	}
 

@@ -202,7 +202,7 @@ func camelCaseToWords(s string) string {
 	return result.String()
 }
 
-func ValidateStruct(s interface{}) error {
+func ValidateStruct(s any) error {
 	if s == nil {
 		return nil
 	}
@@ -210,7 +210,7 @@ func ValidateStruct(s interface{}) error {
 	val := reflect.ValueOf(s)
 	typ := reflect.TypeOf(s)
 
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		if val.IsNil() {
 			return nil
 		}
@@ -252,9 +252,9 @@ func ValidateStruct(s interface{}) error {
 			}
 
 			var tagName, param string
-			if idx := strings.Index(tag, "="); idx != -1 {
-				tagName = tag[:idx]
-				param = tag[idx+1:]
+			if before, after, ok := strings.Cut(tag, "="); ok {
+				tagName = before
+				param = after
 			} else {
 				tagName = tag
 			}

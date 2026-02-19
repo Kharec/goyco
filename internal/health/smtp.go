@@ -33,7 +33,7 @@ func (c *SMTPChecker) Name() string {
 
 func (c *SMTPChecker) Check(ctx context.Context) Result {
 	start := time.Now()
-	address := fmt.Sprintf("%s:%d", c.config.Host, c.config.Port)
+	address := net.JoinHostPort(c.config.Host, fmt.Sprintf("%d", c.config.Port))
 
 	result := Result{
 		Status:    StatusHealthy,

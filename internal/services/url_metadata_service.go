@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -339,10 +340,8 @@ func (s *URLMetadataService) validateURLForSSRF(u *url.URL) error {
 	if err != nil {
 		return ErrSSRFBlocked
 	}
-	for _, ip := range ips {
-		if isPrivateOrReservedIP(ip) {
-			return ErrSSRFBlocked
-		}
+	if slices.ContainsFunc(ips, isPrivateOrReservedIP) {
+		return ErrSSRFBlocked
 	}
 	return nil
 }
@@ -359,13 +358,7 @@ func isLocalhost(hostname string) bool {
 		"0:0:0:0:0:0:0:0",
 	}
 
-	for _, name := range localhostNames {
-		if hostname == name {
-			return true
-		}
-	}
-
-	return false
+	return slices.Contains(localhostNames, hostname)
 }
 
 func isPrivateOrReservedIP(ip net.IP) bool {

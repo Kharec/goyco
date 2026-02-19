@@ -283,16 +283,16 @@ func TestInMemoryCacheConcurrent(t *testing.T) {
 
 	t.Run("Concurrent writes", func(t *testing.T) {
 		done := make(chan bool, numGoroutines)
-		for i := 0; i < numGoroutines; i++ {
+		for i := range numGoroutines {
 			go func(id int) {
 				defer func() {
 					if r := recover(); r != nil {
 						t.Errorf("Goroutine %d panicked: %v", id, r)
 					}
 				}()
-				for j := 0; j < numOps; j++ {
+				for j := range numOps {
 					entry := &CacheEntry{
-						Data:      []byte(fmt.Sprintf("data-%d-%d", id, j)),
+						Data:      fmt.Appendf(nil, "data-%d-%d", id, j),
 						Headers:   make(http.Header),
 						Timestamp: time.Now(),
 						TTL:       5 * time.Minute,
@@ -306,16 +306,16 @@ func TestInMemoryCacheConcurrent(t *testing.T) {
 			}(i)
 		}
 
-		for i := 0; i < numGoroutines; i++ {
+		for range numGoroutines {
 			<-done
 		}
 	})
 
 	t.Run("Concurrent reads and writes", func(t *testing.T) {
 
-		for i := 0; i < 10; i++ {
+		for i := range 10 {
 			entry := &CacheEntry{
-				Data:      []byte(fmt.Sprintf("data-%d", i)),
+				Data:      fmt.Appendf(nil, "data-%d", i),
 				Headers:   make(http.Header),
 				Timestamp: time.Now(),
 				TTL:       5 * time.Minute,
@@ -325,16 +325,16 @@ func TestInMemoryCacheConcurrent(t *testing.T) {
 
 		done := make(chan bool, numGoroutines*2)
 
-		for i := 0; i < numGoroutines; i++ {
+		for i := range numGoroutines {
 			go func(id int) {
 				defer func() {
 					if r := recover(); r != nil {
 						t.Errorf("Writer goroutine %d panicked: %v", id, r)
 					}
 				}()
-				for j := 0; j < numOps; j++ {
+				for j := range numOps {
 					entry := &CacheEntry{
-						Data:      []byte(fmt.Sprintf("write-%d-%d", id, j)),
+						Data:      fmt.Appendf(nil, "write-%d-%d", id, j),
 						Headers:   make(http.Header),
 						Timestamp: time.Now(),
 						TTL:       5 * time.Minute,
@@ -346,14 +346,14 @@ func TestInMemoryCacheConcurrent(t *testing.T) {
 			}(i)
 		}
 
-		for i := 0; i < numGoroutines; i++ {
+		for i := range numGoroutines {
 			go func(id int) {
 				defer func() {
 					if r := recover(); r != nil {
 						t.Errorf("Reader goroutine %d panicked: %v", id, r)
 					}
 				}()
-				for j := 0; j < numOps; j++ {
+				for j := range numOps {
 					key := fmt.Sprintf("key-%d", j%10)
 					cache.Get(key)
 				}
@@ -368,9 +368,9 @@ func TestInMemoryCacheConcurrent(t *testing.T) {
 
 	t.Run("Concurrent deletes", func(t *testing.T) {
 
-		for i := 0; i < numGoroutines; i++ {
+		for i := range numGoroutines {
 			entry := &CacheEntry{
-				Data:      []byte(fmt.Sprintf("data-%d", i)),
+				Data:      fmt.Appendf(nil, "data-%d", i),
 				Headers:   make(http.Header),
 				Timestamp: time.Now(),
 				TTL:       5 * time.Minute,
@@ -379,7 +379,7 @@ func TestInMemoryCacheConcurrent(t *testing.T) {
 		}
 
 		done := make(chan bool, numGoroutines)
-		for i := 0; i < numGoroutines; i++ {
+		for i := range numGoroutines {
 			go func(id int) {
 				defer func() {
 					if r := recover(); r != nil {
@@ -391,7 +391,7 @@ func TestInMemoryCacheConcurrent(t *testing.T) {
 			}(i)
 		}
 
-		for i := 0; i < numGoroutines; i++ {
+		for range numGoroutines {
 			<-done
 		}
 	})

@@ -50,7 +50,7 @@ func TestIntegration_RateLimiting(t *testing.T) {
 		rateLimitConfig.AuthLimit = 2
 		router, _ := setupRateLimitRouter(t, rateLimitConfig)
 
-		for i := 0; i < 2; i++ {
+		for range 2 {
 			request := httptest.NewRequest("POST", "/api/auth/login", bytes.NewBufferString(`{"username":"test","password":"test"}`))
 			request.Header.Set("Content-Type", "application/json")
 			recorder := httptest.NewRecorder()
@@ -80,7 +80,7 @@ func TestIntegration_RateLimiting(t *testing.T) {
 		rateLimitConfig.GeneralLimit = 5
 		router, _ := setupRateLimitRouter(t, rateLimitConfig)
 
-		for i := 0; i < 5; i++ {
+		for range 5 {
 			request := httptest.NewRequest("GET", "/api/posts", nil)
 			recorder := httptest.NewRecorder()
 			router.ServeHTTP(recorder, request)
@@ -99,7 +99,7 @@ func TestIntegration_RateLimiting(t *testing.T) {
 		rateLimitConfig.HealthLimit = 3
 		router, _ := setupRateLimitRouter(t, rateLimitConfig)
 
-		for i := 0; i < 3; i++ {
+		for range 3 {
 			request := httptest.NewRequest("GET", "/health", nil)
 			recorder := httptest.NewRecorder()
 			router.ServeHTTP(recorder, request)
@@ -118,7 +118,7 @@ func TestIntegration_RateLimiting(t *testing.T) {
 		rateLimitConfig.MetricsLimit = 2
 		router, _ := setupRateLimitRouter(t, rateLimitConfig)
 
-		for i := 0; i < 2; i++ {
+		for range 2 {
 			request := httptest.NewRequest("GET", "/metrics", nil)
 			recorder := httptest.NewRecorder()
 			router.ServeHTTP(recorder, request)
@@ -138,7 +138,7 @@ func TestIntegration_RateLimiting(t *testing.T) {
 		rateLimitConfig.GeneralLimit = 10
 		router, _ := setupRateLimitRouter(t, rateLimitConfig)
 
-		for i := 0; i < 2; i++ {
+		for range 2 {
 			request := httptest.NewRequest("POST", "/api/auth/login", bytes.NewBufferString(`{"username":"test","password":"test"}`))
 			request.Header.Set("Content-Type", "application/json")
 			recorder := httptest.NewRecorder()
@@ -165,7 +165,7 @@ func TestIntegration_RateLimiting(t *testing.T) {
 		suite.EmailSender.Reset()
 		user := createAuthenticatedUser(t, authService, suite.UserRepo, uniqueTestUsername(t, "ratelimit_auth"), uniqueTestEmail(t, "ratelimit_auth"))
 
-		for i := 0; i < 3; i++ {
+		for range 3 {
 			request := httptest.NewRequest("GET", "/api/auth/me", nil)
 			request.Header.Set("Authorization", "Bearer "+user.Token)
 			request = testutils.WithUserContext(request, middleware.UserIDKey, user.User.ID)
