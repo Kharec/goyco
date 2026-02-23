@@ -7,14 +7,15 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"goyco/internal/testutils"
 )
 
 func TestE2E_CompressionMiddleware(t *testing.T) {
-	ctx := setupTestContext(t)
+	ctx := setupTestContextWithMiddleware(t)
 
-	t.Run("compression_enabled_with_accept_encoding", func(t *testing.T) {
+	t.Run("compresses_response_when_accept_encoding_is_gzip", func(t *testing.T) {
 		request, err := http.NewRequest("GET", ctx.baseURL+"/api/posts", nil)
 		if err != nil {
 			t.Fatalf("Failed to create request: %v", err)
@@ -27,63 +28,72 @@ func TestE2E_CompressionMiddleware(t *testing.T) {
 			t.Fatalf("Request failed: %v", err)
 		}
 		defer response.Body.Close()
+		failIfRateLimited(t, response.StatusCode, "compression enabled GET /api/posts")
 
 		contentEncoding := response.Header.Get("Content-Encoding")
-		if contentEncoding == "gzip" {
-			body, err := io.ReadAll(response.Body)
-			if err != nil {
-				t.Fatalf("Failed to read response body: %v", err)
-			}
+		if contentEncoding != "gzip" {
+			t.Fatalf("Expected gzip compression, got Content-Encoding=%q", contentEncoding)
+		}
 
-			if isGzipCompressed(body) {
-				reader, err := gzip.NewReader(bytes.NewReader(body))
-				if err != nil {
-					t.Fatalf("Failed to create gzip reader: %v", err)
-				}
-				defer reader.Close()
+		body, err := io.ReadAll(response.Body)
+		if err != nil {
+			t.Fatalf("Failed to read response body: %v", err)
+		}
 
-				decompressed, err := io.ReadAll(reader)
-				if err != nil {
-					t.Fatalf("Failed to decompress: %v", err)
-				}
+		if !isGzipCompressed(body) {
+			t.Fatalf("Expected gzip-compressed body bytes")
+		}
 
-				if len(decompressed) == 0 {
-					t.Error("Decompressed body is empty")
-				}
-			}
-		} else {
-			t.Logf("Compression not applied (Content-Encoding: %s)", contentEncoding)
+		reader, err := gzip.NewReader(bytes.NewReader(body))
+		if err != nil {
+			t.Fatalf("Failed to create gzip reader: %v", err)
+		}
+		defer reader.Close()
+
+		decompressed, err := io.ReadAll(reader)
+		if err != nil {
+			t.Fatalf("Failed to decompress: %v", err)
+		}
+
+		if len(decompressed) == 0 {
+			t.Fatal("Decompressed body is empty")
 		}
 	})
 
-	t.Run("no_compression_without_accept_encoding", func(t *testing.T) {
+	t.Run("does_not_compress_without_accept_encoding", func(t *testing.T) {
 		request, err := http.NewRequest("GET", ctx.baseURL+"/api/posts", nil)
 		if err != nil {
 			t.Fatalf("Failed to create request: %v", err)
 		}
 		testutils.WithStandardHeaders(request)
+		request.Header.Del("Accept-Encoding")
 
 		response, err := ctx.client.Do(request)
 		if err != nil {
 			t.Fatalf("Request failed: %v", err)
 		}
 		defer response.Body.Close()
+		failIfRateLimited(t, response.StatusCode, "compression disabled GET /api/posts")
 
 		contentEncoding := response.Header.Get("Content-Encoding")
 		if contentEncoding == "gzip" {
-			t.Error("Expected no compression without Accept-Encoding header")
+			t.Fatal("Expected no compression without Accept-Encoding header")
 		}
 	})
 
-	t.Run("decompression_handles_gzip_request", func(t *testing.T) {
+	t.Run("accepts_valid_gzip_request_body", func(t *testing.T) {
 		testUser := ctx.createUserWithCleanup(t, "compressionuser", "StrongPass123!")
 		authClient := ctx.loginUser(t, testUser.Username, "StrongPass123!")
 
 		var buf bytes.Buffer
 		gz := gzip.NewWriter(&buf)
 		postData := `{"title":"Compressed Post","url":"https://example.com/compressed","content":"Test content"}`
-		gz.Write([]byte(postData))
-		gz.Close()
+		if _, err := gz.Write([]byte(postData)); err != nil {
+			t.Fatalf("Failed to gzip request body: %v", err)
+		}
+		if err := gz.Close(); err != nil {
+			t.Fatalf("Failed to finalize gzip body: %v", err)
+		}
 
 		request, err := http.NewRequest("POST", ctx.baseURL+"/api/posts", &buf)
 		if err != nil {
@@ -99,20 +109,22 @@ func TestE2E_CompressionMiddleware(t *testing.T) {
 			t.Fatalf("Request failed: %v", err)
 		}
 		defer response.Body.Close()
+		failIfRateLimited(t, response.StatusCode, "decompression POST /api/posts")
 
 		switch response.StatusCode {
-		case http.StatusBadRequest:
-			t.Log("Decompression middleware rejected invalid gzip")
 		case http.StatusCreated, http.StatusOK:
-			t.Log("Decompression middleware handled gzip request successfully")
+			return
+		default:
+			body, _ := io.ReadAll(response.Body)
+			t.Fatalf("Expected status %d or %d for valid gzip request, got %d. Body: %s", http.StatusCreated, http.StatusOK, response.StatusCode, string(body))
 		}
 	})
 }
 
 func TestE2E_CacheMiddleware(t *testing.T) {
-	ctx := setupTestContext(t)
+	ctx := setupTestContextWithMiddleware(t)
 
-	t.Run("cache_miss_then_hit", func(t *testing.T) {
+	t.Run("returns_hit_after_repeated_get", func(t *testing.T) {
 		firstRequest, err := http.NewRequest("GET", ctx.baseURL+"/api/posts", nil)
 		if err != nil {
 			t.Fatalf("Failed to create request: %v", err)
@@ -124,46 +136,68 @@ func TestE2E_CacheMiddleware(t *testing.T) {
 			t.Fatalf("Request failed: %v", err)
 		}
 		firstResponse.Body.Close()
+		failIfRateLimited(t, firstResponse.StatusCode, "first cache GET /api/posts")
 
 		firstCacheStatus := firstResponse.Header.Get("X-Cache")
 		if firstCacheStatus == "HIT" {
-			t.Log("First request was cached (unexpected but acceptable)")
+			t.Fatalf("Expected first request to be a cache miss, got X-Cache=%q", firstCacheStatus)
 		}
 
-		secondRequest, err := http.NewRequest("GET", ctx.baseURL+"/api/posts", nil)
-		if err != nil {
-			t.Fatalf("Failed to create request: %v", err)
-		}
-		testutils.WithStandardHeaders(secondRequest)
+		for range 8 {
+			secondRequest, err := http.NewRequest("GET", ctx.baseURL+"/api/posts", nil)
+			if err != nil {
+				t.Fatalf("Failed to create request: %v", err)
+			}
+			testutils.WithStandardHeaders(secondRequest)
 
-		secondResponse, err := ctx.client.Do(secondRequest)
-		if err != nil {
-			t.Fatalf("Request failed: %v", err)
-		}
-		defer secondResponse.Body.Close()
+			secondResponse, err := ctx.client.Do(secondRequest)
+			if err != nil {
+				t.Fatalf("Request failed: %v", err)
+			}
+			failIfRateLimited(t, secondResponse.StatusCode, "cache warmup GET /api/posts")
+			secondCacheStatus := secondResponse.Header.Get("X-Cache")
+			secondResponse.Body.Close()
 
-		secondCacheStatus := secondResponse.Header.Get("X-Cache")
-		if secondCacheStatus == "HIT" {
-			t.Log("Second request was served from cache")
+			if secondCacheStatus == "HIT" {
+				return
+			}
+
+			time.Sleep(25 * time.Millisecond)
 		}
+
+		t.Fatal("Expected a cache HIT on repeated requests, but none observed")
 	})
 
-	t.Run("cache_invalidation_on_post", func(t *testing.T) {
+	t.Run("invalidates_cached_get_after_post", func(t *testing.T) {
 		testUser := ctx.createUserWithCleanup(t, "cacheuser", "StrongPass123!")
 		authClient := ctx.loginUser(t, testUser.Username, "StrongPass123!")
 
-		firstRequest, err := http.NewRequest("GET", ctx.baseURL+"/api/posts", nil)
-		if err != nil {
-			t.Fatalf("Failed to create request: %v", err)
-		}
-		testutils.WithStandardHeaders(firstRequest)
-		firstRequest.Header.Set("Authorization", "Bearer "+authClient.Token)
+		for attempt := range 8 {
+			firstRequest, err := http.NewRequest("GET", ctx.baseURL+"/api/posts", nil)
+			if err != nil {
+				t.Fatalf("Failed to create request: %v", err)
+			}
+			testutils.WithStandardHeaders(firstRequest)
+			firstRequest.Header.Set("Authorization", "Bearer "+authClient.Token)
 
-		firstResponse, err := ctx.client.Do(firstRequest)
-		if err != nil {
-			t.Fatalf("Request failed: %v", err)
+			firstResponse, err := ctx.client.Do(firstRequest)
+			if err != nil {
+				t.Fatalf("Request failed: %v", err)
+			}
+			failIfRateLimited(t, firstResponse.StatusCode, "cache priming GET /api/posts")
+			cacheStatus := firstResponse.Header.Get("X-Cache")
+			firstResponse.Body.Close()
+
+			if cacheStatus == "HIT" {
+				break
+			}
+
+			if attempt == 7 {
+				t.Fatal("Failed to prime cache: repeated GET requests never produced X-Cache=HIT")
+			}
+
+			time.Sleep(25 * time.Millisecond)
 		}
-		firstResponse.Body.Close()
 
 		postData := `{"title":"Cache Invalidation Test","url":"https://example.com/cache","content":"Test"}`
 		secondRequest, err := http.NewRequest("POST", ctx.baseURL+"/api/posts", strings.NewReader(postData))
@@ -178,32 +212,45 @@ func TestE2E_CacheMiddleware(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Request failed: %v", err)
 		}
+		failIfRateLimited(t, secondResponse.StatusCode, "cache invalidation POST /api/posts")
+		if secondResponse.StatusCode != http.StatusCreated && secondResponse.StatusCode != http.StatusOK {
+			body, _ := io.ReadAll(secondResponse.Body)
+			secondResponse.Body.Close()
+			t.Fatalf("Expected post creation status %d or %d, got %d. Body: %s", http.StatusCreated, http.StatusOK, secondResponse.StatusCode, string(body))
+		}
 		secondResponse.Body.Close()
 
-		thirdRequest, err := http.NewRequest("GET", ctx.baseURL+"/api/posts", nil)
-		if err != nil {
-			t.Fatalf("Failed to create request: %v", err)
-		}
-		testutils.WithStandardHeaders(thirdRequest)
-		thirdRequest.Header.Set("Authorization", "Bearer "+authClient.Token)
+		for range 8 {
+			thirdRequest, err := http.NewRequest("GET", ctx.baseURL+"/api/posts", nil)
+			if err != nil {
+				t.Fatalf("Failed to create request: %v", err)
+			}
+			testutils.WithStandardHeaders(thirdRequest)
+			thirdRequest.Header.Set("Authorization", "Bearer "+authClient.Token)
 
-		thirdResponse, err := ctx.client.Do(thirdRequest)
-		if err != nil {
-			t.Fatalf("Request failed: %v", err)
-		}
-		defer thirdResponse.Body.Close()
+			thirdResponse, err := ctx.client.Do(thirdRequest)
+			if err != nil {
+				t.Fatalf("Request failed: %v", err)
+			}
+			failIfRateLimited(t, thirdResponse.StatusCode, "post-invalidation GET /api/posts")
+			cacheStatus := thirdResponse.Header.Get("X-Cache")
+			thirdResponse.Body.Close()
 
-		cacheStatus := thirdResponse.Header.Get("X-Cache")
-		if cacheStatus == "HIT" {
-			t.Log("Cache was invalidated after POST")
+			if cacheStatus != "HIT" {
+				return
+			}
+
+			time.Sleep(25 * time.Millisecond)
 		}
+
+		t.Fatal("Expected cache to be invalidated after POST, but X-Cache stayed HIT")
 	})
 }
 
 func TestE2E_CSRFProtection(t *testing.T) {
 	ctx := setupTestContext(t)
 
-	t.Run("csrf_protection_for_non_api_routes", func(t *testing.T) {
+	t.Run("non_api_post_without_csrf_is_forbidden_or_unmounted", func(t *testing.T) {
 		request, err := http.NewRequest("POST", ctx.baseURL+"/auth/login", strings.NewReader(`{"username":"test","password":"test"}`))
 		if err != nil {
 			t.Fatalf("Failed to create request: %v", err)
@@ -216,15 +263,15 @@ func TestE2E_CSRFProtection(t *testing.T) {
 			t.Fatalf("Request failed: %v", err)
 		}
 		defer response.Body.Close()
+		failIfRateLimited(t, response.StatusCode, "CSRF non-API POST /auth/login")
 
-		if response.StatusCode == http.StatusForbidden {
-			t.Log("CSRF protection active for non-API routes")
-		} else {
-			t.Logf("CSRF check result: status %d", response.StatusCode)
+		if response.StatusCode != http.StatusForbidden && response.StatusCode != http.StatusNotFound {
+			body, _ := io.ReadAll(response.Body)
+			t.Fatalf("Expected status %d (CSRF protected) or %d (route unavailable in test setup), got %d. Body: %s", http.StatusForbidden, http.StatusNotFound, response.StatusCode, string(body))
 		}
 	})
 
-	t.Run("csrf_bypass_for_api_routes", func(t *testing.T) {
+	t.Run("api_post_without_csrf_is_not_forbidden", func(t *testing.T) {
 		testUser := ctx.createUserWithCleanup(t, "csrfuser", "StrongPass123!")
 		authClient := ctx.loginUser(t, testUser.Username, "StrongPass123!")
 
@@ -242,13 +289,15 @@ func TestE2E_CSRFProtection(t *testing.T) {
 			t.Fatalf("Request failed: %v", err)
 		}
 		defer response.Body.Close()
+		failIfRateLimited(t, response.StatusCode, "CSRF bypass POST /api/posts")
 
 		if response.StatusCode == http.StatusForbidden {
-			t.Error("API routes should bypass CSRF protection")
+			body, _ := io.ReadAll(response.Body)
+			t.Fatalf("API routes should bypass CSRF protection, got 403. Body: %s", string(body))
 		}
 	})
 
-	t.Run("csrf_allows_get_requests", func(t *testing.T) {
+	t.Run("get_request_without_csrf_is_not_forbidden", func(t *testing.T) {
 		request, err := http.NewRequest("GET", ctx.baseURL+"/auth/login", nil)
 		if err != nil {
 			t.Fatalf("Failed to create request: %v", err)
@@ -260,9 +309,10 @@ func TestE2E_CSRFProtection(t *testing.T) {
 			t.Fatalf("Request failed: %v", err)
 		}
 		defer response.Body.Close()
+		failIfRateLimited(t, response.StatusCode, "CSRF GET /auth/login")
 
 		if response.StatusCode == http.StatusForbidden {
-			t.Error("GET requests should not require CSRF token")
+			t.Fatal("GET requests should not require CSRF token")
 		}
 	})
 }
@@ -270,7 +320,7 @@ func TestE2E_CSRFProtection(t *testing.T) {
 func TestE2E_RequestSizeLimit(t *testing.T) {
 	ctx := setupTestContext(t)
 
-	t.Run("request_within_size_limit", func(t *testing.T) {
+	t.Run("accepts_request_within_size_limit", func(t *testing.T) {
 		testUser := ctx.createUserWithCleanup(t, "sizelimituser", "StrongPass123!")
 		authClient := ctx.loginUser(t, testUser.Username, "StrongPass123!")
 
@@ -289,13 +339,15 @@ func TestE2E_RequestSizeLimit(t *testing.T) {
 			t.Fatalf("Request failed: %v", err)
 		}
 		defer response.Body.Close()
+		failIfRateLimited(t, response.StatusCode, "request within size limit POST /api/posts")
 
 		if response.StatusCode == http.StatusRequestEntityTooLarge {
-			t.Error("Small request should not exceed size limit")
+			body, _ := io.ReadAll(response.Body)
+			t.Fatalf("Small request should not exceed size limit. Body: %s", string(body))
 		}
 	})
 
-	t.Run("request_exceeds_size_limit", func(t *testing.T) {
+	t.Run("rejects_or_fails_oversized_request", func(t *testing.T) {
 		testUser := ctx.createUserWithCleanup(t, "sizelimituser2", "StrongPass123!")
 		authClient := ctx.loginUser(t, testUser.Username, "StrongPass123!")
 
@@ -311,14 +363,14 @@ func TestE2E_RequestSizeLimit(t *testing.T) {
 
 		response, err := ctx.client.Do(request)
 		if err != nil {
-			return
+			t.Fatalf("Request failed: %v", err)
 		}
 		defer response.Body.Close()
+		failIfRateLimited(t, response.StatusCode, "request exceeds size limit POST /api/posts")
 
-		if response.StatusCode == http.StatusRequestEntityTooLarge {
-			t.Log("Request size limit enforced correctly")
-		} else {
-			t.Logf("Request size limit check result: status %d", response.StatusCode)
+		if response.StatusCode != http.StatusRequestEntityTooLarge && response.StatusCode != http.StatusBadRequest {
+			body, _ := io.ReadAll(response.Body)
+			t.Fatalf("Expected status %d or %d for oversized request, got %d. Body: %s", http.StatusRequestEntityTooLarge, http.StatusBadRequest, response.StatusCode, string(body))
 		}
 	})
 }
