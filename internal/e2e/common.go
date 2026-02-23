@@ -289,6 +289,19 @@ func setupTestContext(t *testing.T) *testContext {
 	}
 }
 
+func setupTestContextWithMiddleware(t *testing.T) *testContext {
+	t.Helper()
+	server := setupIntegrationTestServerWithMiddlewareEnabled(t)
+	t.Cleanup(func() {
+		server.Cleanup()
+	})
+	return &testContext{
+		server:  server,
+		client:  server.NewHTTPClient(),
+		baseURL: server.BaseURL(),
+	}
+}
+
 func setupTestContextWithAuthRateLimit(t *testing.T, authLimit int) *testContext {
 	t.Helper()
 	server := setupIntegrationTestServerWithAuthRateLimit(t, authLimit)
@@ -602,15 +615,35 @@ func generateTokenWithExpiration(t *testing.T, user *database.User, cfg *config.
 }
 
 type serverConfig struct {
-	authLimit int
+	authLimit          int
+	disableCache       bool
+	disableCompression bool
+	cacheablePaths     []string
 }
 
 func setupIntegrationTestServer(t *testing.T) *IntegrationTestServer {
-	return setupIntegrationTestServerWithConfig(t, serverConfig{authLimit: 50000})
+	return setupIntegrationTestServerWithConfig(t, serverConfig{
+		authLimit:          50000,
+		disableCache:       true,
+		disableCompression: true,
+	})
 }
 
 func setupIntegrationTestServerWithAuthRateLimit(t *testing.T, authLimit int) *IntegrationTestServer {
-	return setupIntegrationTestServerWithConfig(t, serverConfig{authLimit: authLimit})
+	return setupIntegrationTestServerWithConfig(t, serverConfig{
+		authLimit:          authLimit,
+		disableCache:       true,
+		disableCompression: true,
+	})
+}
+
+func setupIntegrationTestServerWithMiddlewareEnabled(t *testing.T) *IntegrationTestServer {
+	return setupIntegrationTestServerWithConfig(t, serverConfig{
+		authLimit:          50000,
+		disableCache:       false,
+		disableCompression: false,
+		cacheablePaths:     []string{"/api/posts"},
+	})
 }
 
 func setupDatabase(t *testing.T) *gorm.DB {
@@ -678,7 +711,7 @@ func setupHandlers(authService handlers.AuthServiceInterface, userRepo repositor
 		handlers.NewAPIHandler(cfg, postRepo, userRepo, voteService)
 }
 
-func setupRouter(authHandler *handlers.AuthHandler, postHandler *handlers.PostHandler, voteHandler *handlers.VoteHandler, userHandler *handlers.UserHandler, apiHandler *handlers.APIHandler, authService handlers.AuthServiceInterface, cfg *config.Config) http.Handler {
+func setupRouter(authHandler *handlers.AuthHandler, postHandler *handlers.PostHandler, voteHandler *handlers.VoteHandler, userHandler *handlers.UserHandler, apiHandler *handlers.APIHandler, authService handlers.AuthServiceInterface, cfg *config.Config, serverCfg serverConfig) http.Handler {
 	return server.NewRouter(server.RouterConfig{
 		AuthHandler:        authHandler,
 		PostHandler:        postHandler,
@@ -689,8 +722,9 @@ func setupRouter(authHandler *handlers.AuthHandler, postHandler *handlers.PostHa
 		PageHandler:        nil,
 		StaticDir:          findWorkspaceRoot() + "/internal/static/",
 		Debug:              false,
-		DisableCache:       true,
-		DisableCompression: true,
+		DisableCache:       serverCfg.disableCache,
+		DisableCompression: serverCfg.disableCompression,
+		CacheablePaths:     serverCfg.cacheablePaths,
 		RateLimitConfig:    cfg.RateLimit,
 	})
 }
@@ -735,7 +769,7 @@ func setupIntegrationTestServerWithConfig(t *testing.T, serverCfg serverConfig) 
 	}
 
 	authHandler, postHandler, voteHandler, userHandler, apiHandler := setupHandlers(authService, userRepo, postRepo, voteService, cfg)
-	router := setupRouter(authHandler, postHandler, voteHandler, userHandler, apiHandler, authService, cfg)
+	router := setupRouter(authHandler, postHandler, voteHandler, userHandler, apiHandler, authService, cfg, serverCfg)
 
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 
