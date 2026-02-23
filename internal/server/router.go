@@ -27,6 +27,7 @@ type RouterConfig struct {
 	Debug              bool
 	DisableCache       bool
 	DisableCompression bool
+	CacheablePaths     []string
 	DBMonitor          middleware.DBMonitor
 	RateLimitConfig    config.RateLimitConfig
 }
@@ -49,6 +50,9 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	if !cfg.DisableCache {
 		cache := middleware.NewInMemoryCache()
 		cacheConfig := middleware.DefaultCacheConfig()
+		if len(cfg.CacheablePaths) > 0 {
+			cacheConfig.CacheablePaths = append([]string{}, cfg.CacheablePaths...)
+		}
 		router.Use(middleware.CacheMiddleware(cache, cacheConfig))
 		router.Use(middleware.CacheInvalidationMiddleware(cache))
 	}
