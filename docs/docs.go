@@ -1771,7 +1771,7 @@ const docTemplate = `{
         },
         "/health": {
             "get": {
-                "description": "Check the API health status along with database connectivity details",
+                "description": "Check the API health status along with database connectivity and SMTP service details",
                 "consumes": [
                     "application/json"
                 ],

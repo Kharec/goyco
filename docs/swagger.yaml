@@ -1387,7 +1387,8 @@ paths:
     get:
       consumes:
       - application/json
-      description: Check the API health status along with database connectivity details
+      description: Check the API health status along with database connectivity and
+        SMTP service details
       produces:
       - application/json
       responses:
