@@ -2,7 +2,6 @@ package integration
 
 import (
 	"bytes"
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -63,13 +62,33 @@ func TestIntegration_Router_FullMiddlewareChain(t *testing.T) {
 	t.Run("DBMonitoring_Active", func(t *testing.T) {
 		request := makeGetRequest(t, router, "/health")
 
-		var response map[string]any
-		if err := json.NewDecoder(request.Body).Decode(&response); err == nil {
-			if data, ok := response["data"].(map[string]any); ok {
-				if _, exists := data["database_stats"]; !exists {
-					t.Error("Expected database_stats in health response")
-				}
-			}
+		response := assertJSONResponse(t, request, http.StatusOK)
+		if response == nil {
+			return
+		}
+
+		data, ok := getDataFromResponse(response)
+		if !ok {
+			t.Fatal("Expected data to be a map")
+		}
+
+		services, ok := data["services"].(map[string]any)
+		if !ok {
+			t.Fatal("Expected services in health response")
+		}
+
+		databaseService, ok := services["database"].(map[string]any)
+		if !ok {
+			t.Fatal("Expected database service in health response")
+		}
+
+		details, ok := databaseService["details"].(map[string]any)
+		if !ok {
+			t.Fatal("Expected database details in health response")
+		}
+
+		if _, exists := details["stats"]; !exists {
+			t.Error("Expected database stats in health response")
 		}
 	})
 
