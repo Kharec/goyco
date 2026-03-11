@@ -6,13 +6,13 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
-read -s "Do you want to install PostgreSQL 18? [y/N] " INSTALL_PG
+read -rp "Do you want to install PostgreSQL 18? [y/N] " INSTALL_PG
 if [ "$INSTALL_PG" != "y" ]; then
   echo "PostgreSQL 18 will not be installed"
   exit 0
 fi
 
-read -s -p "Enter password for PostgreSQL user 'goyco': " GOYCO_PWD
+read -rsp "Enter password for PostgreSQL user 'goyco': " GOYCO_PWD
 echo
 
 apt-get update
