@@ -1,3 +1,5 @@
+# screenshot
+
 In this folder, you will find screenshots of the app.
 
 Two kinds of screenshot here:
