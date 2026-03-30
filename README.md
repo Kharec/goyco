@@ -409,7 +409,7 @@ make lint
 
 Note: `golangci-lint` is set up with `.golangci.yml` file.
 
-### Regerenate Swagger documentation
+### Regenerate Swagger documentation
 
 If you make changes to the API, you can regenerate the swagger documentation by running the following command after modifying the swagger annotations:
 
