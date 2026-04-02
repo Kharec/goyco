@@ -423,6 +423,7 @@ This will regenerate the swagger documentation and update the `docs/swagger.json
 ## Roadmap
 
 - [x] migrate cli to urfave/cli
+- [ ] use pgx instead of gorm
 - [ ] add a ML powered nsfw link detection
 - [ ] add a way to run read-only communities
 - [ ] migrate raw CSS to UnoCSS
