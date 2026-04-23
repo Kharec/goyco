@@ -562,6 +562,41 @@ func TestDecompressionMiddleware(t *testing.T) {
 			t.Errorf("Expected empty body, got '%s'", recorder.Body.String())
 		}
 	})
+
+	t.Run("Limits decompressed size", func(t *testing.T) {
+		config := &DecompressionConfig{
+			MaxDecompressedSize: 10,
+		}
+		middleware := DecompressionMiddlewareWithConfig(config)
+
+		var buf bytes.Buffer
+		gz := gzip.NewWriter(&buf)
+		gz.Write([]byte("this is more than ten bytes of data"))
+		gz.Close()
+
+		request := httptest.NewRequest("POST", "/test", &buf)
+		request.Header.Set("Content-Encoding", "gzip")
+		recorder := httptest.NewRecorder()
+
+		handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				t.Fatalf("Failed to read request body: %v", err)
+			}
+			w.WriteHeader(http.StatusOK)
+			w.Write(body)
+		}))
+
+		handler.ServeHTTP(recorder, request)
+
+		if recorder.Code != http.StatusOK {
+			t.Errorf("Expected status 200, got %d", recorder.Code)
+		}
+
+		if len(recorder.Body.String()) > 10 {
+			t.Errorf("Expected body to be truncated to <= 10 bytes, got %d bytes", len(recorder.Body.String()))
+		}
+	})
 }
 
 func TestShouldCompressWithConfig(t *testing.T) {
