@@ -150,23 +150,7 @@ func shouldCompressResponse(contentType string, config *CompressionConfig) bool 
 }
 
 func DecompressionMiddleware() func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if r.Header.Get("Content-Encoding") == "gzip" {
-				gz, err := gzip.NewReader(r.Body)
-				if err != nil {
-					http.Error(w, "Invalid gzip encoding", http.StatusBadRequest)
-					return
-				}
-				defer gz.Close()
-
-				r.Body = io.NopCloser(gz)
-				r.Header.Del("Content-Encoding")
-			}
-
-			next.ServeHTTP(w, r)
-		})
-	}
+	return DecompressionMiddlewareWithConfig(nil)
 }
 
 type CompressionConfig struct {
@@ -187,5 +171,39 @@ func DefaultCompressionConfig() *CompressionConfig {
 			"application/css",
 			"application/",
 		},
+	}
+}
+
+type DecompressionConfig struct {
+	MaxDecompressedSize int64
+}
+
+func DefaultDecompressionConfig() *DecompressionConfig {
+	return &DecompressionConfig{
+		MaxDecompressedSize: 1024 * 1024, // 1MB
+	}
+}
+
+func DecompressionMiddlewareWithConfig(config *DecompressionConfig) func(http.Handler) http.Handler {
+	if config == nil {
+		config = DefaultDecompressionConfig()
+	}
+
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Header.Get("Content-Encoding") == "gzip" {
+				gz, err := gzip.NewReader(r.Body)
+				if err != nil {
+					http.Error(w, "Invalid gzip encoding", http.StatusBadRequest)
+					return
+				}
+				defer gz.Close()
+
+				r.Body = io.NopCloser(io.LimitReader(gz, config.MaxDecompressedSize))
+				r.Header.Del("Content-Encoding")
+			}
+
+			next.ServeHTTP(w, r)
+		})
 	}
 }
