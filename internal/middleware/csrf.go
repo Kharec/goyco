@@ -71,7 +71,7 @@ func CSRFMiddleware() func(http.Handler) http.Handler {
 				return
 			}
 
-			if strings.HasPrefix(r.URL.Path, "/api/") {
+			if strings.HasPrefix(r.URL.Path, "/api/") && hasBearerToken(r) {
 				next.ServeHTTP(w, r)
 				return
 			}
@@ -84,6 +84,11 @@ func CSRFMiddleware() func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+func hasBearerToken(r *http.Request) bool {
+	auth := strings.TrimSpace(r.Header.Get("Authorization"))
+	return strings.HasPrefix(auth, "Bearer ")
 }
 
 func IsHTTPS(r *http.Request) bool {
