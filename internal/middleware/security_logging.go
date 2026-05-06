@@ -3,6 +3,7 @@ package middleware
 import (
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -53,7 +54,10 @@ func SecurityLoggingMiddleware(logger *SecurityLogger) func(http.Handler) http.H
 
 			next.ServeHTTP(rw, r)
 
-			userID := GetUserIDFromContext(r.Context())
+			userUID := uint(0)
+			if u := GetUserIDFromContext(r.Context()); u != nil {
+				userUID = *u
+			}
 			ip := getClientIP(r)
 
 			event := SecurityEvent{
@@ -61,7 +65,7 @@ func SecurityLoggingMiddleware(logger *SecurityLogger) func(http.Handler) http.H
 				UserAgent: r.UserAgent(),
 				Path:      r.URL.Path,
 				Method:    r.Method,
-				UserID:    userID,
+				UserID:    userUID,
 				Timestamp: start,
 			}
 
@@ -106,12 +110,15 @@ func SuspiciousActivityMiddleware(logger *SecurityLogger) func(http.Handler) htt
 			suspicious := false
 			details := ""
 
-			if containsSQLInjection(r.URL.RawQuery) || containsSQLInjection(r.URL.Path) {
+			pathProbe := layeredUnescape(r.URL.Path, url.PathUnescape)
+			queryProbe := layeredUnescape(r.URL.RawQuery, url.QueryUnescape)
+
+			if containsSQLInjection(pathProbe) || containsSQLInjection(queryProbe) {
 				suspicious = true
 				details = "Potential SQL injection attempt"
 			}
 
-			if containsXSS(r.URL.RawQuery) || containsXSS(r.URL.Path) {
+			if containsXSS(pathProbe) || containsXSS(queryProbe) {
 				suspicious = true
 				details = "Potential XSS attempt"
 			}
@@ -157,6 +164,18 @@ func (rw *securityResponseWriter) WriteHeader(code int) {
 
 func getClientIP(r *http.Request) string {
 	return GetSecureClientIP(r)
+}
+
+func layeredUnescape(s string, decoder func(string) (string, error)) string {
+	out := s
+	for range 3 {
+		d, err := decoder(out)
+		if err != nil || d == out {
+			return out
+		}
+		out = d
+	}
+	return out
 }
 
 func containsSQLInjection(input string) bool {
