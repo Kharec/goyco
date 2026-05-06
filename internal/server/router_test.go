@@ -348,6 +348,8 @@ func TestRouterWithoutPageHandler(t *testing.T) {
 }
 
 func TestSwaggerRoute(t *testing.T) {
+	t.Setenv("GOYCO_ENV", "development")
+	t.Setenv("SWAGGER_ENABLED", "")
 	router := createTestRouter(createDefaultRouterConfig())
 
 	request := httptest.NewRequest(http.MethodGet, "/swagger/", nil)
@@ -357,6 +359,34 @@ func TestSwaggerRoute(t *testing.T) {
 
 	if recorder.Code != http.StatusOK && recorder.Code != http.StatusMovedPermanently {
 		t.Errorf("Expected status 200 or 301 for swagger, got %d", recorder.Code)
+	}
+}
+
+func TestSwaggerRouteHiddenInProduction(t *testing.T) {
+	t.Setenv("GOYCO_ENV", "production")
+	t.Setenv("SWAGGER_ENABLED", "")
+	router := createTestRouter(createDefaultRouterConfig())
+
+	request := httptest.NewRequest(http.MethodGet, "/swagger/", nil)
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusNotFound {
+		t.Errorf("Expected 404 for swagger in production, got %d", recorder.Code)
+	}
+}
+
+func TestSwaggerRouteEnabledInProductionWhenForced(t *testing.T) {
+	t.Setenv("GOYCO_ENV", "production")
+	t.Setenv("SWAGGER_ENABLED", "true")
+	router := createTestRouter(createDefaultRouterConfig())
+
+	request := httptest.NewRequest(http.MethodGet, "/swagger/", nil)
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusOK && recorder.Code != http.StatusMovedPermanently {
+		t.Errorf("Expected status 200 or 301 for swagger when SWAGGER_ENABLED, got %d", recorder.Code)
 	}
 }
 
