@@ -22,7 +22,6 @@ func TestSecurityHeadersMiddleware(t *testing.T) {
 	expectedHeaders := map[string]string{
 		"X-Content-Type-Options": "nosniff",
 		"X-Frame-Options":        "DENY",
-		"X-XSS-Protection":       "1; mode=block",
 		"Referrer-Policy":        "strict-origin-when-cross-origin",
 		"Server":                 "",
 	}
@@ -176,7 +175,6 @@ func TestSecurityHeadersMiddleware_MultipleRequests(t *testing.T) {
 		requiredHeaders := []string{
 			"X-Content-Type-Options",
 			"X-Frame-Options",
-			"X-XSS-Protection",
 			"Referrer-Policy",
 			"Content-Security-Policy",
 			"Permissions-Policy",
@@ -287,5 +285,27 @@ func TestCSPNonceInContext(t *testing.T) {
 	csp := recorder.Header().Get("Content-Security-Policy")
 	if !strings.Contains(csp, "nonce-"+capturedNonce) {
 		t.Errorf("CSP header should contain nonce from context. CSP: %s, Nonce: %s", csp, capturedNonce)
+	}
+}
+
+func TestSecurityHeadersMiddleware_SwaggerStrictWhenRelaxedDisabled(t *testing.T) {
+	handler := SecurityHeadersMiddlewareWithConfig(SecurityHeadersConfig{RelaxSwaggerCSP: false})(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		}))
+
+	req := httptest.NewRequest("GET", "/swagger/index.html", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	csp := rec.Header().Get("Content-Security-Policy")
+	if csp == "" {
+		t.Fatal("expected CSP")
+	}
+	if strings.Contains(csp, "'unsafe-eval'") || strings.Contains(csp, "'unsafe-inline'") {
+		t.Fatalf("unexpected relaxed CSP for swagger path: %s", csp)
+	}
+	if !strings.Contains(csp, "nonce-") {
+		t.Fatalf("expected nonce CSP for swagger path, got %s", csp)
 	}
 }
