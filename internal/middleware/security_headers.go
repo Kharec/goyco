@@ -5,11 +5,20 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 )
 
 const CSPNonceKey contextKey = "csp_nonce"
+
+type SecurityHeadersConfig struct {
+	RelaxSwaggerCSP bool
+}
+
+func DefaultSecurityHeadersConfig() SecurityHeadersConfig {
+	return SecurityHeadersConfig{RelaxSwaggerCSP: true}
+}
 
 func GenerateCSPNonce() (string, error) {
 	nonceBytes := make([]byte, 16)
@@ -27,15 +36,18 @@ func GetCSPNonceFromContext(ctx context.Context) string {
 }
 
 func SecurityHeadersMiddleware() func(http.Handler) http.Handler {
+	return SecurityHeadersMiddlewareWithConfig(DefaultSecurityHeadersConfig())
+}
+
+func SecurityHeadersMiddlewareWithConfig(cfg SecurityHeadersConfig) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("X-Content-Type-Options", "nosniff")
 			w.Header().Set("X-Frame-Options", "DENY")
-			w.Header().Set("X-XSS-Protection", "1; mode=block")
 			w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
 
 			isSwaggerRoute := strings.HasPrefix(r.URL.Path, "/swagger")
-			if isSwaggerRoute {
+			if isSwaggerRoute && cfg.RelaxSwaggerCSP {
 				csp := "default-src 'self'; " +
 					"script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
 					"style-src 'self' 'unsafe-inline'; " +
@@ -51,7 +63,7 @@ func SecurityHeadersMiddleware() func(http.Handler) http.Handler {
 			} else {
 				nonce, err := GenerateCSPNonce()
 				if err != nil {
-
+					log.Printf("middleware security headers: CSP nonce: %v", err)
 					nonce = ""
 				}
 
@@ -72,7 +84,6 @@ func SecurityHeadersMiddleware() func(http.Handler) http.Handler {
 					csp = "script-src 'self' 'nonce-" + nonce + "'; " +
 						"style-src 'self' 'nonce-" + nonce + "'; " + csp
 				} else {
-
 					csp = "script-src 'self'; " +
 						"style-src 'self'; " + csp
 				}
