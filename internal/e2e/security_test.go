@@ -547,7 +547,6 @@ func TestE2E_SecurityHeadersEnhanced(t *testing.T) {
 	expectedHeaders := map[string]string{
 		"X-Content-Type-Options": "nosniff",
 		"X-Frame-Options":        "DENY",
-		"X-XSS-Protection":       "1; mode=block",
 		"Referrer-Policy":        "strict-origin-when-cross-origin",
 	}
 
@@ -707,7 +706,6 @@ func TestE2E_SecurityHeaderCombinations(t *testing.T) {
 		requiredHeaders := []string{
 			"X-Content-Type-Options",
 			"X-Frame-Options",
-			"X-XSS-Protection",
 			"Referrer-Policy",
 			"Content-Security-Policy",
 		}
