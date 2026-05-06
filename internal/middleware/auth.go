@@ -73,9 +73,10 @@ func NewAuth(verifier TokenVerifier) func(http.Handler) http.Handler {
 	}
 }
 
-func GetUserIDFromContext(ctx context.Context) uint {
+func GetUserIDFromContext(ctx context.Context) *uint {
 	if userID, ok := ctx.Value(UserIDKey).(uint); ok {
-		return userID
+		u := userID
+		return &u
 	}
-	return 0
+	return nil
 }
