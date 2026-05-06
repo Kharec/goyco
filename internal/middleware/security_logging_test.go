@@ -453,8 +453,10 @@ func TestIsSuspiciousUserAgent(t *testing.T) {
 
 func TestIsRapidRequest(t *testing.T) {
 
-	requestCounts = make(map[string]int)
-	lastReset = time.Now()
+	rapidRequests.mu.Lock()
+	rapidRequests.counts = make(map[string]int)
+	rapidRequests.lastReset = time.Now()
+	rapidRequests.mu.Unlock()
 
 	ip := "192.168.1.1"
 
