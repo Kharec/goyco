@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -220,18 +221,29 @@ func isSuspiciousUserAgent(userAgent string) bool {
 	return false
 }
 
-var requestCounts = make(map[string]int)
-var lastReset = time.Now()
+type rapidRequestTracker struct {
+	mu        sync.Mutex
+	counts    map[string]int
+	lastReset time.Time
+}
+
+var rapidRequests = rapidRequestTracker{
+	counts:    make(map[string]int),
+	lastReset: time.Now(),
+}
 
 func isRapidRequest(ip string) bool {
+	rapidRequests.mu.Lock()
+	defer rapidRequests.mu.Unlock()
+
 	now := time.Now()
 
-	if now.Sub(lastReset) > time.Minute {
-		requestCounts = make(map[string]int)
-		lastReset = now
+	if now.Sub(rapidRequests.lastReset) > time.Minute {
+		rapidRequests.counts = make(map[string]int)
+		rapidRequests.lastReset = now
 	}
 
-	requestCounts[ip]++
+	rapidRequests.counts[ip]++
 
-	return requestCounts[ip] > 100
+	return rapidRequests.counts[ip] > 100
 }
