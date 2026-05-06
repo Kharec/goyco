@@ -242,8 +242,8 @@ func TestSetCSRFToken(t *testing.T) {
 		t.Errorf("Expected cookie value %s, got %s", token, cookie.Value)
 	}
 
-	if !cookie.HttpOnly {
-		t.Error("CSRF token cookie should be HttpOnly")
+	if cookie.HttpOnly {
+		t.Error("CSRF token cookie must not be HttpOnly so JS can mirror it to X-CSRF-Token")
 	}
 
 	if cookie.SameSite != http.SameSiteLaxMode {
