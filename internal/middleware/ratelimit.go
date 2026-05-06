@@ -327,8 +327,8 @@ func GetSecureClientIP(r *http.Request) string {
 func GetKey(r *http.Request) string {
 	ip := GetSecureClientIP(r)
 
-	if userID := GetUserIDFromContext(r.Context()); userID != 0 {
-		return fmt.Sprintf("user:%d:ip:%s", userID, ip)
+	if userID := GetUserIDFromContext(r.Context()); userID != nil {
+		return fmt.Sprintf("user:%d:ip:%s", *userID, ip)
 	}
 
 	return fmt.Sprintf("ip:%s", ip)
