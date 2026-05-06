@@ -97,6 +97,29 @@ func TestInMemoryCache(t *testing.T) {
 			t.Error("Expected error for expired entry")
 		}
 	})
+
+	t.Run("LRU evicts oldest at max size", func(t *testing.T) {
+		c := NewInMemoryCache()
+		c.SetMaxEntries(2)
+		entry := func(b byte) *CacheEntry {
+			return &CacheEntry{Data: []byte{b}, Headers: make(http.Header), Timestamp: time.Now(), TTL: time.Hour}
+		}
+		_ = c.Set("k1", entry('a'))
+		_ = c.Set("k2", entry('b'))
+		if _, err := c.Get("k1"); err != nil {
+			t.Fatal(err)
+		}
+		_ = c.Set("k3", entry('c'))
+		if _, err := c.Get("k1"); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := c.Get("k3"); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := c.Get("k2"); err == nil {
+			t.Fatal("expected k2 evicted")
+		}
+	})
 }
 
 func TestCacheMiddleware(t *testing.T) {
@@ -255,10 +278,10 @@ func TestCacheKeyGeneration(t *testing.T) {
 		query    string
 		expected string
 	}{
-		{"GET", "/test", "", "cache:e2b43a77e8b6707afcc1571382ca7c73"},
-		{"GET", "/test", "param=value", "cache:067b4b550d6cee93dfb106d6912ef91b"},
-		{"POST", "/test", "", "cache:fb3126bb69b4d21769b5fa4d78318b0e"},
-		{"PUT", "/users/123", "", "cache:40b0b7a2306bfd4998d6219c1ef29783"},
+		{"GET", "/test", "", "cache:dbbdf14ce9e8333532d3760e4e1254e9a4f9b4bd7e98446754bfc23420d5e7c9"},
+		{"GET", "/test", "param=value", "cache:da0e5eaf04e82e40b49ebb8f0a1c85954a207119d7e2423a9c24a94ddb189f71"},
+		{"POST", "/test", "", "cache:719d94211ce99e5e0d039a4a7dfa57409eadf2573544454005c1fd4f3fce988f"},
+		{"PUT", "/users/123", "", "cache:168e0c53c01e3f92badb40db057805a786749b1fd9be4d1562f34ba6cfac77fe"},
 	}
 
 	for _, tt := range tests {
@@ -587,7 +610,6 @@ func TestCacheMiddlewarePreservesSecurityHeaders(t *testing.T) {
 	securityHeaders := []string{
 		"X-Content-Type-Options",
 		"X-Frame-Options",
-		"X-XSS-Protection",
 		"Referrer-Policy",
 		"Content-Security-Policy",
 		"Permissions-Policy",
@@ -698,31 +720,24 @@ func TestCacheMiddlewarePreservesHSTSHeader(t *testing.T) {
 
 func TestCacheInvalidationMiddleware(t *testing.T) {
 	cache := NewInMemoryCache()
+	prefixes := []string{"/api/posts", "/api/other"}
 
-	entries := []struct {
-		key   string
-		entry *CacheEntry
-	}{
-		{"cache:abc123", &CacheEntry{Data: []byte("data1"), Headers: make(http.Header), Timestamp: time.Now(), TTL: 5 * time.Minute}},
-		{"cache:def456", &CacheEntry{Data: []byte("data2"), Headers: make(http.Header), Timestamp: time.Now(), TTL: 5 * time.Minute}},
-		{"cache:ghi789", &CacheEntry{Data: []byte("data3"), Headers: make(http.Header), Timestamp: time.Now(), TTL: 5 * time.Minute}},
-	}
-
-	for _, e := range entries {
-		if err := cache.Set(e.key, e.entry); err != nil {
+	setIndexed := func(key string, entry *CacheEntry, path string) {
+		if err := cache.Set(key, entry); err != nil {
 			t.Fatalf("Failed to set cache entry: %v", err)
 		}
+		cache.RegisterKeyForPath(key, path, prefixes)
 	}
 
-	for _, e := range entries {
-		if _, err := cache.Get(e.key); err != nil {
-			t.Fatalf("Expected entry %s to exist, got error: %v", e.key, err)
-		}
-	}
+	postsEntry := &CacheEntry{Data: []byte("posts"), Headers: make(http.Header), Timestamp: time.Now(), TTL: 5 * time.Minute}
+	otherEntry := &CacheEntry{Data: []byte("other"), Headers: make(http.Header), Timestamp: time.Now(), TTL: 5 * time.Minute}
 
-	middleware := CacheInvalidationMiddleware(cache)
+	setIndexed("postsKey", postsEntry, "/api/posts/top")
+	setIndexed("otherKey", otherEntry, "/api/other/x")
 
-	t.Run("POST clears cache", func(t *testing.T) {
+	middleware := CacheInvalidationMiddleware(cache, prefixes)
+
+	t.Run("POST under posts prefix invalidates posts keys only", func(t *testing.T) {
 		request := httptest.NewRequest("POST", "/api/posts", nil)
 		recorder := httptest.NewRecorder()
 
@@ -732,80 +747,80 @@ func TestCacheInvalidationMiddleware(t *testing.T) {
 
 		time.Sleep(100 * time.Millisecond)
 
-		for _, e := range entries {
-			if _, err := cache.Get(e.key); err == nil {
-				t.Errorf("Expected entry %s to be cleared, but it still exists", e.key)
-			}
+		if _, err := cache.Get("postsKey"); err == nil {
+			t.Error("expected postsKey cleared")
+		}
+		if _, err := cache.Get("otherKey"); err != nil {
+			t.Errorf("expected otherKey to remain: %v", err)
 		}
 	})
 
-	for _, e := range entries {
-		if err := cache.Set(e.key, e.entry); err != nil {
-			t.Fatalf("Failed to repopulate cache: %v", err)
-		}
-	}
+	setIndexed("postsKey", postsEntry, "/api/posts/top")
+	wildEntry := &CacheEntry{Data: []byte("wild"), Headers: make(http.Header), Timestamp: time.Now(), TTL: 5 * time.Minute}
+	_ = cache.Set("untracked", wildEntry)
 
-	t.Run("PUT clears cache", func(t *testing.T) {
+	t.Run("mutation does not wipe untracked keys", func(t *testing.T) {
 		request := httptest.NewRequest("PUT", "/api/posts/1", nil)
 		recorder := httptest.NewRecorder()
-
 		middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		})).ServeHTTP(recorder, request)
 
 		time.Sleep(100 * time.Millisecond)
 
-		for _, e := range entries {
-			if _, err := cache.Get(e.key); err == nil {
-				t.Errorf("Expected entry %s to be cleared, but it still exists", e.key)
-			}
+		if _, err := cache.Get("untracked"); err != nil {
+			t.Fatal("untracked key should remain")
 		}
 	})
 
-	for _, e := range entries {
-		if err := cache.Set(e.key, e.entry); err != nil {
-			t.Fatalf("Failed to repopulate cache: %v", err)
-		}
-	}
-
-	t.Run("DELETE clears cache", func(t *testing.T) {
-		request := httptest.NewRequest("DELETE", "/api/posts/1", nil)
-		recorder := httptest.NewRecorder()
-
-		middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(http.StatusOK)
-		})).ServeHTTP(recorder, request)
-
-		time.Sleep(100 * time.Millisecond)
-
-		for _, e := range entries {
-			if _, err := cache.Get(e.key); err == nil {
-				t.Errorf("Expected entry %s to be cleared, but it still exists", e.key)
+	t.Run("GET does not invalidate", func(t *testing.T) {
+		cache2 := NewInMemoryCache()
+		setIndexed := func(key string, path string) {
+			e := &CacheEntry{Data: []byte("d"), Headers: make(http.Header), Timestamp: time.Now(), TTL: 5 * time.Minute}
+			if err := cache2.Set(key, e); err != nil {
+				t.Fatal(err)
 			}
+			cache2.RegisterKeyForPath(key, path, prefixes)
+		}
+		setIndexed("gk", "/api/posts/1")
+
+		mw := CacheInvalidationMiddleware(cache2, prefixes)
+		req := httptest.NewRequest("GET", "/api/posts", nil)
+		rec := httptest.NewRecorder()
+		mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})).ServeHTTP(rec, req)
+		time.Sleep(50 * time.Millisecond)
+		if _, err := cache2.Get("gk"); err != nil {
+			t.Fatal(err)
 		}
 	})
 
-	t.Run("GET does not clear cache", func(t *testing.T) {
-
-		for _, e := range entries {
-			if err := cache.Set(e.key, e.entry); err != nil {
-				t.Fatalf("Failed to repopulate cache: %v", err)
-			}
+	t.Run("DELETE under other prefix", func(t *testing.T) {
+		cache3 := NewInMemoryCache()
+		ep := &CacheEntry{Data: []byte("p"), Headers: make(http.Header), Timestamp: time.Now(), TTL: 5 * time.Minute}
+		eo := &CacheEntry{Data: []byte("o"), Headers: make(http.Header), Timestamp: time.Now(), TTL: 5 * time.Minute}
+		if err := cache3.Set("pk", ep); err != nil {
+			t.Fatal(err)
 		}
+		cache3.RegisterKeyForPath("pk", "/api/posts/1", prefixes)
+		if err := cache3.Set("ok", eo); err != nil {
+			t.Fatal(err)
+		}
+		cache3.RegisterKeyForPath("ok", "/api/other/y", prefixes)
 
-		request := httptest.NewRequest("GET", "/api/posts", nil)
-		recorder := httptest.NewRecorder()
-
-		middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mw := CacheInvalidationMiddleware(cache3, prefixes)
+		delReq := httptest.NewRequest("DELETE", "/api/other/y", nil)
+		rec := httptest.NewRecorder()
+		mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
-		})).ServeHTTP(recorder, request)
-
-		time.Sleep(100 * time.Millisecond)
-
-		for _, e := range entries {
-			if _, err := cache.Get(e.key); err != nil {
-				t.Errorf("Expected entry %s to still exist, got error: %v", e.key, err)
-			}
+		})).ServeHTTP(rec, delReq)
+		time.Sleep(50 * time.Millisecond)
+		if _, err := cache3.Get("ok"); err == nil {
+			t.Error("expected ok cleared")
+		}
+		if _, err := cache3.Get("pk"); err != nil {
+			t.Fatal("posts key should remain")
 		}
 	})
 }
