@@ -569,33 +569,41 @@ func TestParseUintParam(t *testing.T) {
 func TestRequireAuth(t *testing.T) {
 	tests := []struct {
 		name           string
-		userID         uint
+		setUserKey     bool
+		userIDValue    uint
 		expectedID     uint
 		expectedOK     bool
 		expectedStatus int
 		expectedError  string
 	}{
 		{
-			name:           "authenticated user",
-			userID:         123,
-			expectedID:     123,
-			expectedOK:     true,
-			expectedStatus: 0,
+			name:        "authenticated user",
+			setUserKey:  true,
+			userIDValue: 123,
+			expectedID:  123,
+			expectedOK:  true,
 		},
 		{
-			name:           "unauthenticated user (no userID)",
-			userID:         0,
+			name:           "unauthenticated user (missing context)",
+			setUserKey:     false,
 			expectedID:     0,
 			expectedOK:     false,
 			expectedStatus: http.StatusUnauthorized,
 			expectedError:  "Authentication required",
 		},
 		{
-			name:           "authenticated user with large ID",
-			userID:         4294967295,
-			expectedID:     4294967295,
-			expectedOK:     true,
-			expectedStatus: 0,
+			name:        "authenticated user with id zero",
+			setUserKey:  true,
+			userIDValue: 0,
+			expectedID:  0,
+			expectedOK:  true,
+		},
+		{
+			name:        "authenticated user with large ID",
+			setUserKey:  true,
+			userIDValue: 4294967295,
+			expectedID:  4294967295,
+			expectedOK:  true,
 		},
 	}
 
@@ -604,7 +612,10 @@ func TestRequireAuth(t *testing.T) {
 			w := httptest.NewRecorder()
 			r := httptest.NewRequest("GET", "/", nil)
 
-			ctx := context.WithValue(r.Context(), middleware.UserIDKey, tt.userID)
+			ctx := context.Background()
+			if tt.setUserKey {
+				ctx = context.WithValue(ctx, middleware.UserIDKey, tt.userIDValue)
+			}
 			r = r.WithContext(ctx)
 
 			userID, ok := RequireAuth(w, r)
