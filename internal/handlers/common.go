@@ -200,17 +200,21 @@ func ParseUintParam(w http.ResponseWriter, r *http.Request, paramName, entityNam
 }
 
 func RequireAuth(w http.ResponseWriter, r *http.Request) (uint, bool) {
-	userID := middleware.GetUserIDFromContext(r.Context())
-	if userID == 0 {
+	userPtr := middleware.GetUserIDFromContext(r.Context())
+	if userPtr == nil {
 		SendErrorResponse(w, "Authentication required", http.StatusUnauthorized)
 		return 0, false
 	}
-	return userID, true
+	return *userPtr, true
 }
 
 func NewVoteContext(r *http.Request) services.VoteContext {
+	var uid uint
+	if userPtr := middleware.GetUserIDFromContext(r.Context()); userPtr != nil {
+		uid = *userPtr
+	}
 	return services.VoteContext{
-		UserID:    middleware.GetUserIDFromContext(r.Context()),
+		UserID:    uid,
 		IPAddress: GetClientIP(r),
 		UserAgent: r.UserAgent(),
 	}
