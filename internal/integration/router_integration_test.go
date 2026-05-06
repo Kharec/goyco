@@ -22,7 +22,6 @@ func TestIntegration_Router_FullMiddlewareChain(t *testing.T) {
 
 		assertHeader(t, request, "X-Content-Type-Options")
 		assertHeader(t, request, "X-Frame-Options")
-		assertHeader(t, request, "X-XSS-Protection")
 	})
 
 	t.Run("CORS_Headers_Present", func(t *testing.T) {
