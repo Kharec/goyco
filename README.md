@@ -171,13 +171,21 @@ server {
 }
 ```
 
+### Security headers and middleware ordering
+
+When `RATE_LIMIT_TRUST_PROXY` is `true`, the application trusts `X-Forwarded-Proto` (among other forwarded headers) for HSTS and client IP derivation. Configure your reverse proxy to set trustworthy values and strip or overwrite any client-supplied forwarding headers before they reach the app.
+
+Response caching uses `DecompressionMiddleware` before `DefaultRequestSizeLimitMiddleware`. Decompression is additionally capped internally so gzipped bodies cannot expand without limit before other limits apply.
+
+In production (`GOYCO_ENV=production`), Swagger UI is not registered unless `SWAGGER_ENABLED=true`.
+
 ## API Documentation
 
-The API is fully documented with Swagger.
+The API is fully documented with Swagger (enabled for non-production environments, or when `SWAGGER_ENABLED=true`).
 
 Once running, visit:
 
-- **Swagger UI**: `https://goyco.example.com/swagger/index.html`
+- **Swagger UI**: `https://goyco.example.com/swagger/index.html` (not served in production unless explicitly enabled via `SWAGGER_ENABLED`)
 
 You can also use `curl` to get the API info, health check and even metrics:
 
