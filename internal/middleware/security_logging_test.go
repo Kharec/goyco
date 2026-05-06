@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -563,6 +564,28 @@ func TestSuspiciousActivityMiddleware_NoSuspiciousActivity(t *testing.T) {
 	logOutput := buf.String()
 	if logOutput != "" {
 		t.Errorf("Expected no log output for normal request, got %q", logOutput)
+	}
+}
+
+func TestSuspiciousActivityMiddleware_EncodedSQLInQuery(t *testing.T) {
+	var buf bytes.Buffer
+	logger := &SecurityLogger{
+		logger: log.New(&buf, "[SECURITY] ", log.LstdFlags|log.Lshortfile),
+	}
+
+	handler := SuspiciousActivityMiddleware(logger)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	q := url.Values{}
+	q.Set("s", "' OR '1'='1")
+	req := httptest.NewRequest("GET", "/search?"+q.Encode(), nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	out := buf.String()
+	if !strings.Contains(out, "SQL injection") {
+		t.Fatalf("expected SQL injection log, got %q", out)
 	}
 }
 
