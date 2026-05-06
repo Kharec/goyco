@@ -3,6 +3,7 @@ package server
 import (
 	"mime"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -32,12 +33,23 @@ type RouterConfig struct {
 	RateLimitConfig    config.RateLimitConfig
 }
 
+func swaggerExposed() bool {
+	if strings.EqualFold(strings.TrimSpace(os.Getenv("SWAGGER_ENABLED")), "true") {
+		return true
+	}
+	return strings.ToLower(strings.TrimSpace(os.Getenv("GOYCO_ENV"))) != "production"
+}
+
 func NewRouter(cfg RouterConfig) http.Handler {
 	middleware.SetTrustProxyHeaders(cfg.RateLimitConfig.TrustProxyHeaders)
 
+	exposeSwagger := swaggerExposed()
+
 	router := chi.NewRouter()
 	router.Use(middleware.Logging(cfg.Debug))
-	router.Use(middleware.SecurityHeadersMiddleware())
+	router.Use(middleware.SecurityHeadersMiddlewareWithConfig(middleware.SecurityHeadersConfig{
+		RelaxSwaggerCSP: exposeSwagger,
+	}))
 	router.Use(middleware.HSTSMiddleware())
 	router.Use(middleware.CORS)
 
@@ -54,7 +66,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 			cacheConfig.CacheablePaths = append([]string{}, cfg.CacheablePaths...)
 		}
 		router.Use(middleware.CacheMiddleware(cache, cacheConfig))
-		router.Use(middleware.CacheInvalidationMiddleware(cache))
+		router.Use(middleware.CacheInvalidationMiddleware(cache, cacheConfig.CacheablePaths))
 	}
 
 	var dbMonitor middleware.DBMonitor
@@ -94,8 +106,10 @@ func NewRouter(cfg RouterConfig) http.Handler {
 		metricsRateLimited.Get("/metrics", cfg.APIHandler.GetMetrics)
 	}
 
-	swaggerRateLimited := router.With(middleware.GeneralRateLimitMiddlewareWithLimit(cfg.RateLimitConfig.GeneralLimit))
-	swaggerRateLimited.Get("/swagger/*", httpSwagger.Handler())
+	if exposeSwagger {
+		swaggerRateLimited := router.With(middleware.GeneralRateLimitMiddlewareWithLimit(cfg.RateLimitConfig.GeneralLimit))
+		swaggerRateLimited.Get("/swagger/*", httpSwagger.Handler())
+	}
 
 	router.Get("/robots.txt", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, filepath.Join(cfg.StaticDir, "robots.txt"))
