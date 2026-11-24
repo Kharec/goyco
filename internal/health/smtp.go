@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+const defaultSMTPCheckTimeout = 30 * time.Second
+
 type SMTPConfig struct {
 	Host     string
 	Port     int
@@ -43,7 +45,13 @@ func (c *SMTPChecker) Check(ctx context.Context) Result {
 		},
 	}
 
-	conn, err := net.Dial("tcp", address)
+	deadline := start.Add(defaultSMTPCheckTimeout)
+	if contextDeadline, ok := ctx.Deadline(); ok && contextDeadline.Before(deadline) {
+		deadline = contextDeadline
+	}
+
+	dialer := net.Dialer{Deadline: deadline}
+	conn, err := dialer.DialContext(ctx, "tcp", address)
 	if err != nil {
 		result.Status = StatusUnhealthy
 		result.Message = fmt.Sprintf("Failed to connect to SMTP server: %v", err)
@@ -51,6 +59,18 @@ func (c *SMTPChecker) Check(ctx context.Context) Result {
 		return result
 	}
 	defer conn.Close()
+
+	if err := conn.SetDeadline(deadline); err != nil {
+		result.Status = StatusUnhealthy
+		result.Message = fmt.Sprintf("Failed to set SMTP connection deadline: %v", err)
+		result.Latency = time.Since(start)
+		return result
+	}
+
+	stopCancellation := context.AfterFunc(ctx, func() {
+		_ = conn.SetDeadline(time.Now())
+	})
+	defer stopCancellation()
 
 	client, err := smtp.NewClient(conn, c.config.Host)
 	if err != nil {

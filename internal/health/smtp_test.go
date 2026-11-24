@@ -64,6 +64,65 @@ func TestSMTPChecker_Check_ConnectionRefused(t *testing.T) {
 	}
 }
 
+func TestSMTPChecker_Check_ContextCancellation(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("failed to create listener: %v", err)
+	}
+	defer listener.Close()
+
+	port := listener.Addr().(*net.TCPAddr).Port
+	accepted := make(chan struct{})
+	serverDone := make(chan struct{})
+
+	go func() {
+		defer close(serverDone)
+		conn, err := listener.Accept()
+		if err != nil {
+			return
+		}
+		defer conn.Close()
+
+		close(accepted)
+		_, _ = conn.Read(make([]byte, 1))
+	}()
+
+	checker := NewSMTPChecker(SMTPConfig{
+		Host: "127.0.0.1",
+		Port: port,
+	})
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	resultDone := make(chan Result, 1)
+	go func() {
+		resultDone <- checker.Check(ctx)
+	}()
+
+	select {
+	case <-accepted:
+	case <-time.After(2 * time.Second):
+		t.Fatal("server did not accept connection")
+	}
+
+	cancel()
+
+	select {
+	case result := <-resultDone:
+		if result.Status != StatusUnhealthy {
+			t.Errorf("expected unhealthy status after context cancellation, got %s", result.Status)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("SMTP check did not return after context cancellation")
+	}
+
+	select {
+	case <-serverDone:
+	case <-time.After(2 * time.Second):
+		t.Error("server timeout")
+	}
+}
+
 func TestSMTPChecker_Check_WithMockServer(t *testing.T) {
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
