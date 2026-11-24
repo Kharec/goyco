@@ -95,11 +95,14 @@ func (c *SMTPChecker) Check(ctx context.Context) Result {
 		}
 		err = client.StartTLS(tlsConfig)
 		if err != nil {
+			result.Status = StatusUnhealthy
+			result.Message = fmt.Sprintf("STARTTLS failed: %v", err)
 			result.Details["starttls"] = "failed"
 			result.Details["starttls_error"] = err.Error()
-		} else {
-			result.Details["starttls"] = "enabled"
+			result.Latency = time.Since(start)
+			return result
 		}
+		result.Details["starttls"] = "enabled"
 	} else {
 		result.Details["starttls"] = "not supported"
 	}
@@ -108,16 +111,24 @@ func (c *SMTPChecker) Check(ctx context.Context) Result {
 		auth := smtp.PlainAuth("", c.config.Username, c.config.Password, c.config.Host)
 		err = client.Auth(auth)
 		if err != nil {
+			result.Status = StatusUnhealthy
+			result.Message = fmt.Sprintf("SMTP authentication failed: %v", err)
 			result.Details["auth"] = "failed"
 			result.Details["auth_error"] = err.Error()
-		} else {
-			result.Details["auth"] = "success"
+			result.Latency = time.Since(start)
+			return result
 		}
+		result.Details["auth"] = "success"
 	} else {
 		result.Details["auth"] = "not configured"
 	}
 
-	client.Quit()
+	if err := client.Quit(); err != nil {
+		result.Status = StatusDegraded
+		result.Message = fmt.Sprintf("SMTP QUIT failed: %v", err)
+		result.Latency = time.Since(start)
+		return result
+	}
 
 	result.Latency = time.Since(start)
 	result.Details["handshake"] = "completed"

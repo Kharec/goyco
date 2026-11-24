@@ -123,7 +123,7 @@ func TestSMTPChecker_Check_ContextCancellation(t *testing.T) {
 	}
 }
 
-func TestSMTPChecker_Check_WithMockServer(t *testing.T) {
+func TestSMTPChecker_Check_STARTTLSFailure(t *testing.T) {
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatalf("failed to create listener: %v", err)
@@ -183,8 +183,20 @@ func TestSMTPChecker_Check_WithMockServer(t *testing.T) {
 		t.Error("server timeout")
 	}
 
-	if result.Status != StatusHealthy && result.Status != StatusDegraded {
-		t.Errorf("unexpected status: %s", result.Status)
+	if result.Status != StatusUnhealthy {
+		t.Errorf("expected unhealthy status for STARTTLS failure, got %s", result.Status)
+	}
+
+	if !strings.Contains(result.Message, "STARTTLS") {
+		t.Errorf("expected STARTTLS error in message, got: %s", result.Message)
+	}
+
+	if result.Details["starttls"] != "failed" {
+		t.Errorf("expected starttls failed, got: %v", result.Details["starttls"])
+	}
+
+	if _, ok := result.Details["handshake"]; ok {
+		t.Error("did not expect handshake to be completed after STARTTLS failure")
 	}
 
 	if result.Details["host"] == nil {
@@ -292,8 +304,138 @@ func TestSMTPChecker_Check_STARTTLSNotSupported(t *testing.T) {
 		t.Error("server timeout")
 	}
 
-	if result.Details["starttls"] != "not supported" && result.Details["starttls"] != "failed" {
-		t.Errorf("expected starttls not supported or failed, got: %v", result.Details["starttls"])
+	if result.Status != StatusHealthy {
+		t.Errorf("expected healthy status when STARTTLS is not supported, got %s", result.Status)
+	}
+
+	if result.Details["starttls"] != "not supported" {
+		t.Errorf("expected starttls not supported, got: %v", result.Details["starttls"])
+	}
+
+	if result.Details["handshake"] != "completed" {
+		t.Errorf("expected completed handshake, got: %v", result.Details["handshake"])
+	}
+}
+
+func TestSMTPChecker_Check_QuitFailure(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("failed to create listener: %v", err)
+	}
+	defer listener.Close()
+
+	port := listener.Addr().(*net.TCPAddr).Port
+
+	serverDone := make(chan bool)
+	go func() {
+		defer close(serverDone)
+		conn, err := listener.Accept()
+		if err != nil {
+			return
+		}
+		defer conn.Close()
+
+		conn.Write([]byte("220 test.example.com ESMTP ready\r\n"))
+
+		buf := make([]byte, 1024)
+		n, _ := conn.Read(buf)
+		if n > 0 {
+			conn.Write([]byte("250-test.example.com\r\n250 AUTH PLAIN\r\n"))
+		}
+
+		n, _ = conn.Read(buf)
+		if n > 0 {
+			conn.Write([]byte("500 5.5.2 Unable to close session\r\n"))
+		}
+	}()
+
+	checker := NewSMTPChecker(SMTPConfig{
+		Host: "127.0.0.1",
+		Port: port,
+	})
+	result := checker.Check(context.Background())
+
+	select {
+	case <-serverDone:
+	case <-time.After(2 * time.Second):
+		t.Error("server timeout")
+	}
+
+	if result.Status != StatusDegraded {
+		t.Errorf("expected degraded status for QUIT failure, got %s", result.Status)
+	}
+
+	if !strings.Contains(result.Message, "QUIT") {
+		t.Errorf("expected QUIT error in message, got: %s", result.Message)
+	}
+
+	if _, ok := result.Details["handshake"]; ok {
+		t.Error("did not expect handshake to be completed after QUIT failure")
+	}
+}
+
+func TestSMTPChecker_Check_AuthFailure(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("failed to create listener: %v", err)
+	}
+	defer listener.Close()
+
+	port := listener.Addr().(*net.TCPAddr).Port
+
+	serverDone := make(chan bool)
+	go func() {
+		defer close(serverDone)
+		conn, err := listener.Accept()
+		if err != nil {
+			return
+		}
+		defer conn.Close()
+
+		conn.Write([]byte("220 test.example.com ESMTP ready\r\n"))
+
+		buf := make([]byte, 1024)
+		n, _ := conn.Read(buf)
+		if n > 0 {
+			conn.Write([]byte("250-test.example.com\r\n250 AUTH PLAIN\r\n"))
+		}
+
+		n, _ = conn.Read(buf)
+		if n > 0 {
+			conn.Write([]byte("535 5.7.8 Authentication credentials invalid\r\n"))
+		}
+	}()
+
+	config := SMTPConfig{
+		Host:     "127.0.0.1",
+		Port:     port,
+		Username: "test@example.com",
+		Password: "wrong-password",
+	}
+
+	checker := NewSMTPChecker(config)
+	result := checker.Check(context.Background())
+
+	select {
+	case <-serverDone:
+	case <-time.After(2 * time.Second):
+		t.Error("server timeout")
+	}
+
+	if result.Status != StatusUnhealthy {
+		t.Errorf("expected unhealthy status for authentication failure, got %s", result.Status)
+	}
+
+	if !strings.Contains(result.Message, "authentication") {
+		t.Errorf("expected authentication error in message, got: %s", result.Message)
+	}
+
+	if result.Details["auth"] != "failed" {
+		t.Errorf("expected auth failed, got: %v", result.Details["auth"])
+	}
+
+	if _, ok := result.Details["handshake"]; ok {
+		t.Error("did not expect handshake to be completed after authentication failure")
 	}
 }
 
@@ -320,7 +462,7 @@ func TestSMTPChecker_Check_AuthNotConfigured(t *testing.T) {
 		buf := make([]byte, 1024)
 		n, _ := conn.Read(buf)
 		if n > 0 {
-			conn.Write([]byte("250-test.example.com\r\n250-STARTTLS\r\n250 AUTH PLAIN\r\n"))
+			conn.Write([]byte("250-test.example.com\r\n250 AUTH PLAIN\r\n"))
 		}
 
 		n, _ = conn.Read(buf)
@@ -345,8 +487,16 @@ func TestSMTPChecker_Check_AuthNotConfigured(t *testing.T) {
 		t.Error("server timeout")
 	}
 
+	if result.Status != StatusHealthy {
+		t.Errorf("expected healthy status when auth is not configured, got %s", result.Status)
+	}
+
 	if result.Details["auth"] != "not configured" {
 		t.Errorf("expected auth not configured, got: %v", result.Details["auth"])
+	}
+
+	if result.Details["handshake"] != "completed" {
+		t.Errorf("expected completed handshake, got: %v", result.Details["handshake"])
 	}
 }
 
